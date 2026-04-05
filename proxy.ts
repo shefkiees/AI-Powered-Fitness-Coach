@@ -6,9 +6,10 @@ const PROTECTED = [
   "/onboarding",
   "/pose-estimation",
   "/profile",
+  "/workout",
 ];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -37,7 +38,9 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
-  const isProtected = PROTECTED.some((p) => path === p || path.startsWith(`${p}/`));
+  const isProtected = PROTECTED.some(
+    (p) => path === p || path.startsWith(`${p}/`),
+  );
 
   if (isProtected && !user) {
     const url = request.nextUrl.clone();
@@ -56,5 +59,7 @@ export const config = {
     "/pose-estimation/:path*",
     "/profile",
     "/profile/:path*",
+    "/workout",
+    "/workout/:path*",
   ],
 };

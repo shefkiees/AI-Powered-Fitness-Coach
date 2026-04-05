@@ -1,12 +1,25 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0f172a; /* Një blu/gri shumë e errët (slate-900) */
+  --background: #070b12;
   --foreground: #f8fafc;
+  --fc-bg-page: #070b12;
+  --fc-surface: rgba(15, 23, 42, 0.72);
+  --fc-border: rgba(51, 65, 85, 0.55);
+  --fc-accent: #a3e635;
+  --fc-accent-2: #10b981;
+  --fc-muted: #94a3b8;
+}
+
+.fc-glass {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 body {
-  background: var(--background);
+  background: var(--fc-bg-page);
   color: var(--foreground);
 }
 

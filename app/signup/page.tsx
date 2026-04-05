@@ -12,6 +12,19 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 
+const fieldContainer = {
+  hidden: { opacity: 0, x: 18 },
+  show: (i: number) => ({
+    opacity: 1,
+    x: 0,
+    transition: {
+      delay: 0.14 + i * 0.055,
+      duration: 0.45,
+      ease: [0.22, 1, 0.36, 1] as const,
+    },
+  }),
+};
+
 export default function SignupPage() {
   const router = useRouter();
   const { signUp, user, loading: authLoading } = useAuth();
@@ -67,31 +80,45 @@ export default function SignupPage() {
           Already have an account?{" "}
           <Link
             href="/login"
-            className="font-semibold text-teal-400 transition hover:text-teal-300"
+            className="font-semibold text-[var(--fc-accent)] transition duration-300 hover:text-lime-300 hover:underline"
           >
             Sign in
           </Link>
         </p>
       }
     >
-      <div className="mb-8 text-center">
+      <motion.div
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
+        className="mb-8 text-center"
+      >
         <motion.div
-          initial={{ scale: 0.92, opacity: 0 }}
+          initial={{ scale: 0.85, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.05, duration: 0.35 }}
-          className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500/90 to-teal-500 shadow-lg shadow-violet-900/40"
+          transition={{ delay: 0.06, type: "spring", stiffness: 260, damping: 22 }}
+          className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--fc-accent)] via-emerald-500 to-cyan-500 shadow-lg shadow-lime-900/40"
         >
-          <UserPlus className="h-7 w-7 text-white" />
+          <UserPlus className="h-7 w-7 text-slate-950" />
         </motion.div>
         <h1 className="text-2xl font-bold tracking-tight text-white sm:text-[1.75rem]">
-          Create your account
+          Start your journey
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-slate-400">
-          Join in seconds—your profile and workouts stay private in Supabase.
+          Create your <span className="font-semibold text-slate-300">AI FITNESS COACH</span>{" "}
+          account—quick setup, then we personalize your plan.
         </p>
-      </div>
+      </motion.div>
 
-      <form onSubmit={onSubmit} className="space-y-5">
+      <motion.form
+        onSubmit={onSubmit}
+        className="space-y-5"
+        initial="hidden"
+        animate="show"
+        variants={{
+          show: { transition: { staggerChildren: 0.05, delayChildren: 0.12 } },
+        }}
+      >
         {error ? (
           <motion.div
             initial={{ opacity: 0, y: -6 }}
@@ -103,49 +130,57 @@ export default function SignupPage() {
           </motion.div>
         ) : null}
 
-        <Input
-          label="Name"
-          name="name"
-          autoComplete="name"
-          placeholder="Alex"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          icon={User}
-          className="border-slate-600/80 bg-slate-950/60"
-        />
+        <motion.div custom={0} variants={fieldContainer}>
+          <Input
+            label="Name"
+            name="name"
+            autoComplete="name"
+            placeholder="How should we greet you?"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            icon={User}
+            className="border-slate-600/80 bg-slate-950/50 transition-colors duration-300 focus:border-cyan-500/50 focus:ring-cyan-500/30"
+          />
+        </motion.div>
 
-        <Input
-          label="Email"
-          type="email"
-          name="email"
-          autoComplete="email"
-          placeholder="you@example.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          icon={Mail}
-          className="border-slate-600/80 bg-slate-950/60"
-        />
+        <motion.div custom={1} variants={fieldContainer}>
+          <Input
+            label="Email"
+            type="email"
+            name="email"
+            autoComplete="email"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            icon={Mail}
+            className="border-slate-600/80 bg-slate-950/50 transition-colors duration-300 focus:border-cyan-500/50 focus:ring-cyan-500/30"
+          />
+        </motion.div>
 
-        <PasswordInput
-          label="Password"
-          name="password"
-          autoComplete="new-password"
-          placeholder="At least 6 characters"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          className="border-slate-600/80 bg-slate-950/60"
-        />
+        <motion.div custom={2} variants={fieldContainer}>
+          <PasswordInput
+            label="Password"
+            name="password"
+            autoComplete="new-password"
+            placeholder="At least 6 characters"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            className="border-slate-600/80 bg-slate-950/50 transition-colors duration-300 focus:border-cyan-500/50 focus:ring-cyan-500/30"
+          />
+        </motion.div>
 
-        <Button
-          type="submit"
-          className="mt-2 w-full py-3.5 text-base shadow-lg shadow-teal-900/30"
-          loading={submitting}
-        >
-          Sign up
-        </Button>
-      </form>
+        <motion.div custom={3} variants={fieldContainer}>
+          <Button
+            type="submit"
+            className="mt-1 w-full py-3.5 text-base"
+            loading={submitting}
+          >
+            Create account
+          </Button>
+        </motion.div>
+      </motion.form>
     </AuthShell>
   );
 }

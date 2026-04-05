@@ -5,19 +5,26 @@ import { Camera, CameraOff, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
-import { drawPoseOnCanvas } from "@/lib/pose/drawPose";
+import { drawPoseOnCanvas, type PoseKeypoint } from "@/lib/pose/drawPose";
+import {
+  analyzePoseForm,
+  type FormStatus,
+} from "@/lib/pose/formHeuristics";
 
 export type PoseCameraPreviewProps = {
   embedded?: boolean;
   className?: string;
   /** Load MoveNet + draw skeleton. Off for very low-end embeds if needed. */
   enablePoseDetection?: boolean;
+  /** Live cues from keypoints (heuristic, not medical advice). */
+  formFeedback?: boolean;
 };
 
 export function PoseCameraPreview({
   embedded = false,
   className,
   enablePoseDetection = true,
+  formFeedback = false,
 }: PoseCameraPreviewProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -32,6 +39,10 @@ export function PoseCameraPreview({
   const [error, setError] = useState<string | null>(null);
   const [modelLoading, setModelLoading] = useState(false);
   const [modelReady, setModelReady] = useState(false);
+  const [formStatus, setFormStatus] = useState<FormStatus>("off_frame");
+  const [formHeadline, setFormHeadline] = useState("Analyzing…");
+  const [formTips, setFormTips] = useState<string[]>([]);
+  const frameCountRef = useRef(0);
 
   const stopCamera = useCallback(() => {
     activeRef.current = false;
@@ -79,8 +90,22 @@ export function PoseCameraPreview({
               const poses = await detector.estimatePoses(v, {
                 flipHorizontal: false,
               });
-              const kp = poses[0]?.keypoints;
-              if (kp?.length) drawPoseOnCanvas(cv, v, kp);
+              const kp = poses[0]?.keypoints as PoseKeypoint[] | undefined;
+              if (kp?.length) {
+                drawPoseOnCanvas(cv, v, kp);
+                if (formFeedback) {
+                  frameCountRef.current += 1;
+                  if (frameCountRef.current % 10 === 0) {
+                    const { status, headline, tips } = analyzePoseForm(kp, {
+                      width: v.videoWidth || v.clientWidth,
+                      height: v.videoHeight || v.clientHeight,
+                    });
+                    setFormStatus(status);
+                    setFormHeadline(headline);
+                    setFormTips(tips);
+                  }
+                }
+              }
             }
           } catch {
             /* skip frame */
@@ -92,7 +117,7 @@ export function PoseCameraPreview({
       });
     };
     tick();
-  }, []);
+  }, [formFeedback]);
 
   const startPoseModel = useCallback(async () => {
     if (!enablePoseDetection) return;
@@ -213,6 +238,27 @@ export function PoseCameraPreview({
         {active && enablePoseDetection && modelReady ? (
           <div className="absolute bottom-2 right-2 rounded-lg bg-lime-500/20 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-lime-200">
             Tracking
+          </div>
+        ) : null}
+        {active && formFeedback && modelReady ? (
+          <div
+            className={`absolute left-2 right-2 top-2 rounded-xl border px-3 py-2 text-left shadow-lg backdrop-blur-md sm:left-auto sm:right-2 sm:max-w-sm ${
+              formStatus === "good"
+                ? "border-emerald-500/40 bg-emerald-950/75 text-emerald-50"
+                : formStatus === "adjust"
+                  ? "border-amber-500/40 bg-amber-950/75 text-amber-50"
+                  : "border-slate-600/60 bg-slate-950/80 text-slate-200"
+            }`}
+          >
+            <p className="text-[10px] font-semibold uppercase tracking-wider opacity-80">
+              Form check
+            </p>
+            <p className="mt-0.5 text-sm font-bold">{formHeadline}</p>
+            <ul className="mt-1 list-inside list-disc text-xs leading-snug opacity-95">
+              {formTips.map((t, idx) => (
+                <li key={`${idx}-${t.slice(0, 24)}`}>{t}</li>
+              ))}
+            </ul>
           </div>
         ) : null}
       </div>

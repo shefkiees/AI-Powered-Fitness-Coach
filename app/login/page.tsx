@@ -12,6 +12,19 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 
+const fieldContainer = {
+  hidden: { opacity: 0, x: 20 },
+  show: (i: number) => ({
+    opacity: 1,
+    x: 0,
+    transition: {
+      delay: 0.12 + i * 0.06,
+      duration: 0.45,
+      ease: [0.22, 1, 0.36, 1] as const,
+    },
+  }),
+};
+
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -58,19 +71,24 @@ function LoginForm() {
           No account?{" "}
           <Link
             href="/signup"
-            className="font-semibold text-lime-400 transition hover:text-lime-300"
+            className="font-semibold text-[var(--fc-accent)] transition duration-300 hover:text-lime-300 hover:underline"
           >
             Create one free
           </Link>
         </p>
       }
     >
-      <div className="mb-8 text-center">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        className="mb-8 text-center"
+      >
         <motion.div
-          initial={{ scale: 0.92, opacity: 0 }}
+          initial={{ scale: 0.85, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.05, duration: 0.35 }}
-          className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-lime-400 to-emerald-600 shadow-lg shadow-lime-900/40"
+          transition={{ delay: 0.08, type: "spring", stiffness: 260, damping: 22 }}
+          className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--fc-accent)] via-emerald-500 to-cyan-500 shadow-lg shadow-lime-900/40"
         >
           <LogIn className="h-7 w-7 text-slate-950" />
         </motion.div>
@@ -78,19 +96,25 @@ function LoginForm() {
           Welcome back
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-slate-400 sm:text-[0.9375rem]">
-          Sign in to your dashboard, workout plan, and AI coach.
+          Sign in to <span className="font-semibold text-slate-300">AI FITNESS COACH</span>
+          —your hub, plans, and coach.
         </p>
-      </div>
+      </motion.div>
 
-      <form onSubmit={onSubmit} className="space-y-6" noValidate>
+      <motion.form
+        onSubmit={onSubmit}
+        className="space-y-5"
+        noValidate
+        initial="hidden"
+        animate="show"
+        variants={{
+          show: { transition: { staggerChildren: 0.05, delayChildren: 0.15 } },
+        }}
+      >
         {registered ? (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            className="overflow-hidden rounded-2xl border border-lime-500/35 bg-lime-500/10 px-4 py-3 text-sm text-lime-100"
-          >
+          <div className="rounded-2xl border border-lime-500/35 bg-lime-500/10 px-4 py-3 text-sm text-lime-100">
             Account created. Confirm your email if prompted, then sign in.
-          </motion.div>
+          </div>
         ) : null}
         {error ? (
           <motion.div
@@ -103,11 +127,7 @@ function LoginForm() {
           </motion.div>
         ) : null}
 
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
+        <motion.div custom={0} variants={fieldContainer}>
           <Input
             label="Email"
             type="email"
@@ -119,15 +139,11 @@ function LoginForm() {
             onChange={(e) => setEmail(e.target.value)}
             required
             icon={Mail}
-            className="border-slate-600/80 bg-slate-950/60 focus:ring-lime-500/40"
+            className="border-slate-600/80 bg-slate-950/50 transition-colors duration-300 focus:border-cyan-500/50 focus:ring-cyan-500/30"
           />
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-        >
+        <motion.div custom={1} variants={fieldContainer}>
           <PasswordInput
             label="Password"
             name="password"
@@ -137,24 +153,20 @@ function LoginForm() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="border-slate-600/80 bg-slate-950/60 focus:ring-lime-500/40"
+            className="border-slate-600/80 bg-slate-950/50 transition-colors duration-300 focus:border-cyan-500/50 focus:ring-cyan-500/30"
           />
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
+        <motion.div custom={2} variants={fieldContainer}>
           <Button
             type="submit"
-            className="mt-1 w-full py-3.5 text-base shadow-lg shadow-lime-900/25"
+            className="mt-1 w-full py-3.5 text-base"
             loading={submitting}
           >
             Sign in
           </Button>
         </motion.div>
-      </form>
+      </motion.form>
     </AuthShell>
   );
 }
@@ -163,8 +175,8 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center bg-[#070b12] text-slate-400">
-          <div className="h-10 w-10 animate-spin rounded-full border-2 border-lime-500/30 border-t-lime-400" />
+        <div className="flex min-h-screen items-center justify-center bg-[var(--fc-bg-page)] text-slate-400">
+          <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--fc-accent)]/30 border-t-[var(--fc-accent)]" />
         </div>
       }
     >

@@ -55,9 +55,9 @@ export default function HomePage() {
 
   if (authLoading || (user && checking)) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#070b12] text-slate-400">
+      <div className="flex min-h-screen items-center justify-center bg-[var(--fc-bg-page)] text-slate-400">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-10 w-10 animate-spin rounded-full border-2 border-teal-500/30 border-t-teal-400" />
+          <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--fc-accent)]/30 border-t-[var(--fc-accent)]" />
           <p className="text-sm">Loading your workspace…</p>
         </div>
       </div>
@@ -74,7 +74,7 @@ export default function HomePage() {
       loadError.includes("column");
 
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#070b12] p-4">
+      <div className="flex min-h-screen items-center justify-center bg-[var(--fc-bg-page)] p-4">
         <Card className="max-w-lg border-red-500/20 bg-slate-900/90">
           <h1 className="text-lg font-semibold text-white">Database setup required</h1>
           <p className="mt-2 text-sm leading-relaxed text-slate-400">
@@ -110,13 +110,13 @@ export default function HomePage() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#070b12] text-slate-100">
+    <div className="relative min-h-screen overflow-hidden bg-[var(--fc-bg-page)] text-slate-100">
       <div
         className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,#0c1222_0%,#070b12_45%)]"
         aria-hidden
       />
       <div
-        className="pointer-events-none absolute -left-20 top-20 h-72 w-72 rounded-full bg-teal-500/15 blur-[100px]"
+        className="pointer-events-none absolute -left-20 top-20 h-72 w-72 rounded-full bg-[var(--fc-accent)]/12 blur-[100px]"
         aria-hidden
       />
       <div
@@ -126,11 +126,11 @@ export default function HomePage() {
 
       <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-4 py-6 sm:px-6">
         <div className="flex items-center gap-2">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-teal-400 to-emerald-600 shadow-lg shadow-teal-900/40">
-            <Sparkles className="h-5 w-5 text-white" />
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--fc-accent)] to-[var(--fc-accent-2)] shadow-lg shadow-lime-900/40">
+            <Sparkles className="h-5 w-5 text-slate-950" />
           </span>
-          <span className="text-sm font-semibold uppercase tracking-[0.2em] text-teal-400/90">
-            AI Fitness Coach
+          <span className="text-[11px] font-bold uppercase leading-tight tracking-[0.18em] text-[var(--fc-accent)] sm:text-xs">
+            AI FITNESS COACH
           </span>
         </div>
         <div className="flex items-center gap-3">
@@ -156,7 +156,7 @@ export default function HomePage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <p className="inline-flex items-center gap-2 rounded-full border border-teal-500/30 bg-teal-500/10 px-3 py-1 text-xs font-medium text-teal-200">
+            <p className="inline-flex items-center gap-2 rounded-full border border-[var(--fc-accent)]/35 bg-[var(--fc-accent)]/10 px-3 py-1 text-xs font-medium text-lime-100">
               <Zap className="h-3.5 w-3.5" />
               Onboarding-first · Private by design
             </p>
@@ -169,7 +169,7 @@ export default function HomePage() {
             </p>
             <div className="mt-10 flex flex-wrap gap-4">
               <Link href="/signup">
-                <Button className="gap-2 px-8 py-3.5 text-base shadow-xl shadow-teal-900/40">
+                <Button className="gap-2 px-8 py-3.5 text-base shadow-xl shadow-lime-900/40">
                   Create free account
                   <ArrowRight className="h-4 w-4" />
                 </Button>
@@ -201,7 +201,7 @@ export default function HomePage() {
                 </h2>
                 <ul className="mt-5 space-y-4 text-sm text-slate-300">
                   <li className="flex gap-3">
-                    <span className="mt-0.5 h-5 w-5 shrink-0 rounded-full bg-teal-500/20 text-center text-xs font-bold leading-5 text-teal-300">
+                    <span className="mt-0.5 h-5 w-5 shrink-0 rounded-full bg-[var(--fc-accent)]/20 text-center text-xs font-bold leading-5 text-lime-200">
                       1
                     </span>
                     <span>
@@ -210,7 +210,7 @@ export default function HomePage() {
                     </span>
                   </li>
                   <li className="flex gap-3">
-                    <span className="mt-0.5 h-5 w-5 shrink-0 rounded-full bg-teal-500/20 text-center text-xs font-bold leading-5 text-teal-300">
+                    <span className="mt-0.5 h-5 w-5 shrink-0 rounded-full bg-[var(--fc-accent)]/20 text-center text-xs font-bold leading-5 text-lime-200">
                       2
                     </span>
                     <span>
@@ -220,7 +220,7 @@ export default function HomePage() {
                     </span>
                   </li>
                   <li className="flex gap-3">
-                    <span className="mt-0.5 h-5 w-5 shrink-0 rounded-full bg-teal-500/20 text-center text-xs font-bold leading-5 text-teal-300">
+                    <span className="mt-0.5 h-5 w-5 shrink-0 rounded-full bg-[var(--fc-accent)]/20 text-center text-xs font-bold leading-5 text-lime-200">
                       3
                     </span>
                     <span>

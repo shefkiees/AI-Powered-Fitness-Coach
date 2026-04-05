@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ImagePlus, User } from "lucide-react";
+import { ImagePlus, User } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import {
   fetchFitnessProfile,
@@ -25,6 +25,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/cn";
+import { AuthenticatedScaffold } from "@/components/layout/AuthenticatedScaffold";
 
 function SelectGrid({
   options,
@@ -225,7 +226,7 @@ export default function ProfilePage() {
           </Card>
           <Link
             href="/dashboard"
-            className="text-center text-sm text-teal-400 hover:text-teal-300"
+            className="text-center text-sm text-cyan-400 hover:text-cyan-300"
           >
             Back to dashboard
           </Link>
@@ -247,13 +248,13 @@ export default function ProfilePage() {
             </p>
             <Link
               href="/onboarding"
-              className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-teal-500 to-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-teal-900/30 transition hover:brightness-105"
+              className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-[var(--fc-accent)] to-cyan-500 px-5 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-lime-900/30 transition hover:brightness-105"
             >
               Go to onboarding
             </Link>
             <Link
               href="/dashboard"
-              className="mt-3 block text-sm text-slate-500 hover:text-teal-300"
+              className="mt-3 block text-sm text-slate-500 hover:text-cyan-300"
             >
               Back to dashboard
             </Link>
@@ -264,22 +265,10 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#070b12] text-slate-100">
-      <header className="border-b border-slate-800/80 bg-slate-950/80 px-4 py-4 backdrop-blur-lg">
-        <div className="mx-auto flex max-w-2xl items-center gap-4">
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center gap-2 text-sm text-slate-400 transition hover:text-teal-300"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Dashboard
-          </Link>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-2xl space-y-8 px-4 py-10">
+    <AuthenticatedScaffold>
+      <div className="mx-auto max-w-2xl space-y-8">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-teal-400/90">
+          <p className="text-xs font-semibold uppercase tracking-wider text-cyan-400/90">
             Profile
           </p>
           <h1 className="mt-1 text-2xl font-bold text-white">Edit fitness profile</h1>
@@ -307,9 +296,12 @@ export default function ProfilePage() {
             <div className="flex flex-col gap-5 sm:flex-row sm:items-stretch">
               <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-2xl border border-slate-700 bg-slate-950">
                 {previewUrl ? (
-                  <img
+                  <Image
                     src={previewUrl}
                     alt="Preview"
+                    width={112}
+                    height={112}
+                    unoptimized
                     className="h-full w-full object-cover"
                   />
                 ) : profileImageUrl ? (
@@ -478,7 +470,7 @@ export default function ProfilePage() {
             </Button>
           </div>
         </form>
-      </main>
-    </div>
+      </div>
+    </AuthenticatedScaffold>
   );
 }

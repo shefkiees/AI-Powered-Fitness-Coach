@@ -1,36 +1,47 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AI FITNESS COACH
 
-## Getting Started
+A modern AI fitness web app: **timed workout sessions**, **AI coach chat**, **live pose / form check** (MoveNet + heuristics), and **Supabase** for auth and profiles. Built with **Next.js 16**, **React 19**, **Tailwind CSS 4**, and **TypeScript**.
 
-First, run the development server:
+## Live URL
+
+Deploy this app (for example to [Vercel](https://vercel.com)) and set your production URL here:
+
+**Live:** `https://YOUR_DEPLOYMENT_URL` (replace after deploy)
+
+Local development: [http://localhost:3000](http://localhost:3000)
+
+## Features
+
+- **Auth** — Email/password sign up and sign in (Supabase Auth).
+- **Onboarding & profile** — Fitness goals and stats stored in `fitness_profiles` (RLS-protected).
+- **Dashboard** — AI Fitness Control Center: daily stats, emphasized AI coach, quick workout start, timeline, plans, and library.
+- **Guided workouts** — `/workout` and `/workout/session` with sets, work/rest timers, and progress.
+- **AI form check** — `/pose-estimation`: webcam, skeleton overlay, and live posture cues (not medical advice).
+- **AI coach** — `/api/chat` (OpenAI) with profile-aware coaching.
+
+## Environment variables
+
+Create `.env.local` (never commit secrets):
+
+| Variable | Purpose |
+|----------|---------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key |
+| `OPENAI_API_KEY` | OpenAI API key for coach chat |
+
+## Database
+
+Use Supabase with tables such as `fitness_profiles` (and optionally `workouts`) and RLS aligned to `auth.uid()`.
+
+## Scripts
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run build
+npm run lint
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Disclaimer
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+General fitness information only—not medical advice. Stop if you feel pain or dizziness and seek professional help when needed.

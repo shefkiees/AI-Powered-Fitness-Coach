@@ -14,8 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI Fitness Coach",
-  description: "Sign in, onboarding, personalized training plans, and pose check.",
+  title: "AI FITNESS COACH",
+  description:
+    "AI FITNESS COACH — timed workouts, AI coach chat, pose form check, and Supabase-backed fitness profiles.",
 };
 
 export default function RootLayout({
@@ -26,7 +27,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-slate-950 font-sans antialiased text-slate-100`}
+        className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-[var(--fc-bg-page)] font-sans antialiased text-slate-100`}
       >
         <AuthProvider>
           {children}
