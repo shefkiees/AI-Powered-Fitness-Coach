@@ -6,9 +6,7 @@ A modern AI fitness web app: **timed workout sessions**, **AI coach chat**, **li
 
 Deploy this app (for example to [Vercel](https://vercel.com)) and set your production URL here:
 
-**Live:** `https://YOUR_DEPLOYMENT_URL` (replace after deploy)
-
-Local development: [http://localhost:3000](http://localhost:3000)
+**Live:** `ai-powered-fitness-coach-delta.vercel.app` (replace after deploy)
 
 ## Features
 
@@ -19,15 +17,7 @@ Local development: [http://localhost:3000](http://localhost:3000)
 - **AI form check** — `/pose-estimation`: webcam, skeleton overlay, and live posture cues (not medical advice).
 - **AI coach** — `/api/chat` (OpenAI) with profile-aware coaching.
 
-## Environment variables
 
-Create `.env.local` (never commit secrets):
-
-| Variable | Purpose |
-|----------|---------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key |
-| `OPENAI_API_KEY` | OpenAI API key for coach chat |
 
 ## Database
 
