@@ -1,37 +1,96 @@
-# AI FITNESS COACH
+# AI FITNESS COACH — Debugging, Review & Hardening
 
-A modern AI fitness web app: **timed workout sessions**, **AI coach chat**, **live pose / form check** (MoveNet + heuristics), and **Supabase** for auth and profiles. Built with **Next.js 16**, **React 19**, **Tailwind CSS 4**, and **TypeScript**.
+## 📌 Përshkrimi i projektit
+Ky është një web aplikacion modern për fitness që përfshin:
+- AI coach chat
+- workout sessions me timer
+- pose estimation (form check)
+- Supabase auth dhe profile
 
-## Live URL
+Qëllimi i këtij sprinti ishte:
+✔ Stabilizimi i aplikacionit  
+✔ Rregullimi i bug-ëve real  
+✔ Përmirësimi i UX (feedback për user)  
+✔ Refaktorim i kodit për më shumë qartësi dhe siguri  
 
-Deploy this app (for example to [Vercel](https://vercel.com)) and set your production URL here:
+---
 
-**Live:** `ai-powered-fitness-coach-delta.vercel.app` (replace after deploy)
+# 🐛 Bug i rregulluar
 
-## Features
+## Problemi
+Në sistemin e upload/delete të avatarit dhe file handling:
+- URL parsing nuk ishte i sigurt
+- mund të dështonte në raste me format të ndryshëm të URL
+- delete operation mund të kthente gabime
 
-- **Auth** — Email/password sign up and sign in (Supabase Auth).
-- **Onboarding & profile** — Fitness goals and stats stored in `fitness_profiles` (RLS-protected).
-- **Dashboard** — AI Fitness Control Center: daily stats, emphasized AI coach, quick workout start, timeline, plans, and library.
-- **Guided workouts** — `/workout` and `/workout/session` with sets, work/rest timers, and progress.
-- **AI form check** — `/pose-estimation`: webcam, skeleton overlay, and live posture cues (not medical advice).
-- **AI coach** — `/api/chat` (OpenAI) with profile-aware coaching.
+## Zgjidhja
+- U zëvendësua regex me `URL API parsing`
+- U shtua validim më i fortë i file input
+- U shtua `try/catch` për stabilitet
 
+## Rezultati
+✔ Më pak gabime gjatë runtime  
+✔ Delete funksionon në mënyrë të qëndrueshme  
 
+---
 
-## Database
+# 🎯 UX / Feedback i përmirësuar
 
-Use Supabase with tables such as `fitness_profiles` (and optionally `workouts`) and RLS aligned to `auth.uid()`.
+## Përmirësime të bëra
+- Error message për file jo valid
+- Error për file mbi 5MB
+- Success message për upload
+- Success message për delete
+- Feedback më i qartë për user actions
 
-## Scripts
+## Rezultati
+✔ Përdoruesi kupton çdo veprim  
+✔ Nuk ka më “silent failures”  
+✔ Përvojë më profesionale në UI  
+
+---
+
+# 🧹 Refaktorim / Cleanup
+
+## Çfarë është përmirësuar në kod
+- Kod i ndarë në funksione:
+  - `validateImageFile`
+  - `generateAvatarPath`
+  - `extractAvatarPath`
+- Logjika e upload dhe delete është ndarë
+- U shtua siguri:
+  - `upsert: false` për të shmangur overwrite aksidental
+- Error handling i standardizuar
+
+## Rezultati
+✔ Kod më i pastër  
+✔ Më i lehtë për mirëmbajtje  
+✔ Më i sigurt dhe i testueshëm  
+
+---
+
+# 🚀 AI FITNESS COACH — Features
+
+## Core features
+- Authentication me Supabase
+- AI Fitness Chat Coach
+- Workout sessions me timer
+- Pose estimation me webcam
+- Dashboard me statistika
+
+---
+
+## 🗄 Database (Supabase)
+- `fitness_profiles` (RLS enabled)
+- Auth-based access me `auth.uid()`
+- Secure storage për user data
+
+---
+
+## ▶️ Si niset projekti
 
 ```bash
 npm install
 npm run dev
 npm run build
 npm run lint
-```
-
-## Disclaimer
-
-General fitness information only—not medical advice. Stop if you feel pain or dizziness and seek professional help when needed.
