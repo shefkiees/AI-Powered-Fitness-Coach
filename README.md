@@ -94,3 +94,18 @@ npm install
 npm run dev
 npm run build
 npm run lint
+```
+
+---
+
+## Final Demo Readiness (Week Prep)
+
+- Demo plan (5-7 min): [docs/demo-plan.md](docs/demo-plan.md)
+- Verified runtime URL: `https://ai-powered-fitness-coach-delta.vercel.app`
+- URL verification date: `2026-04-26`
+- URL verification result: HTTP `200`
+
+### Pre-demo checklist
+- Main flow selected: auth -> onboarding -> dashboard -> workout
+- Technical explanation scope defined (frontend, API, auth/data, personalization)
+- Plan B prepared for live demo failure (local fallback + short recording)
