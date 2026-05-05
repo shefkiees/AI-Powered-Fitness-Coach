@@ -1,7 +1,7 @@
 # Final Demo Plan (5-7 min)
 
 ## 1) What the Project Is and Who It Serves
-AI Powered Fitness Coach is a web app that helps users build better workout habits with AI guidance.
+AI Powered Fitness Coach is app that helps users build better workout habits with AI guidance.
 Target users:
 - beginners who need simple guidance
 - intermediate users who want structure and progress tracking

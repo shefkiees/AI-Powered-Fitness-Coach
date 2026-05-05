@@ -12,9 +12,9 @@ type Props = {
 
 export function FitnessAppShell({ children, title, subtitle }: Props) {
   return (
-    <div className="min-h-screen bg-[var(--fc-bg-page)] text-slate-100">
+    <div className="pulse-page min-h-screen text-slate-100">
       <div
-        className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(34,211,238,0.08),transparent),radial-gradient(ellipse_60%_40%_at_0%_100%,rgba(163,230,53,0.06),transparent)]"
+        className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_48%_6%,rgba(184,245,61,0.16),transparent_28%)]"
         aria-hidden
       />
 
@@ -24,11 +24,16 @@ export function FitnessAppShell({ children, title, subtitle }: Props) {
         <FitnessSidebar />
         <div className="min-w-0 flex-1">
           <header className="mb-8">
-            <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
+            <p className="text-xs font-black uppercase tracking-[0.28em] text-[var(--fc-accent)]">
+              Pulse workspace
+            </p>
+            <h1 className="mt-3 text-3xl font-black tracking-[-0.03em] text-white sm:text-4xl">
               {title}
             </h1>
             {subtitle ? (
-              <p className="mt-2 max-w-2xl text-sm text-slate-400">{subtitle}</p>
+              <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--fc-muted)]">
+                {subtitle}
+              </p>
             ) : null}
           </header>
           {children}

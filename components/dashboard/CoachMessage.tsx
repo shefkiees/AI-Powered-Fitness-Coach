@@ -7,7 +7,7 @@ function segmentLine(text: string, keyBase: string) {
   const boldParts = text.split(/\*\*(.+?)\*\*/g);
   return boldParts.map((part, i) =>
     i % 2 === 1 ? (
-      <strong key={`${keyBase}-b-${i}`} className="font-semibold text-white">
+      <strong key={`${keyBase}-b-${i}`} className="font-semibold text-[#17181b]">
         {part}
       </strong>
     ) : (
@@ -19,7 +19,7 @@ function segmentLine(text: string, keyBase: string) {
 export function CoachMessage({ text, className }: { text: string; className?: string }) {
   const lines = text.split(/\n/);
   return (
-    <div className={cn("space-y-2 text-sm leading-relaxed text-slate-200", className)}>
+    <div className={cn("space-y-2 text-sm leading-relaxed text-[#2b2e25]", className)}>
       {lines.map((line, i) => {
         const trimmed = line.trim();
         if (!trimmed) return <div key={i} className="h-1" />;
@@ -31,7 +31,7 @@ export function CoachMessage({ text, className }: { text: string; className?: st
             <Tag
               key={i}
               className={cn(
-                "font-bold text-white",
+                "font-bold text-[#17181b]",
                 level <= 1 ? "text-[15px] mt-1" : "text-sm mt-0.5",
               )}
             >
@@ -52,7 +52,7 @@ export function CoachMessage({ text, className }: { text: string; className?: st
           const content = trimmed.replace(/^\d+\.\s*/, "");
           return (
             <div key={i} className="flex gap-2">
-              <span className="w-5 shrink-0 text-right text-xs font-semibold text-slate-500">
+              <span className="w-5 shrink-0 text-right text-xs font-semibold text-[#6a734d]">
                 {trimmed.match(/^\d+/)?.[0]}.
               </span>
               <span>{segmentLine(content, `ol-${i}`)}</span>

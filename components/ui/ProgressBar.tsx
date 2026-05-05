@@ -20,19 +20,20 @@ export function ProgressBar({
   showValue,
 }: Props) {
   const pct = Math.min(100, Math.max(0, (value / max) * 100));
+
   return (
     <div className={cn("w-full", className)}>
-      {(label || showValue) ? (
-        <div className="mb-1.5 flex items-center justify-between gap-2 text-xs text-slate-500">
+      {label || showValue ? (
+        <div className="mb-1.5 flex items-center justify-between gap-2 text-xs text-[var(--fc-muted)]">
           {label ? <span>{label}</span> : <span />}
           {showValue ? (
-            <span className="tabular-nums text-slate-400">{Math.round(pct)}%</span>
+            <span className="tabular-nums text-[var(--fc-muted)]">{Math.round(pct)}%</span>
           ) : null}
         </div>
       ) : null}
       <div
         className={cn(
-          "h-2.5 w-full overflow-hidden rounded-full bg-slate-800/90 ring-1 ring-white/5",
+          "h-2.5 w-full overflow-hidden rounded-full bg-black/30 ring-1 ring-white/5",
           trackClassName,
         )}
         role="progressbar"
@@ -42,7 +43,7 @@ export function ProgressBar({
       >
         <div
           className={cn(
-            "h-full rounded-full bg-gradient-to-r from-[var(--fc-accent)] to-cyan-400 transition-[width] duration-300 ease-out",
+            "h-full rounded-full bg-[linear-gradient(90deg,var(--fc-accent)_0%,var(--fc-accent-strong)_100%)] transition-[width] duration-300 ease-out",
             fillClassName,
           )}
           style={{ width: `${pct}%` }}

@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 540" role="img" aria-labelledby="title desc">
+  <title id="title">Core stability animation</title>
+  <desc id="desc">Animated plank shoulder tap.</desc>
+  <style>
+    .bg { fill: #10130d; }
+    .panel { fill: #1a1f14; stroke: rgba(231,235,224,.16); stroke-width: 2; }
+    .body { stroke: #f7f7f3; stroke-width: 22; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+    .accent { stroke: #b8f53d; }
+    .tap { transform-origin: 356px 300px; animation: tap 2.2s ease-in-out infinite; }
+    .line { animation: glow 2.2s ease-in-out infinite; }
+    @keyframes tap {
+      0%,100% { transform: rotate(0deg); }
+      50% { transform: rotate(-25deg) translate(-12px,-42px); }
+    }
+    @keyframes glow { 0%,100% { opacity: .25; } 50% { opacity: .85; } }
+  </style>
+  <rect class="bg" width="900" height="540"/>
+  <circle cx="680" cy="82" r="126" fill="#b8f53d" opacity=".13"/>
+  <rect class="panel" x="64" y="54" width="772" height="432" rx="28"/>
+  <path class="line accent" d="M216 318 L700 318" stroke-width="5" stroke-linecap="round" stroke-dasharray="12 16"/>
+  <circle cx="260" cy="264" r="28" fill="#f7f7f3"/>
+  <path class="body" d="M296 276 L488 300 L690 318"/>
+  <path class="body tap" d="M354 286 L326 384"/>
+  <path class="body" d="M436 294 L414 386"/>
+  <path class="body" d="M690 318 L750 386"/>
+  <path class="body" d="M642 312 L704 386"/>
+  <rect x="92" y="86" width="208" height="38" rx="19" fill="#b8f53d" opacity=".16"/>
+  <text x="114" y="111" fill="#b8f53d" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="800">PLANK CONTROL</text>
+  <text x="92" y="440" fill="#aaaf9d" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700">Brace, tap slowly, keep hips steady.</text>
+</svg>

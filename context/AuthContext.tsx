@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import type { AuthError, Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase, supabaseConfigError } from "@/src/lib/supabaseClient";
 
 type AuthResult = {
   error: AuthError | null;
@@ -25,17 +25,55 @@ type AuthContextValue = {
     displayName?: string,
   ) => Promise<AuthResult>;
   signIn: (email: string, password: string) => Promise<AuthResult>;
+  resendConfirmation: (email: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
+function toAuthError(error: unknown, fallback = "Authentication failed.") {
+  if (error && typeof error === "object" && "message" in error) {
+    return error as AuthError;
+  }
+
+  return {
+    name: "AuthenticationError",
+    message: error instanceof Error ? error.message : fallback,
+  } as AuthError;
+}
+
+async function getActiveSession() {
+  if (!supabase) {
+    return {
+      error: {
+        name: "SupabaseConfigurationError",
+        message: supabaseConfigError,
+      } as AuthError,
+      session: null,
+    };
+  }
+
+  try {
+    const { data, error } = await supabase.auth.getSession();
+    return { error, session: data.session ?? null };
+  } catch (error) {
+    return { error: toAuthError(error, "Could not read Supabase session."), session: null };
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => Boolean(supabase));
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    if (!supabase) {
+      return;
+    }
+
+    let cancelled = false;
+
+    void getActiveSession().then(({ session }) => {
+      if (cancelled) return;
       setUser(session?.user ?? null);
       setLoading(false);
     });
@@ -47,37 +85,109 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signUp = useCallback(
     async (email: string, password: string, displayName?: string) => {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: displayName
-          ? { data: { full_name: displayName } }
-          : undefined,
-      });
-      return { error, session: data.session ?? null };
+      if (!supabase) {
+        return {
+          error: {
+            name: "SupabaseConfigurationError",
+            message: supabaseConfigError,
+          } as AuthError,
+          session: null,
+        };
+      }
+
+      try {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            ...(displayName ? { data: { full_name: displayName } } : {}),
+            emailRedirectTo:
+              typeof window !== "undefined"
+                ? `${window.location.origin}/auth/callback?next=/dashboard`
+                : undefined,
+          },
+        });
+
+        if (error) return { error, session: null };
+        if (!data.session) return { error: null, session: null };
+
+        const current = await getActiveSession();
+        return { error: current.error, session: current.session ?? data.session };
+      } catch (error) {
+        return { error: toAuthError(error), session: null };
+      }
     },
     [],
   );
 
   const signIn = useCallback(async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { error, session: data.session ?? null };
+    if (!supabase) {
+      return {
+        error: {
+          name: "SupabaseConfigurationError",
+          message: supabaseConfigError,
+        } as AuthError,
+        session: null,
+      };
+    }
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) return { error, session: null };
+
+      const current = await getActiveSession();
+      return { error: current.error, session: current.session ?? data.session ?? null };
+    } catch (error) {
+      return { error: toAuthError(error), session: null };
+    }
+  }, []);
+
+  const resendConfirmation = useCallback(async (email: string) => {
+    if (!supabase) {
+      return {
+        error: {
+          name: "SupabaseConfigurationError",
+          message: supabaseConfigError,
+        } as AuthError,
+      };
+    }
+
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email,
+        options: {
+          emailRedirectTo:
+            typeof window !== "undefined"
+              ? `${window.location.origin}/auth/callback?next=/dashboard`
+              : undefined,
+        },
+      });
+      return { error };
+    } catch (error) {
+      return { error: toAuthError(error, "Could not resend confirmation email.") };
+    }
   }, []);
 
   const signOut = useCallback(async () => {
+    if (!supabase) return;
     await supabase.auth.signOut();
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signUp, signIn, resendConfirmation, signOut }}>
       {children}
     </AuthContext.Provider>
   );

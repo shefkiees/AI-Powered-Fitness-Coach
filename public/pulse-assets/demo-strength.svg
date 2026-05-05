@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 540" role="img" aria-labelledby="title desc">
+  <title id="title">Strength workout animation</title>
+  <desc id="desc">Animated squat pattern with simple coaching marks.</desc>
+  <style>
+    :root { color-scheme: dark; }
+    .bg { fill: #10130d; }
+    .panel { fill: #1a1f14; stroke: rgba(231,235,224,.16); stroke-width: 2; }
+    .accent { fill: #b8f53d; }
+    .muted { stroke: #aaaf9d; }
+    .body { stroke: #f7f7f3; stroke-width: 22; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+    .guide { stroke: #b8f53d; stroke-width: 5; stroke-linecap: round; stroke-dasharray: 10 16; opacity: .7; }
+    .athlete { transform-origin: 450px 265px; animation: squat 2.8s ease-in-out infinite; }
+    .hip { animation: hip 2.8s ease-in-out infinite; }
+    @keyframes squat {
+      0%,100% { transform: translateY(-18px); }
+      50% { transform: translateY(36px); }
+    }
+    @keyframes hip {
+      0%,100% { transform: translate(0,0); }
+      50% { transform: translate(-28px,36px); }
+    }
+  </style>
+  <rect class="bg" width="900" height="540"/>
+  <circle cx="690" cy="72" r="120" fill="#b8f53d" opacity=".13"/>
+  <rect class="panel" x="64" y="54" width="772" height="432" rx="28"/>
+  <path class="guide" d="M276 382h350"/>
+  <g class="athlete">
+    <circle cx="456" cy="122" r="34" fill="#f7f7f3"/>
+    <path class="body" d="M452 166 L420 254 L388 340"/>
+    <path class="body hip" d="M420 254 L510 324 L612 354"/>
+    <path class="body" d="M420 254 L338 326 L278 354"/>
+    <path class="body" d="M440 190 L346 230"/>
+    <path class="body" d="M446 190 L540 230"/>
+  </g>
+  <rect x="92" y="86" width="166" height="38" rx="19" fill="#b8f53d" opacity=".16"/>
+  <text x="114" y="111" fill="#b8f53d" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="800">SQUAT TEMPO</text>
+  <text x="92" y="440" fill="#aaaf9d" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700">Hips back, chest tall, press through feet.</text>
+</svg>

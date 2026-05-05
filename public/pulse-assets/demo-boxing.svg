@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 540" role="img" aria-labelledby="title desc">
+  <title id="title">Boxing conditioning animation</title>
+  <desc id="desc">Animated jab cross boxing movement.</desc>
+  <style>
+    .bg { fill: #10130d; }
+    .panel { fill: #1a1f14; stroke: rgba(231,235,224,.16); stroke-width: 2; }
+    .body { stroke: #f7f7f3; stroke-width: 21; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+    .accent { stroke: #b8f53d; }
+    .jab { transform-origin: 450px 210px; animation: jab 1.4s ease-in-out infinite; }
+    .cross { transform-origin: 450px 220px; animation: cross 1.4s ease-in-out infinite; animation-delay: .25s; }
+    .feet { animation: feet 1.4s ease-in-out infinite; }
+    @keyframes jab { 0%,100% { transform: translateX(0); } 50% { transform: translateX(-92px); } }
+    @keyframes cross { 0%,100% { transform: translateX(0); } 50% { transform: translateX(104px); } }
+    @keyframes feet { 0%,100% { transform: translateX(-14px); } 50% { transform: translateX(18px); } }
+  </style>
+  <rect class="bg" width="900" height="540"/>
+  <circle cx="694" cy="86" r="126" fill="#b8f53d" opacity=".13"/>
+  <rect class="panel" x="64" y="54" width="772" height="432" rx="28"/>
+  <circle cx="450" cy="132" r="34" fill="#f7f7f3"/>
+  <path class="body" d="M450 172 L450 290"/>
+  <path class="body jab" d="M438 202 L330 210"/>
+  <path class="body cross" d="M462 208 L582 200"/>
+  <g class="feet">
+    <path class="body" d="M450 290 L374 386"/>
+    <path class="body" d="M450 290 L550 386"/>
+  </g>
+  <path class="accent" d="M286 200 C246 178 226 152 218 120" stroke-width="5" stroke-linecap="round" fill="none"/>
+  <path class="accent" d="M616 200 C664 174 694 146 712 108" stroke-width="5" stroke-linecap="round" fill="none"/>
+  <rect x="92" y="86" width="184" height="38" rx="19" fill="#b8f53d" opacity=".16"/>
+  <text x="114" y="111" fill="#b8f53d" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="800">JAB CROSS</text>
+  <text x="92" y="440" fill="#aaaf9d" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700">Punch straight, reset guard, move feet.</text>
+</svg>

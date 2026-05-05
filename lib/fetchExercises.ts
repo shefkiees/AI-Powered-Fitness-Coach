@@ -1,4 +1,3 @@
-import { supabase } from "@/lib/supabaseClient";
 import { getExerciseImageUrl } from "@/lib/exerciseImages";
 
 export type ExerciseRow = {
@@ -70,23 +69,5 @@ export const STATIC_EXERCISES: ExerciseRow[] = [
 ];
 
 export async function fetchExerciseLibrary(): Promise<ExerciseRow[]> {
-  const { data, error } = await supabase
-    .from("exercises")
-    .select("id,name,description,muscle_group,image_url")
-    .order("name");
-
-  if (error || !data?.length) {
-    return STATIC_EXERCISES;
-  }
-
-  return data.map((row) => ({
-    id: String(row.id),
-    name: String(row.name),
-    description: String(row.description ?? ""),
-    muscle_group: String(row.muscle_group ?? "general"),
-    image_url:
-      row.image_url && String(row.image_url).trim() !== ""
-        ? String(row.image_url)
-        : getExerciseImageUrl(String(row.name)),
-  }));
+  return STATIC_EXERCISES;
 }

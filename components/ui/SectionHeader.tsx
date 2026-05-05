@@ -3,6 +3,9 @@ type Props = {
   title: string;
   description?: string;
   className?: string;
+  eyebrowClassName?: string;
+  titleClassName?: string;
+  descriptionClassName?: string;
 };
 
 export function SectionHeader({
@@ -10,19 +13,28 @@ export function SectionHeader({
   title,
   description,
   className = "",
+  eyebrowClassName = "",
+  titleClassName = "",
+  descriptionClassName = "",
 }: Props) {
   return (
     <div className={className}>
       {eyebrow ? (
-        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--fc-accent)]">
+        <p
+          className={`text-[10px] font-black uppercase tracking-[0.24em] text-[var(--fc-accent)] ${eyebrowClassName}`}
+        >
           {eyebrow}
         </p>
       ) : null}
-      <h2 className="mt-1 text-lg font-bold tracking-tight text-white sm:text-xl">
+      <h2
+        className={`mt-2 text-lg font-black tracking-[-0.02em] text-white sm:text-xl ${titleClassName}`}
+      >
         {title}
       </h2>
       {description ? (
-        <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-slate-400">
+        <p
+          className={`mt-2 max-w-2xl text-sm leading-7 text-[var(--fc-muted)] ${descriptionClassName}`}
+        >
           {description}
         </p>
       ) : null}

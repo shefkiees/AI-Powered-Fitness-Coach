@@ -1,40 +1,42 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Bot, MessageSquare, RefreshCw, Send, Sparkles } from "lucide-react";
+import { MessageSquare, RefreshCw, Send } from "lucide-react";
+import { BrandMark } from "@/components/brand/Brand";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { getTextFieldClassName } from "@/components/ui/textFieldStyles";
 import { cn } from "@/lib/cn";
 import { CoachMessage } from "@/components/dashboard/CoachMessage";
 import { useCoachingSession } from "@/hooks/useCoachingSession";
-import { pushTimelineEvent } from "@/lib/localFitnessState";
 
 type Msg = { role: "user" | "assistant"; text: string };
 
 const QUICK_PROMPTS = [
   {
-    label: "Generate workout plan",
+    label: "Weekly plan",
     message:
-      "Generate a personalized workout plan for this week based on my profile. Use ### headings, bullet steps, and end with **Next step:** one action for today.",
+      "Generate a personalized workout plan for this week based on my profile. Keep it short, structured, and practical.",
   },
   {
-    label: "Check my progress",
+    label: "Progress check",
     message:
-      "Help me check my training progress. Ask one quick question about my last week, then give 3 concrete signals to track (not medical) and a simple weekly review habit.",
+      "Help me review my last week of training and give me 3 useful things to track next.",
   },
   {
-    label: "Motivate me",
+    label: "Need motivation",
     message:
-      "I'm in a slump. Give a short, motivating coach voice note style message (written), one mindset reframe, and a 5-minute win I can do right now.",
+      "Give me a short motivation reset, one mindset shift, and one small win I can do right now.",
   },
 ] as const;
 
 type Props = {
   coachDisplayName?: string | null;
   userId?: string;
+  onActivity?: () => void;
 };
 
-export function CoachChat({ coachDisplayName, userId }: Props) {
+export function CoachChat({ coachDisplayName, userId, onActivity }: Props) {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Msg[]>([]);
   const [loading, setLoading] = useState(false);
@@ -43,52 +45,59 @@ export function CoachChat({ coachDisplayName, userId }: Props) {
   const { sessionStartedAt, resetSession } = useCoachingSession();
 
   useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    const element = scrollRef.current;
+    if (!element) return;
+    element.scrollTo({ top: element.scrollHeight, behavior: "smooth" });
   }, [messages, loading]);
 
   const sendText = useCallback(
     async (text: string) => {
       const trimmed = text.trim();
       if (!trimmed || loading) return;
+
       setError("");
       setInput("");
-      setMessages((m) => [...m, { role: "user", text: trimmed }]);
+      setMessages((current) => [...current, { role: "user", text: trimmed }]);
       setLoading(true);
-      if (userId) {
-        pushTimelineEvent(userId, {
-          label: "Messaged AI coach",
-          tone: "coach",
-        });
-      }
+
+      if (userId) onActivity?.();
+
       try {
-        const res = await fetch("/api/chat", {
+        const response = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ message: trimmed }),
         });
-        const data = (await res.json()) as { reply?: string; error?: string };
-        if (!res.ok) {
-          setMessages((m) => m.slice(0, -1));
+        const data = (await response.json()) as {
+          reply?: string;
+          error?: string;
+        };
+
+        if (!response.ok) {
+          setMessages((current) => current.slice(0, -1));
           setError(data.error ?? "Something went wrong.");
           return;
         }
+
         const replyText =
           typeof data.reply === "string" && data.reply.trim() !== ""
             ? data.reply
             : null;
+
         if (replyText) {
-          setMessages((m) => [...m, { role: "assistant", text: replyText }]);
+          setMessages((current) => [
+            ...current,
+            { role: "assistant", text: replyText },
+          ]);
         }
       } catch {
-        setMessages((m) => m.slice(0, -1));
+        setMessages((current) => current.slice(0, -1));
         setError("Network error. Try again.");
       } finally {
         setLoading(false);
       }
     },
-    [loading, userId],
+    [loading, onActivity, userId],
   );
 
   const send = useCallback(() => void sendText(input), [input, sendText]);
@@ -101,56 +110,50 @@ export function CoachChat({ coachDisplayName, userId }: Props) {
     : null;
 
   return (
-    <Card className="flex h-full min-h-[420px] flex-col overflow-hidden border-[var(--fc-accent)]/15 bg-gradient-to-b from-slate-900/95 to-slate-950 shadow-lg shadow-black/25">
-      <div className="flex shrink-0 items-center gap-3 border-b border-slate-800/90 px-4 py-3">
-        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--fc-accent)] to-[var(--fc-accent-2)] text-slate-950 shadow-md shadow-lime-900/40">
-          <Bot className="h-5 w-5" strokeWidth={2} />
-        </span>
+    <Card className="flex h-full min-h-[420px] flex-col overflow-hidden border-black/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.84)_0%,rgba(247,243,231,0.98)_100%)] p-0 shadow-[0_18px_34px_rgba(0,0,0,0.08)]">
+      <div className="flex shrink-0 items-center gap-3 border-b border-black/8 px-4 py-4">
+        <BrandMark tileClassName="h-10 w-10 rounded-xl border-black/8 bg-[#111214]" />
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-bold uppercase tracking-wide text-white sm:text-sm sm:normal-case sm:tracking-normal">
-            AI FITNESS COACH
-          </p>
-          <p className="truncate text-xs text-slate-500">
+          <p className="text-sm font-semibold text-[#17181b]">AI coach</p>
+          <p className="truncate text-xs text-[#677150]">
             {coachDisplayName
-              ? `Personal session for ${coachDisplayName}`
+              ? `Session for ${coachDisplayName}`
               : "Session-based coaching"}
-            {" · "}
-            not medical advice
-            {sessionLabel ? ` · started ${sessionLabel}` : null}
+            {sessionLabel ? ` - started ${sessionLabel}` : ""}
           </p>
         </div>
-        <div className="flex shrink-0 items-center gap-1">
-          <button
-            type="button"
-            onClick={() => {
-              resetSession();
-              setMessages([]);
-              setError("");
-            }}
-            className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-800/80 hover:text-slate-300"
-            title="Start a fresh coaching session"
-            aria-label="Start a fresh coaching session"
-          >
-            <RefreshCw className="h-4 w-4" />
-          </button>
-          <Sparkles className="h-4 w-4 text-teal-500/50" aria-hidden />
-        </div>
+        <span className="rounded-full border border-black/8 bg-[#f7f3e7] px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#677150]">
+          Ready
+        </span>
+        <button
+          type="button"
+          onClick={() => {
+            resetSession();
+            setMessages([]);
+            setError("");
+          }}
+          className="rounded-xl p-2 text-[#677150] transition hover:bg-black/[0.04] hover:text-[#17181b]"
+          title="Start a fresh coaching session"
+          aria-label="Start a fresh coaching session"
+        >
+          <RefreshCw className="h-4 w-4" />
+        </button>
       </div>
 
-      <div className="shrink-0 space-y-2 border-b border-slate-800/60 px-3 py-3">
-        <p className="px-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-          Quick questions
+      <div className="shrink-0 space-y-2 border-b border-black/8 px-4 py-3">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#677150]">
+          Quick prompts
         </p>
-        <div className="flex flex-wrap gap-2">
-          {QUICK_PROMPTS.map((q) => (
+        <div className="grid gap-2 sm:grid-cols-3">
+          {QUICK_PROMPTS.map((prompt) => (
             <button
-              key={q.label}
+              key={prompt.label}
               type="button"
               disabled={loading}
-              onClick={() => void sendText(q.message)}
-              className="rounded-full border border-slate-700/90 bg-slate-950/60 px-3 py-1.5 text-left text-[11px] font-medium text-slate-300 transition hover:border-[var(--fc-accent)]/40 hover:text-white disabled:opacity-50"
+              onClick={() => void sendText(prompt.message)}
+              className="rounded-2xl border border-black/8 bg-white/74 px-3 py-3 text-left text-xs font-medium text-[#2c2e29] transition hover:border-black/12 hover:bg-white disabled:opacity-50"
             >
-              {q.label}
+              {prompt.label}
             </button>
           ))}
         </div>
@@ -161,80 +164,84 @@ export function CoachChat({ coachDisplayName, userId }: Props) {
         className="custom-scrollbar min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4"
       >
         {messages.length === 0 && !loading ? (
-          <div className="flex flex-col items-center justify-center gap-4 py-8 text-center">
-            <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-800 bg-slate-950/80">
-              <MessageSquare className="h-6 w-6 text-[var(--fc-accent)]/70" />
+          <div className="flex flex-col items-center justify-center gap-4 py-10 text-center">
+            <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-black/8 bg-white">
+              <MessageSquare className="h-5 w-5 text-[var(--fc-accent)]" />
             </span>
-            <div className="max-w-[260px] space-y-2">
-              <p className="text-sm font-medium text-slate-200">
-                Hey{coachDisplayName ? `, ${coachDisplayName}` : ""}—I&apos;m here
-                between sessions.
+            <div className="max-w-xs space-y-2">
+              <p className="text-sm font-medium text-[#17181b]">
+                Ask for a plan, a reset, or a smarter next step.
               </p>
-              <p className="text-xs leading-relaxed text-slate-500">
-                Tap a quick question or tell me how today felt. I&apos;ll answer
-                like a real coach: short plan, clear cues, one next step.
+              <p className="text-xs leading-6 text-[#677150]">
+                Keep the conversation practical and focused. This works best for
+                daily coaching and quick decisions.
               </p>
             </div>
           </div>
         ) : null}
-        {messages.map((m, i) => (
+
+        {messages.map((message, index) => (
           <div
-            key={`${i}-${m.role}-${m.text.slice(0, 12)}`}
+            key={`${index}-${message.role}-${message.text.slice(0, 12)}`}
             className={cn(
               "flex w-full",
-              m.role === "user" ? "justify-end" : "justify-start",
+              message.role === "user" ? "justify-end" : "justify-start",
             )}
           >
             <div
               className={cn(
-                "max-w-[92%] rounded-2xl px-3.5 py-2.5 shadow-sm sm:max-w-[85%]",
-                m.role === "user"
-                  ? "rounded-br-md bg-gradient-to-br from-[var(--fc-accent)] to-[var(--fc-accent-2)] text-slate-950"
-                  : "rounded-bl-md border border-slate-800/90 bg-slate-950/80",
+                "max-w-[92%] rounded-3xl px-4 py-3 shadow-sm sm:max-w-[85%]",
+                message.role === "user"
+                  ? "rounded-br-xl bg-[var(--fc-accent)] text-slate-950"
+                  : "rounded-bl-xl border border-black/8 bg-white/74 text-[#17181b]",
               )}
             >
-              {m.role === "assistant" ? (
-                <CoachMessage text={m.text} />
+              {message.role === "assistant" ? (
+                <CoachMessage text={message.text} />
               ) : (
-                <p className="text-sm font-medium leading-relaxed">{m.text}</p>
+                <p className="text-sm font-medium leading-7">{message.text}</p>
               )}
             </div>
           </div>
         ))}
+
         {loading ? (
           <div className="flex justify-start">
-            <div className="flex items-center gap-2 rounded-2xl rounded-bl-md border border-slate-800/60 bg-slate-950/80 px-4 py-3 text-xs text-slate-500">
+            <div className="flex items-center gap-2 rounded-3xl rounded-bl-xl border border-black/8 bg-white/74 px-4 py-3 text-xs text-[#677150]">
               <span className="flex gap-1">
                 <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--fc-accent)] [animation-delay:-0.2s]" />
                 <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--fc-accent)] [animation-delay:-0.1s]" />
                 <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--fc-accent)]" />
               </span>
-              Coach is thinking…
+              Coach is thinking...
             </div>
           </div>
         ) : null}
       </div>
 
       {error ? (
-        <p className="shrink-0 border-t border-red-500/25 bg-red-950/30 px-4 py-2 text-center text-xs text-red-200">
+        <p className="shrink-0 border-t border-red-500/20 bg-red-950/20 px-4 py-2 text-center text-xs text-red-200">
           {error}
         </p>
       ) : null}
 
-      <div className="shrink-0 border-t border-slate-800/90 bg-slate-950/50 p-3">
+      <div className="shrink-0 border-t border-black/8 bg-white/46 p-3">
         <div className="flex gap-2">
           <input
             type="text"
             value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
+            onChange={(event) => setInput(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
                 void send();
               }
             }}
-            placeholder="Tell your coach what you need…"
-            className="min-w-0 flex-1 rounded-xl border border-slate-800/90 bg-slate-900/90 px-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 focus:border-[var(--fc-accent)]/50 focus:outline-none focus:ring-2 focus:ring-[var(--fc-accent)]/20"
+            placeholder="Ask your coach..."
+            className={getTextFieldClassName({
+              className:
+                "min-w-0 flex-1 border-black/10 bg-white text-[#17181b] placeholder:text-[#7a8067] focus:bg-white",
+            })}
             disabled={loading}
             aria-label="Message to coach"
           />

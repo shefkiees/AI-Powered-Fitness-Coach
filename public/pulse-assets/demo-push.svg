@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 540" role="img" aria-labelledby="title desc">
+  <title id="title">Push-up workout animation</title>
+  <desc id="desc">Animated push-up with controlled lowering.</desc>
+  <style>
+    .bg { fill: #10130d; }
+    .panel { fill: #1a1f14; stroke: rgba(231,235,224,.16); stroke-width: 2; }
+    .body { stroke: #f7f7f3; stroke-width: 22; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+    .guide { stroke: #b8f53d; stroke-width: 5; stroke-linecap: round; stroke-dasharray: 12 15; opacity: .7; }
+    .athlete { transform-origin: 460px 286px; animation: push 2.5s ease-in-out infinite; }
+    .arms { transform-origin: 350px 300px; animation: arms 2.5s ease-in-out infinite; }
+    @keyframes push {
+      0%,100% { transform: translateY(-22px) rotate(-3deg); }
+      50% { transform: translateY(36px) rotate(1deg); }
+    }
+    @keyframes arms {
+      0%,100% { transform: rotate(7deg); }
+      50% { transform: rotate(-15deg); }
+    }
+  </style>
+  <rect class="bg" width="900" height="540"/>
+  <circle cx="690" cy="86" r="124" fill="#b8f53d" opacity=".13"/>
+  <rect class="panel" x="64" y="54" width="772" height="432" rx="28"/>
+  <path class="guide" d="M202 388h504"/>
+  <g class="athlete">
+    <circle cx="270" cy="266" r="30" fill="#f7f7f3"/>
+    <path class="body" d="M306 282 L490 300 L680 322"/>
+    <path class="body arms" d="M342 294 L312 382"/>
+    <path class="body" d="M438 294 L410 382"/>
+    <path class="body" d="M682 322 L738 386"/>
+    <path class="body" d="M645 320 L700 386"/>
+  </g>
+  <rect x="92" y="86" width="184" height="38" rx="19" fill="#b8f53d" opacity=".16"/>
+  <text x="114" y="111" fill="#b8f53d" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="800">PUSH-UP LINE</text>
+  <text x="92" y="440" fill="#aaaf9d" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700">Lower with control, brace core, press up.</text>
+</svg>

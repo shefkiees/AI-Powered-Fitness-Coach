@@ -34,7 +34,7 @@ export const ACTIVITY_OPTIONS = [
   { id: "high", label: "High", sub: "Very active or training most days" },
 ] as const;
 
-/** Stored as fitness_profiles.workout_preference */
+/** Legacy onboarding option; current profile rows store the main level in profiles.fitness_level. */
 export const WORKOUT_PREFERENCE_OPTIONS = [
   {
     id: "abs",
@@ -69,7 +69,7 @@ export const WORKOUT_PREFERENCE_OPTIONS = [
   {
     id: "cardio",
     label: "Cardio",
-    sub: "Heart rate up—jumps, steps, and intervals",
+    sub: "Heart rate up - jumps, steps, and intervals",
   },
 ] as const;
 
@@ -78,5 +78,5 @@ export type WorkoutPreferenceId =
 
 export const WORKOUT_PREFERENCE_LABELS: Record<string, string> =
   Object.fromEntries(
-    WORKOUT_PREFERENCE_OPTIONS.map((o) => [o.id, o.label]),
+    WORKOUT_PREFERENCE_OPTIONS.map((option) => [option.id, option.label]),
   ) as Record<string, string>;

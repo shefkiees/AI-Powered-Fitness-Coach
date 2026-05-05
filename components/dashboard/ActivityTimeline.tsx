@@ -52,41 +52,42 @@ export function ActivityTimeline({ userId, refreshKey = 0 }: Props) {
   const display = events.length === 0 ? seed : [...events].reverse();
 
   return (
-    <Card className="border-slate-800/90 bg-slate-900/50">
+    <Card className="border-black/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.84)_0%,rgba(247,243,231,0.98)_100%)] shadow-[0_18px_34px_rgba(0,0,0,0.08)]">
       <SectionHeader
         eyebrow="Today"
         title="Activity timeline"
-        description="Moments you log on this device appear here—use it as a lightweight training journal."
+        description="Moments you log on this device appear here and act like a lightweight training journal."
+        eyebrowClassName="text-[#677150]"
+        titleClassName="text-[#17181b]"
+        descriptionClassName="text-[#5d654f]"
       />
       <ul className="mt-6 space-y-0">
-        {display.map((ev, i) => {
-          const Icon = toneIcon(ev.tone);
-          const last = i === display.length - 1;
+        {display.map((event, index) => {
+          const Icon = toneIcon(event.tone);
+          const last = index === display.length - 1;
           return (
-            <li key={ev.id} className="flex gap-3">
+            <li key={event.id} className="flex gap-3">
               <div className="flex flex-col items-center">
                 <span
                   className={cn(
-                    "flex h-9 w-9 items-center justify-center rounded-xl border border-slate-800 bg-slate-950/80",
-                    ev.tone === "workout" && "text-[var(--fc-accent)]",
-                    ev.tone === "coach" && "text-sky-400",
-                    ev.tone === "milestone" && "text-amber-400",
+                    "flex h-10 w-10 items-center justify-center rounded-2xl border border-black/8 bg-white",
+                    event.tone === "workout" && "text-[var(--fc-accent)]",
+                    event.tone === "coach" && "text-sky-400",
+                    event.tone === "milestone" && "text-amber-400",
                   )}
                 >
                   <Icon className="h-4 w-4" />
                 </span>
                 {!last ? (
                   <span
-                    className="mt-1 w-px flex-1 min-h-[24px] bg-slate-800"
+                    className="mt-1 min-h-[24px] w-px flex-1 bg-black/8"
                     aria-hidden
                   />
                 ) : null}
               </div>
               <div className={cn("pb-6", last && "pb-0")}>
-                <p className="text-sm font-medium text-slate-100">{ev.label}</p>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  {formatTime(ev.at)}
-                </p>
+                <p className="text-sm font-medium text-[#17181b]">{event.label}</p>
+                <p className="mt-1 text-xs text-[#677150]">{formatTime(event.at)}</p>
               </div>
             </li>
           );

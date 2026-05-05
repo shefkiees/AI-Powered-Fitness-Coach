@@ -16,15 +16,13 @@ type Props = {
 
 export function DashboardDailyStats({ profile, goalsRefresh = 0 }: Props) {
   const { user } = useAuth();
-  const [workoutsCompleted, setWorkoutsCompleted] = useState<number | null>(
-    null,
-  );
+  const [workoutsCompleted, setWorkoutsCompleted] = useState<number | null>(null);
 
   useEffect(() => {
     if (!user?.id) return;
     let cancelled = false;
-    fetchWorkoutCount(user.id).then((n) => {
-      if (!cancelled) setWorkoutsCompleted(n);
+    fetchWorkoutCount(user.id).then((count) => {
+      if (!cancelled) setWorkoutsCompleted(count);
     });
     return () => {
       cancelled = true;
@@ -37,8 +35,8 @@ export function DashboardDailyStats({ profile, goalsRefresh = 0 }: Props) {
 
   const caloriesEstimate = useMemo(() => {
     const base = profile.activity_level?.includes("high") ? 420 : 320;
-    const adj = goals?.workoutDone ? 180 : 0;
-    return base + adj;
+    const adjustment = goals?.workoutDone ? 180 : 0;
+    return base + adjustment;
   }, [profile.activity_level, goals?.workoutDone]);
 
   const items = [
@@ -48,43 +46,43 @@ export function DashboardDailyStats({ profile, goalsRefresh = 0 }: Props) {
       label: "Workouts completed",
       value:
         workoutsCompleted === null ? (
-          <span className="inline-block h-8 w-12 animate-pulse rounded bg-slate-800" />
+          <span className="inline-block h-8 w-14 animate-pulse rounded-2xl bg-black/8" />
         ) : (
           workoutsCompleted
         ),
-      hint: "Saved in your account",
+      hint: "Saved to your account",
     },
     {
       key: "calories",
       icon: Activity,
-      label: "Calories burned (estimate)",
+      label: "Calories estimate",
       value: `~${caloriesEstimate}`,
-      hint: "Placeholder until devices sync",
+      hint: "Updated from profile intensity",
     },
     {
       key: "streak",
       icon: Flame,
-      label: "Streak (days)",
+      label: "Current streak",
       value: streak,
-      hint: "Log a workout from daily goals",
+      hint: "Built from daily training actions",
     },
   ];
 
   return (
     <div className="grid gap-4 sm:grid-cols-3">
-      {items.map((item, i) => (
+      {items.map((item, index) => (
         <motion.div
           key={item.key}
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 * i, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ delay: 0.05 * index, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
         >
           <StatTile
             icon={item.icon}
             label={item.label}
             value={item.value}
             hint={item.hint}
-            className="h-full border-white/10 bg-white/[0.03] backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-[var(--fc-accent)]/30 hover:shadow-lg hover:shadow-lime-900/20"
+            className="h-full rounded-[1.7rem] border-black/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.82)_0%,rgba(247,243,231,0.96)_100%)] text-[#17181b] shadow-[0_18px_36px_rgba(0,0,0,0.08)] hover:-translate-y-1 hover:border-black/14 hover:shadow-[0_22px_42px_rgba(0,0,0,0.12)]"
           />
         </motion.div>
       ))}

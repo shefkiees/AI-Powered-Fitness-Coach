@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 540" role="img" aria-labelledby="title desc">
+  <title id="title">Mobility stretch animation</title>
+  <desc id="desc">Animated side reach stretch.</desc>
+  <style>
+    .bg { fill: #10130d; }
+    .panel { fill: #1a1f14; stroke: rgba(231,235,224,.16); stroke-width: 2; }
+    .body { stroke: #f7f7f3; stroke-width: 22; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+    .accent { stroke: #b8f53d; }
+    .reach { transform-origin: 450px 250px; animation: reach 3s ease-in-out infinite; }
+    .breath { animation: breath 3s ease-in-out infinite; transform-origin: 450px 270px; }
+    @keyframes reach {
+      0%,100% { transform: rotate(-10deg); }
+      50% { transform: rotate(14deg); }
+    }
+    @keyframes breath { 0%,100% { transform: scale(.92); opacity: .18; } 50% { transform: scale(1.05); opacity: .42; } }
+  </style>
+  <rect class="bg" width="900" height="540"/>
+  <circle class="breath" cx="450" cy="270" r="190" fill="#b8f53d"/>
+  <rect class="panel" x="64" y="54" width="772" height="432" rx="28"/>
+  <circle cx="450" cy="140" r="34" fill="#f7f7f3"/>
+  <g class="reach">
+    <path class="body" d="M450 180 L450 292"/>
+    <path class="body" d="M448 198 L336 164"/>
+    <path class="body accent" d="M452 198 L604 116"/>
+    <path class="body" d="M450 292 L364 386"/>
+    <path class="body" d="M450 292 L552 386"/>
+  </g>
+  <path class="accent" d="M236 394 H660" stroke-width="5" stroke-linecap="round" stroke-dasharray="12 16"/>
+  <rect x="92" y="86" width="200" height="38" rx="19" fill="#b8f53d" opacity=".16"/>
+  <text x="114" y="111" fill="#b8f53d" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="800">SIDE REACH</text>
+  <text x="92" y="440" fill="#aaaf9d" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700">Reach long, breathe slowly, stay relaxed.</text>
+</svg>

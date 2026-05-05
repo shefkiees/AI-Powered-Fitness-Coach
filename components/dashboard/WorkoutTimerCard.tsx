@@ -10,9 +10,9 @@ import { cn } from "@/lib/cn";
 const PRESETS_SEC = [5 * 60, 10 * 60, 15 * 60, 20 * 60];
 
 function formatMMSS(totalSec: number): string {
-  const m = Math.floor(totalSec / 60);
-  const s = totalSec % 60;
-  return `${m}:${s.toString().padStart(2, "0")}`;
+  const minutes = Math.floor(totalSec / 60);
+  const seconds = totalSec % 60;
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
 type Props = {
@@ -39,9 +39,10 @@ export function WorkoutTimerCard({ onSessionComplete, className }: Props) {
       clearTick();
       return;
     }
+
     tickRef.current = setInterval(() => {
-      setRemaining((r) => {
-        if (r <= 1) {
+      setRemaining((value) => {
+        if (value <= 1) {
           clearTick();
           setRunning(false);
           if (!completedRef.current) {
@@ -50,9 +51,10 @@ export function WorkoutTimerCard({ onSessionComplete, className }: Props) {
           }
           return 0;
         }
-        return r - 1;
+        return value - 1;
       });
     }, 1000);
+
     return clearTick;
   }, [running, clearTick, onSessionComplete]);
 
@@ -63,63 +65,68 @@ export function WorkoutTimerCard({ onSessionComplete, className }: Props) {
     setRemaining(durationSec);
   }, [durationSec, clearTick]);
 
-  const pickPreset = (sec: number) => {
+  const pickPreset = (seconds: number) => {
     completedRef.current = false;
     setRunning(false);
     clearTick();
-    setDurationSec(sec);
-    setRemaining(sec);
+    setDurationSec(seconds);
+    setRemaining(seconds);
   };
 
-  const pct =
+  const progress =
     durationSec > 0 ? Math.round((remaining / durationSec) * 100) : 0;
 
   return (
     <Card
       className={cn(
-        "border-slate-800/90 bg-slate-900/50 shadow-xl shadow-black/20",
+        "border-black/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.84)_0%,rgba(247,243,231,0.98)_100%)] shadow-[0_18px_34px_rgba(0,0,0,0.08)]",
         className,
       )}
     >
       <div className="flex items-start justify-between gap-4">
         <SectionHeader
           eyebrow="Session tools"
-          title="Workout timer"
-          description="Set a work block for intervals, planks, or rest. Audio-free—stay present."
+          title="Premium timer"
+          description="Use it for focused blocks, intervals, recovery, or fast guided finishers."
+          eyebrowClassName="text-[#677150]"
+          titleClassName="text-[#17181b]"
+          descriptionClassName="text-[#5d654f]"
         />
-        <Timer className="h-8 w-8 shrink-0 text-[var(--fc-accent)]/60" />
+        <span className="flex h-12 w-12 items-center justify-center rounded-[1.2rem] bg-[#111214] text-[#ecfb94]">
+          <Timer className="h-5 w-5" />
+        </span>
       </div>
 
       <div className="mt-6 flex flex-wrap gap-2">
-        {PRESETS_SEC.map((sec) => (
+        {PRESETS_SEC.map((seconds) => (
           <button
-            key={sec}
+            key={seconds}
             type="button"
-            onClick={() => pickPreset(sec)}
+            onClick={() => pickPreset(seconds)}
             className={cn(
-              "rounded-full border px-3 py-1.5 text-xs font-semibold transition",
-              durationSec === sec
-                ? "border-[var(--fc-accent)]/50 bg-[var(--fc-accent)]/10 text-lime-100"
-                : "border-slate-700 text-slate-400 hover:border-slate-600 hover:text-slate-200",
+              "rounded-full border px-3 py-1.5 text-xs font-black uppercase tracking-[0.18em] transition",
+              durationSec === seconds
+                ? "border-black/10 bg-[var(--fc-accent)] text-slate-950"
+                : "border-black/10 bg-white/60 text-[#5f664f] hover:border-black/14 hover:text-[#17181b]",
             )}
           >
-            {sec / 60} min
+            {seconds / 60} min
           </button>
         ))}
       </div>
 
       <div className="mt-8 flex flex-col items-center">
         <div
-          className="relative flex h-40 w-40 items-center justify-center rounded-full border-4 border-slate-800 bg-slate-950/80 shadow-inner"
+          className="relative flex h-44 w-44 items-center justify-center rounded-full border border-black/8 shadow-[inset_0_0_40px_rgba(0,0,0,0.04)]"
           style={{
-            background: `conic-gradient(var(--fc-accent) ${pct * 3.6}deg, rgba(30,41,59,0.9) 0deg)`,
+            background: `conic-gradient(var(--fc-accent) ${progress * 3.6}deg, rgba(17,18,20,0.08) 0deg)`,
           }}
         >
-          <div className="flex h-[calc(100%-16px)] w-[calc(100%-16px)] flex-col items-center justify-center rounded-full bg-slate-950">
-            <span className="font-mono text-3xl font-bold tabular-nums text-white">
+          <div className="flex h-[calc(100%-18px)] w-[calc(100%-18px)] flex-col items-center justify-center rounded-full bg-[#f7f3e7]">
+            <span className="font-mono text-4xl font-black tabular-nums text-[#17181b]">
               {formatMMSS(remaining)}
             </span>
-            <span className="mt-1 text-[11px] uppercase tracking-wider text-slate-500">
+            <span className="mt-2 text-[10px] font-black uppercase tracking-[0.24em] text-[#6b7452]">
               {running ? "Running" : "Ready"}
             </span>
           </div>
@@ -129,11 +136,18 @@ export function WorkoutTimerCard({ onSessionComplete, className }: Props) {
       <div className="mt-8 flex flex-wrap justify-center gap-3">
         <Button
           type="button"
-          variant="secondary"
-          className="min-w-[120px] border-slate-700"
+          variant={running ? "secondary" : "primary"}
+          className={cn(
+            "min-w-[130px]",
+            running && "border-black/10 bg-white text-[#17181b] hover:bg-white",
+          )}
           onClick={() => {
+            if (running) {
+              setRunning(false);
+              return;
+            }
             if (remaining === 0) reset();
-            else setRunning((r) => !r);
+            else setRunning(true);
           }}
         >
           {running ? (
@@ -142,12 +156,16 @@ export function WorkoutTimerCard({ onSessionComplete, className }: Props) {
             </>
           ) : (
             <>
-              <Play className="h-4 w-4" />{" "}
-              {remaining === 0 ? "Restart" : "Start"}
+              <Play className="h-4 w-4" /> {remaining === 0 ? "Restart" : "Start"}
             </>
           )}
         </Button>
-        <Button type="button" variant="ghost" onClick={reset}>
+        <Button
+          type="button"
+          variant="ghost"
+          className="text-[#5f664f] hover:bg-black/[0.04] hover:text-[#17181b]"
+          onClick={reset}
+        >
           <RotateCcw className="h-4 w-4" />
           Reset
         </Button>

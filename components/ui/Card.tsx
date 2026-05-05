@@ -4,10 +4,15 @@ type Props = HTMLAttributes<HTMLDivElement> & {
   as?: "div" | "article" | "section";
 };
 
-export function Card({ as: Tag = "div", className = "", children, ...rest }: Props) {
+export function Card({
+  as: Tag = "div",
+  className = "",
+  children,
+  ...rest
+}: Props) {
   return (
     <Tag
-      className={`rounded-2xl border border-slate-800/60 bg-slate-900/70 p-6 shadow-xl shadow-black/20 backdrop-blur-sm transition-all duration-300 ${className}`}
+      className={`rounded-[1.5rem] border border-[var(--fc-border)] bg-[rgba(26,31,20,0.74)] p-6 shadow-[0_22px_64px_rgba(0,0,0,0.24)] backdrop-blur-sm transition-all duration-300 ${className}`}
       {...rest}
     >
       {children}

@@ -30,6 +30,7 @@ import {
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { ProgressBar } from "@/components/ui/ProgressBar";
 import { cn } from "@/lib/cn";
 
 const STEPS = 7;
@@ -112,28 +113,27 @@ function OptionCard({
       type="button"
       onClick={onClick}
       className={cn(
-        "group flex w-full flex-col items-start gap-3 rounded-2xl border p-5 text-left transition duration-200",
-        "hover:-translate-y-0.5 hover:border-teal-500/50 hover:shadow-lg hover:shadow-teal-900/20",
+        "group flex w-full flex-col items-start gap-3 rounded-[1.5rem] border p-5 text-left transition duration-200",
         selected
-          ? "border-teal-400/70 bg-gradient-to-br from-teal-500/20 to-emerald-600/10 ring-2 ring-teal-400/40"
-          : "border-slate-600/80 bg-slate-950/50",
+          ? "border-[var(--fc-accent)]/25 bg-[var(--fc-accent)]/10 shadow-[0_12px_30px_rgba(0,0,0,0.18)]"
+          : "border-white/8 bg-black/15 hover:border-white/14 hover:bg-white/[0.03]",
         className,
       )}
     >
       <span
         className={cn(
-          "flex h-12 w-12 items-center justify-center rounded-xl transition",
+          "flex h-12 w-12 items-center justify-center rounded-2xl border transition",
           selected
-            ? "bg-teal-500/30 text-teal-200"
-            : "bg-slate-800/80 text-slate-400 group-hover:bg-slate-800 group-hover:text-teal-300",
+            ? "border-[var(--fc-accent)]/20 bg-[var(--fc-accent)] text-slate-950"
+            : "border-white/8 bg-white/[0.04] text-slate-400 group-hover:text-slate-200",
         )}
       >
-        <Icon className="h-6 w-6" strokeWidth={1.75} />
+        <Icon className="h-5 w-5" strokeWidth={1.75} />
       </span>
       <div>
         <span className="text-base font-semibold text-white">{label}</span>
         {sub ? (
-          <span className="mt-1 block text-sm leading-snug text-slate-400">
+          <span className="mt-1 block text-sm leading-7 text-slate-400">
             {sub}
           </span>
         ) : null}
@@ -204,225 +204,248 @@ export function OnboardingFlow() {
   };
 
   const next = () => {
-    if (step < STEPS - 1) setStep((s) => s + 1);
+    if (step < STEPS - 1) setStep((current) => current + 1);
     else void submit();
   };
 
-  const back = () => setStep((s) => Math.max(0, s - 1));
-
+  const back = () => setStep((current) => Math.max(0, current - 1));
   const pct = Math.round(((step + 1) / STEPS) * 100);
 
   return (
-    <div className="mx-auto w-full max-w-xl space-y-8">
-      <div className="space-y-3">
-        <div className="flex items-center justify-between text-sm">
-          <span className="font-medium text-slate-300">
-            Step {step + 1} of {STEPS}
-          </span>
-          <span className="text-teal-400/90">{pct}%</span>
+    <div className="space-y-5">
+      <Card className="overflow-hidden p-0">
+        <div className="border-b border-white/8 px-6 py-5 sm:px-8">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">
+                Profile setup
+              </p>
+              <h2 className="mt-2 text-2xl font-black text-white">
+                {stepTitles[step]}
+              </h2>
+            </div>
+            <span className="rounded-full border border-white/8 bg-white/[0.04] px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+              Step {step + 1} / {STEPS}
+            </span>
+          </div>
+
+          <div className="mt-5">
+            <ProgressBar value={pct} label="Completion" showValue />
+          </div>
         </div>
-        <div className="h-2 overflow-hidden rounded-full bg-slate-800/90">
-          <motion.div
-            className="h-full rounded-full bg-gradient-to-r from-teal-400 via-teal-500 to-emerald-500 shadow-sm shadow-teal-500/40"
-            initial={false}
-            animate={{ width: `${pct}%` }}
-            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-          />
+
+        <div className="px-6 py-6 sm:px-8 sm:py-8">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={step}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+            >
+              {step === 0 ? (
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-2xl font-bold text-white">
+                      How do you identify?
+                    </h3>
+                    <p className="mt-2 text-sm leading-7 text-slate-400">
+                      We use this to tailor tone and training context, not for
+                      medical decisions.
+                    </p>
+                  </div>
+                  <div className="grid gap-3">
+                    {GENDER_OPTIONS.map((opt) => (
+                      <OptionCard
+                        key={opt.id}
+                        selected={draft.gender === opt.id}
+                        onClick={() =>
+                          setDraft((current) => ({ ...current, gender: opt.id }))
+                        }
+                        icon={GENDER_ICONS[opt.id] ?? UserCircle}
+                        label={opt.label}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {step === 1 ? (
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-2xl font-bold text-white">
+                      What&apos;s your age?
+                    </h3>
+                    <p className="mt-2 text-sm leading-7 text-slate-400">
+                      Enter your age in years. Valid range: 13 to 100.
+                    </p>
+                  </div>
+                  <Input
+                    label="Age"
+                    type="number"
+                    min={13}
+                    max={100}
+                    placeholder="e.g. 28"
+                    value={draft.age}
+                    onChange={(event) =>
+                      setDraft((current) => ({ ...current, age: event.target.value }))
+                    }
+                    icon={Cake}
+                  />
+                </div>
+              ) : null}
+
+              {step === 2 ? (
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-2xl font-bold text-white">
+                      Current weight
+                    </h3>
+                    <p className="mt-2 text-sm leading-7 text-slate-400">
+                      Use kilograms so we can keep training guidance consistent.
+                    </p>
+                  </div>
+                  <Input
+                    label="Weight (kg)"
+                    type="number"
+                    step="0.1"
+                    min={1}
+                    placeholder="72.5"
+                    value={draft.weight}
+                    onChange={(event) =>
+                      setDraft((current) => ({
+                        ...current,
+                        weight: event.target.value,
+                      }))
+                    }
+                    icon={Scale}
+                  />
+                </div>
+              ) : null}
+
+              {step === 3 ? (
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-2xl font-bold text-white">Height</h3>
+                    <p className="mt-2 text-sm leading-7 text-slate-400">
+                      Use centimeters so your profile stays consistent across the app.
+                    </p>
+                  </div>
+                  <Input
+                    label="Height (cm)"
+                    type="number"
+                    step="0.5"
+                    min={50}
+                    placeholder="175"
+                    value={draft.height}
+                    onChange={(event) =>
+                      setDraft((current) => ({
+                        ...current,
+                        height: event.target.value,
+                      }))
+                    }
+                    icon={Ruler}
+                  />
+                </div>
+              ) : null}
+
+              {step === 4 ? (
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-2xl font-bold text-white">
+                      Main fitness goal
+                    </h3>
+                    <p className="mt-2 text-sm leading-7 text-slate-400">
+                      Choose the result you want the app to prioritize first.
+                    </p>
+                  </div>
+                  <div className="grid gap-3">
+                    {GOAL_OPTIONS.map((opt) => (
+                      <OptionCard
+                        key={opt.id}
+                        selected={draft.goal === opt.id}
+                        onClick={() =>
+                          setDraft((current) => ({ ...current, goal: opt.id }))
+                        }
+                        icon={GOAL_ICONS[opt.id] ?? Target}
+                        label={opt.label}
+                        sub={opt.sub}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {step === 5 ? (
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-2xl font-bold text-white">
+                      Activity level
+                    </h3>
+                    <p className="mt-2 text-sm leading-7 text-slate-400">
+                      Outside structured workouts, how much do you usually move?
+                    </p>
+                  </div>
+                  <div className="grid gap-3">
+                    {ACTIVITY_OPTIONS.map((opt) => (
+                      <OptionCard
+                        key={opt.id}
+                        selected={draft.activity_level === opt.id}
+                        onClick={() =>
+                          setDraft((current) => ({
+                            ...current,
+                            activity_level: opt.id,
+                          }))
+                        }
+                        icon={ACTIVITY_ICONS[opt.id] ?? Activity}
+                        label={opt.label}
+                        sub={opt.sub}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {step === 6 ? (
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-2xl font-bold text-white">
+                      Workout focus
+                    </h3>
+                    <p className="mt-2 text-sm leading-7 text-slate-400">
+                      We&apos;ll bias your plan toward this area. You can change it later.
+                    </p>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {WORKOUT_PREFERENCE_OPTIONS.map((opt) => (
+                      <OptionCard
+                        key={opt.id}
+                        selected={draft.workout_preference === opt.id}
+                        onClick={() =>
+                          setDraft((current) => ({
+                            ...current,
+                            workout_preference: opt.id,
+                          }))
+                        }
+                        icon={WORKOUT_ICONS[opt.id] ?? Dumbbell}
+                        label={opt.label}
+                        sub={opt.sub}
+                        className="sm:min-h-[148px]"
+                      />
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </motion.div>
+          </AnimatePresence>
         </div>
-        <p className="text-center text-xs font-medium uppercase tracking-[0.2em] text-slate-500">
-          {stepTitles[step]}
-        </p>
-      </div>
-
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={step}
-          initial={{ opacity: 0, x: 24 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -24 }}
-          transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <Card className="border-slate-700/60 bg-slate-900/40 p-6 shadow-xl shadow-black/20 backdrop-blur-sm sm:p-8">
-            {step === 0 ? (
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-2xl font-bold text-white">How do you identify?</h2>
-                  <p className="mt-2 text-sm text-slate-400">
-                    We use this to tailor tone and expectations—not for medical
-                    decisions.
-                  </p>
-                </div>
-                <div className="grid gap-3 sm:grid-cols-1">
-                  {GENDER_OPTIONS.map((opt) => (
-                    <OptionCard
-                      key={opt.id}
-                      selected={draft.gender === opt.id}
-                      onClick={() =>
-                        setDraft((d) => ({ ...d, gender: opt.id }))
-                      }
-                      icon={GENDER_ICONS[opt.id] ?? UserCircle}
-                      label={opt.label}
-                    />
-                  ))}
-                </div>
-              </div>
-            ) : null}
-
-            {step === 1 ? (
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-2xl font-bold text-white">What&apos;s your age?</h2>
-                  <p className="mt-2 text-sm text-slate-400">Years (13–100)</p>
-                </div>
-                <Input
-                  label="Age"
-                  type="number"
-                  min={13}
-                  max={100}
-                  placeholder="e.g. 28"
-                  value={draft.age}
-                  onChange={(e) =>
-                    setDraft((d) => ({ ...d, age: e.target.value }))
-                  }
-                  icon={Cake}
-                  className="border-slate-600/80 bg-slate-950/60"
-                />
-              </div>
-            ) : null}
-
-            {step === 2 ? (
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-2xl font-bold text-white">Current weight</h2>
-                  <p className="mt-2 text-sm text-slate-400">Kilograms (kg)</p>
-                </div>
-                <Input
-                  label="Weight (kg)"
-                  type="number"
-                  step="0.1"
-                  min={1}
-                  placeholder="72.5"
-                  value={draft.weight}
-                  onChange={(e) =>
-                    setDraft((d) => ({ ...d, weight: e.target.value }))
-                  }
-                  icon={Scale}
-                  className="border-slate-600/80 bg-slate-950/60"
-                />
-              </div>
-            ) : null}
-
-            {step === 3 ? (
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-2xl font-bold text-white">Height</h2>
-                  <p className="mt-2 text-sm text-slate-400">Centimeters (cm)</p>
-                </div>
-                <Input
-                  label="Height (cm)"
-                  type="number"
-                  step="0.5"
-                  min={50}
-                  placeholder="175"
-                  value={draft.height}
-                  onChange={(e) =>
-                    setDraft((d) => ({ ...d, height: e.target.value }))
-                  }
-                  icon={Ruler}
-                  className="border-slate-600/80 bg-slate-950/60"
-                />
-              </div>
-            ) : null}
-
-            {step === 4 ? (
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-2xl font-bold text-white">Main fitness goal</h2>
-                  <p className="mt-2 text-sm text-slate-400">
-                    What matters most right now?
-                  </p>
-                </div>
-                <div className="grid gap-3">
-                  {GOAL_OPTIONS.map((opt) => (
-                    <OptionCard
-                      key={opt.id}
-                      selected={draft.goal === opt.id}
-                      onClick={() => setDraft((d) => ({ ...d, goal: opt.id }))}
-                      icon={GOAL_ICONS[opt.id] ?? Target}
-                      label={opt.label}
-                      sub={opt.sub}
-                    />
-                  ))}
-                </div>
-              </div>
-            ) : null}
-
-            {step === 5 ? (
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-2xl font-bold text-white">Activity level</h2>
-                  <p className="mt-2 text-sm text-slate-400">
-                    Outside of structured workouts—how much do you move day to
-                    day?
-                  </p>
-                </div>
-                <div className="grid gap-3">
-                  {ACTIVITY_OPTIONS.map((opt) => (
-                    <OptionCard
-                      key={opt.id}
-                      selected={draft.activity_level === opt.id}
-                      onClick={() =>
-                        setDraft((d) => ({ ...d, activity_level: opt.id }))
-                      }
-                      icon={ACTIVITY_ICONS[opt.id] ?? Activity}
-                      label={opt.label}
-                      sub={opt.sub}
-                    />
-                  ))}
-                </div>
-              </div>
-            ) : null}
-
-            {step === 6 ? (
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-2xl font-bold text-white">
-                    Workout focus
-                  </h2>
-                  <p className="mt-2 text-sm text-slate-400">
-                    We&apos;ll bias your generated plan toward this area (you can
-                    change it later in profile).
-                  </p>
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {WORKOUT_PREFERENCE_OPTIONS.map((opt) => (
-                    <OptionCard
-                      key={opt.id}
-                      selected={draft.workout_preference === opt.id}
-                      onClick={() =>
-                        setDraft((d) => ({
-                          ...d,
-                          workout_preference: opt.id,
-                        }))
-                      }
-                      icon={WORKOUT_ICONS[opt.id] ?? Dumbbell}
-                      label={opt.label}
-                      sub={opt.sub}
-                      className="sm:min-h-[140px]"
-                    />
-                  ))}
-                </div>
-              </div>
-            ) : null}
-          </Card>
-        </motion.div>
-      </AnimatePresence>
+      </Card>
 
       {error ? (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="rounded-2xl border border-red-500/40 bg-red-950/50 px-4 py-3 text-sm text-red-100"
+          className="rounded-2xl border border-red-500/40 bg-red-950/40 px-4 py-3 text-sm text-red-100"
           role="alert"
         >
           {error}
@@ -433,7 +456,7 @@ export function OnboardingFlow() {
         <Button
           type="button"
           variant="secondary"
-          className="flex-1 border-slate-600/80 bg-slate-900/80"
+          className="flex-1"
           disabled={step === 0 || saving}
           onClick={back}
         >
@@ -441,12 +464,12 @@ export function OnboardingFlow() {
         </Button>
         <Button
           type="button"
-          className="flex-1 py-3.5 shadow-lg shadow-teal-900/25"
+          className="flex-1"
           disabled={!canNext() || saving}
           loading={saving}
           onClick={next}
         >
-          {step === STEPS - 1 ? "Finish & go to dashboard" : "Continue"}
+          {step === STEPS - 1 ? "Finish and open dashboard" : "Continue"}
         </Button>
       </div>
     </div>

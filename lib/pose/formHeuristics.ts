@@ -43,9 +43,7 @@ export function analyzePoseForm(
     return {
       status: "off_frame",
       headline: "Need better framing",
-      tips: [
-        "Keep hips, knees, and shoulders in frame for form feedback.",
-      ],
+      tips: ["Keep hips, knees, and shoulders in frame for form feedback."],
     };
   }
 
@@ -53,14 +51,14 @@ export function analyzePoseForm(
 
   const hipTilt = Math.abs(lh!.y - rh!.y) / h;
   if (hipTilt > 0.07) {
-    tips.push("Level your hips—square up to the camera.");
+    tips.push("Level your hips - square up to the camera.");
   }
 
   if (strong(la) && strong(ra)) {
     const kneeOverToeL = (lk!.x - la!.x) / w;
     const kneeOverToeR = (rk!.x - ra!.x) / w;
     if (Math.abs(kneeOverToeL) > 0.12 || Math.abs(kneeOverToeR) > 0.12) {
-      tips.push("Keep knees tracking over toes—not caving in or drifting far forward.");
+      tips.push("Keep knees tracking over toes - not caving in or drifting far forward.");
     }
   }
 
@@ -68,7 +66,7 @@ export function analyzePoseForm(
   const hipMidY = (lh!.y + rh!.y) / 2;
   const drop = (hipMidY - shoulderMidY) / h;
   if (drop > 0.14) {
-    tips.push("Lift hips slightly—brace your core like a plank.");
+    tips.push("Lift hips slightly - brace your core like a plank.");
   }
 
   if (tips.length === 0) {

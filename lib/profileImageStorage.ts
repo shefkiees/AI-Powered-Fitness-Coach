@@ -2,24 +2,20 @@ import { supabase } from "@/lib/supabaseClient";
 
 const BUCKET = "avatars";
 
-/**
- * Validate image file (BUG FIX + HARDENING)
- */
 function validateImageFile(file: File): string | null {
+  if (!file) return "No file selected.";
+
   if (!file.type.startsWith("image/")) {
     return "Only image files are allowed.";
   }
 
   if (file.size > 5 * 1024 * 1024) {
-    return "Image size must be under 5MB.";
+    return "Image must be smaller than 5MB.";
   }
 
   return null;
 }
 
-/**
- * Generate safe avatar path (REFACTORED)
- */
 function generateAvatarPath(userId: string, file: File): string {
   const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
 
@@ -30,91 +26,81 @@ function generateAvatarPath(userId: string, file: File): string {
   return `${userId}/${safeName}`;
 }
 
-/**
- * Upload profile image (UX + BUG FIX + IMPROVED FEEDBACK)
- */
+function extractAvatarPath(publicUrl: string): string | null {
+  try {
+    const url = new URL(publicUrl);
+    const marker = `/storage/v1/object/public/${BUCKET}/`;
+    const index = url.pathname.indexOf(marker);
+
+    if (index === -1) return null;
+
+    return decodeURIComponent(url.pathname.slice(index + marker.length));
+  } catch {
+    return null;
+  }
+}
+
 export async function uploadProfileImage(
   userId: string,
-  file: File
+  file: File,
 ): Promise<{
   publicUrl: string | null;
   error: string | null;
   success: string | null;
 }> {
-  try {
-    // Validation
-    const validationError = validateImageFile(file);
-    if (validationError) {
-      return { publicUrl: null, error: validationError, success: null };
-    }
+  const validationError = validateImageFile(file);
 
+  if (validationError) {
+    return { publicUrl: null, error: validationError, success: null };
+  }
+
+  try {
     const path = generateAvatarPath(userId, file);
 
-    const { error: upErr } = await supabase.storage
-      .from(BUCKET)
-      .upload(path, file, {
-        cacheControl: "3600",
-        upsert: true,
-      });
+    const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
+      cacheControl: "3600",
+      upsert: false,
+    });
 
-    // Improved error feedback
-    if (upErr) {
+    if (error) {
       return {
         publicUrl: null,
-        error: upErr.message || "Upload failed. Please try again.",
+        error: error.message,
         success: null,
       };
     }
 
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from(BUCKET).getPublicUrl(path);
+    const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
 
     return {
-      publicUrl,
+      publicUrl: data.publicUrl,
       error: null,
-      success: "Image uploaded successfully.",
+      success: "Profile image uploaded successfully.",
     };
   } catch {
     return {
       publicUrl: null,
-      error: "Unexpected error occurred while uploading image.",
+      error: "Unexpected error while uploading image.",
       success: null,
     };
   }
 }
 
-/**
- * Convert public URL to storage path (REFACTORED)
- */
-function extractAvatarPath(publicUrl: string): string | null {
-  const match = publicUrl.match(
-    /\/storage\/v1\/object\/public\/avatars\/(.+?)(?:\?|$)/
-  );
-
-  return match ? decodeURIComponent(match[1]) : null;
-}
-
-/**
- * Remove profile image (UX IMPROVED + BETTER ERRORS)
- */
 export async function removeProfileImageFromStorage(
-  publicUrl: string
+  publicUrl: string,
 ): Promise<{ error: string | null; success: string | null }> {
+  const path = extractAvatarPath(publicUrl);
+
+  if (!path) {
+    return { error: "Invalid image link.", success: null };
+  }
+
   try {
-    const path = extractAvatarPath(publicUrl);
-
-    if (!path) {
-      return { error: "Invalid image link.", success: null };
-    }
-
-    const { error } = await supabase.storage
-      .from(BUCKET)
-      .remove([path]);
+    const { error } = await supabase.storage.from(BUCKET).remove([path]);
 
     if (error) {
       return {
-        error: error.message || "Could not delete image. Try again.",
+        error: "Failed to delete image. Try again.",
         success: null,
       };
     }

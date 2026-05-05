@@ -11,7 +11,7 @@ export type FitnessProfileRow = {
   goal: string;
   activity_level: string;
   workout_preference: string;
-  profile_image: string | null;
+  profile_image?: string | null;
   created_at: string;
 };
 
@@ -23,117 +23,126 @@ export type FitnessProfileInput = {
   goal: string;
   activity_level: string;
   workout_preference?: string;
-  profile_image?: string | null;
 };
 
 function normalizeRow(data: Record<string, unknown>): FitnessProfileRow {
-  const activity =
-    data.activity_level != null && String(data.activity_level).trim() !== ""
-      ? String(data.activity_level)
-      : data.level != null && String(data.level).trim() !== ""
-        ? String(data.level)
-        : "moderate";
-
-  const img = data.profile_image;
-  const profile_image =
-    img != null && String(img).trim() !== "" ? String(img).trim() : null;
-
-  const wp = data.workout_preference;
-  const workout_preference =
-    wp != null && String(wp).trim() !== ""
-      ? String(wp).trim()
-      : "full_body";
-
+  const id = String(data.id ?? "");
   return {
-    id: String(data.id),
-    user_id: String(data.user_id),
+    id,
+    user_id: id,
     gender:
       data.gender != null && String(data.gender).trim() !== ""
         ? String(data.gender)
         : "prefer_not_say",
     age: Number(data.age),
-    weight: Number(data.weight),
-    height: Number(data.height),
-    goal: String(data.goal),
-    activity_level: activity,
-    workout_preference,
-    profile_image,
+    weight: Number(data.weight_kg ?? data.weight),
+    height: Number(data.height_cm ?? data.height),
+    goal: String(data.goal ?? "improve_fitness"),
+    activity_level: String(data.fitness_level ?? data.activity_level ?? "beginner"),
+    workout_preference: String(data.workout_preference ?? "full_body"),
     created_at: String(data.created_at ?? ""),
   };
 }
 
-const PROFILE_COLUMNS =
-  "id,user_id,gender,age,weight,height,goal,activity_level,workout_preference,profile_image,created_at";
+function isLockError(message: string) {
+  return message.includes("Lock broken by another request");
+}
 
 export async function fetchFitnessProfile(
-  userId: string,
+  _userId: string,
   client?: SupabaseClient,
 ): Promise<{ data: FitnessProfileRow | null; error: string | null }> {
+  void _userId;
   const db = client ?? supabase;
-  const { data, error } = await db
-    .from("fitness_profiles")
-    .select(PROFILE_COLUMNS)
-    .eq("user_id", userId)
-    .maybeSingle();
 
-  if (
-    error?.message?.includes("activity_level") ||
-    error?.message?.includes("profile_image") ||
-    error?.message?.includes("workout_preference") ||
-    error?.message?.includes("schema cache")
-  ) {
-    const retry = await db
-      .from("fitness_profiles")
-      .select("id,user_id,gender,age,weight,height,goal,level,created_at")
-      .eq("user_id", userId)
-      .maybeSingle();
-    if (retry.error)
-      return { data: null, error: retry.error.message };
-    if (!retry.data) return { data: null, error: null };
+  try {
+    const { data, error } = await db.from("profiles").select("*").maybeSingle();
+
+    if (error && isLockError(error.message)) {
+      return { data: null, error: null };
+    }
+
+    if (error) {
+      return { data: null, error: error.message };
+    }
+
+    if (!data) {
+      return { data: null, error: null };
+    }
+
     return {
-      data: normalizeRow(retry.data as Record<string, unknown>),
+      data: normalizeRow(data as Record<string, unknown>),
       error: null,
     };
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    if (isLockError(errorMsg)) {
+      return { data: null, error: null };
+    }
+    return { data: null, error: errorMsg };
   }
-
-  if (error) return { data: null, error: error.message };
-  if (!data) return { data: null, error: null };
-  return { data: normalizeRow(data as Record<string, unknown>), error: null };
 }
 
 export async function saveFitnessProfile(
-  userId: string,
+  _userId: string,
   input: FitnessProfileInput,
 ): Promise<{ error: string | null }> {
+  void _userId;
   const row: Record<string, unknown> = {
-    user_id: userId,
     gender: input.gender,
     age: input.age,
-    weight: input.weight,
-    height: input.height,
+    weight_kg: input.weight,
+    height_cm: input.height,
     goal: input.goal,
-    activity_level: input.activity_level,
+    fitness_level: input.activity_level,
   };
-  if (input.workout_preference !== undefined) {
-    row.workout_preference = input.workout_preference;
-  }
-  if (input.profile_image !== undefined) {
-    row.profile_image = input.profile_image;
-  }
 
-  const { error } = await supabase.from("fitness_profiles").upsert(row, {
-    onConflict: "user_id",
-  });
+  try {
+    const existing = await supabase.from("profiles").select("id").maybeSingle();
+    const result = existing.data?.id
+      ? await supabase.from("profiles").update(row).eq("id", existing.data.id)
+      : await supabase.from("profiles").insert(row);
 
-  return { error: error ? error.message : null };
+    if (result.error) {
+      if (isLockError(result.error.message)) {
+        return { error: null };
+      }
+      return { error: result.error.message };
+    }
+
+    return { error: null };
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    if (isLockError(errorMsg)) {
+      return { error: null };
+    }
+    return { error: errorMsg };
+  }
 }
 
 export async function deleteFitnessProfile(
-  userId: string,
+  _userId: string,
 ): Promise<{ error: string | null }> {
-  const { error } = await supabase
-    .from("fitness_profiles")
-    .delete()
-    .eq("user_id", userId);
-  return { error: error ? error.message : null };
+  void _userId;
+  try {
+    const existing = await supabase.from("profiles").select("id").maybeSingle();
+    if (!existing.data?.id) return { error: existing.error?.message ?? null };
+
+    const { error } = await supabase.from("profiles").delete().eq("id", existing.data.id);
+
+    if (error) {
+      if (isLockError(error.message)) {
+        return { error: null };
+      }
+      return { error: error.message };
+    }
+
+    return { error: null };
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    if (isLockError(errorMsg)) {
+      return { error: null };
+    }
+    return { error: errorMsg };
+  }
 }

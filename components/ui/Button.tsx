@@ -1,16 +1,17 @@
 import { forwardRef, type ButtonHTMLAttributes } from "react";
+import { cn } from "@/lib/cn";
 
 type Variant = "primary" | "secondary" | "ghost" | "danger";
 
 const variants: Record<Variant, string> = {
   primary:
-    "bg-gradient-to-r from-lime-500 via-emerald-500 to-cyan-500 text-slate-950 shadow-lg shadow-lime-900/30 duration-300 ease-out hover:brightness-110 hover:shadow-[0_0_32px_rgba(34,211,238,0.35),0_0_56px_rgba(163,230,53,0.2)] active:scale-[0.98]",
+    "border border-[var(--fc-accent)] bg-[var(--fc-accent)] text-[var(--fc-accent-ink)] shadow-[0_18px_44px_rgba(212,255,63,0.2)] hover:bg-[var(--fc-accent-strong)]",
   secondary:
-    "border border-slate-600 bg-slate-800/80 text-slate-100 duration-300 hover:border-slate-500 hover:bg-slate-800 hover:shadow-lg hover:shadow-black/20 active:scale-[0.98]",
+    "border border-[var(--fc-border)] bg-white/[0.04] text-slate-100 hover:border-white/14 hover:bg-white/[0.07]",
   ghost:
-    "text-slate-300 duration-300 hover:bg-slate-800/80 hover:text-white active:scale-[0.98]",
+    "border border-transparent bg-transparent text-slate-300 hover:bg-white/[0.05] hover:text-white",
   danger:
-    "border border-red-500/40 bg-red-950/40 text-red-200 duration-300 hover:bg-red-950/60 hover:shadow-lg hover:shadow-red-900/20 active:scale-[0.98]",
+    "border border-red-500/30 bg-red-950/30 text-red-200 hover:bg-red-950/50",
 };
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -34,16 +35,22 @@ export const Button = forwardRef<HTMLButtonElement, Props>(
       <button
         ref={ref}
         disabled={disabled || loading}
-        className={`inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:shadow-none ${variants[variant]} ${className}`}
+        className={cn(
+          "inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-black transition duration-200",
+          "disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:shadow-none active:scale-[0.99]",
+          variants[variant],
+          className,
+        )}
         {...rest}
       >
         {loading ? (
           <span
-            className={`h-4 w-4 animate-spin rounded-full border-2 border-t-transparent ${
+            className={cn(
+              "h-4 w-4 animate-spin rounded-full border-2 border-t-transparent",
               variant === "primary"
-                ? "border-slate-900/30 border-t-slate-900"
-                : "border-white/30 border-t-white"
-            }`}
+                ? "border-slate-950/25 border-t-slate-950"
+                : "border-white/30 border-t-white",
+            )}
           />
         ) : null}
         {children}
