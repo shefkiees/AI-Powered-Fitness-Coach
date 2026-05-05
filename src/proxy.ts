@@ -1,7 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-/** Authenticated app areas (onboarding stays public until account exists). */
 const PROTECTED_PREFIXES = [
   "/dashboard",
   "/goals",
@@ -16,10 +15,37 @@ const PROTECTED_PREFIXES = [
   "/profile-setup",
 ];
 
+export const config = {
+  matcher: [
+    "/dashboard",
+    "/dashboard/:path*",
+    "/goals",
+    "/goals/:path*",
+    "/nutrition-plan",
+    "/nutrition-plan/:path*",
+    "/exercise-library",
+    "/exercise-library/:path*",
+    "/workout-plan",
+    "/workout-plan/:path*",
+    "/progress-tracker",
+    "/progress-tracker/:path*",
+    "/settings",
+    "/settings/:path*",
+    "/workout",
+    "/workout/:path*",
+    "/pose-estimation",
+    "/pose-estimation/:path*",
+    "/profile",
+    "/profile/:path*",
+    "/profile-setup",
+    "/profile-setup/:path*",
+  ],
+};
+
 export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const isProtected = PROTECTED_PREFIXES.some(
-    (p) => path === p || path.startsWith(`${p}/`),
+    (prefix) => path === prefix || path.startsWith(`${prefix}/`),
   );
 
   if (!isProtected) {

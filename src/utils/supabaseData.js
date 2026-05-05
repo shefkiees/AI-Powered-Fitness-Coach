@@ -115,6 +115,10 @@ function normalizeProfilePayload(formValues) {
     workout_days_per_week: Number(formValues.workout_days_per_week),
     dietary_preference: formValues.dietary_preference.trim() || "standard",
     injuries: formValues.injuries.trim(),
+    equipment_available: Array.isArray(formValues.equipment_available)
+      ? formValues.equipment_available
+      : [],
+    profile_image: formValues.profile_image || null,
   };
 }
 
@@ -241,20 +245,38 @@ function normalizeWorkoutLibraryRow(row) {
   const media = [...(row.workout_media || [])].sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
   const linkedExercises = [...(row.workout_exercises || [])]
     .sort((a, b) => (a.order_index || 0) - (b.order_index || 0))
-    .map((item, index) => ({
-      id: item.exercise_id || item.id,
-      name: item.exercise_name || item.exercises?.name || "Exercise",
-      sets: item.sets,
-      reps: item.reps,
-      time_seconds: item.time_seconds,
-      rest_seconds: item.rest_seconds,
-      notes: item.notes || item.exercises?.instructions || item.exercises?.description || "",
-      order_index: item.order_index || index + 1,
-      muscle_group: item.exercises?.muscle_group || row.muscle_group,
-      equipment: item.exercises?.equipment || row.equipment,
-    }));
-  const directExercises = [...(row.exercises || [])].sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
-  const exercises = linkedExercises.length ? linkedExercises : directExercises;
+    .map((item, index) => {
+      const name = item.exercise_name || item.exercises?.name || "Exercise";
+      return withExerciseMedia(
+        {
+          id: item.exercise_id || item.id,
+          name,
+          sets: item.sets,
+          reps: item.reps,
+          time_seconds: item.time_seconds,
+          rest_seconds: item.rest_seconds,
+          notes: item.notes || item.exercises?.instructions || item.exercises?.description || "",
+          order_index: item.order_index || index + 1,
+          muscle_group: item.exercises?.muscle_group || row.muscle_group,
+          equipment: item.exercises?.equipment || row.equipment,
+          image_url: item.image_url || item.exercises?.image_url || null,
+          video_url: item.video_url || item.exercises?.video_url || null,
+        },
+        row,
+      );
+    });
+  const directExercises = [...(row.exercises || [])]
+    .sort((a, b) => (a.order_index || 0) - (b.order_index || 0))
+    .map((exercise, index) =>
+      withExerciseMedia(
+        {
+          ...exercise,
+          order_index: exercise.order_index || index + 1,
+        },
+        row,
+      ),
+    );
+  const exercises = orderExercisesForWorkout(row, linkedExercises.length ? linkedExercises : directExercises);
   const primaryMedia = media.find((item) => item.is_primary) || media[0] || null;
   const thumbnail =
     row.thumbnail_url ||
@@ -267,7 +289,7 @@ function normalizeWorkoutLibraryRow(row) {
     muscle_group: row.muscle_group || "Full body",
     difficulty: row.difficulty || "Beginner",
     duration_minutes: row.duration_minutes || null,
-    thumbnail_url: workoutThumbnailFor(row, thumbnail),
+    thumbnail_url: workoutThumbnailFor(row, thumbnail, exercises),
     goal_tags: Array.isArray(row.goal_tags) ? row.goal_tags : [],
     workout_media: media,
     workout_steps: exercises.map((exercise, index) => ({
@@ -318,6 +340,147 @@ const fallbackExerciseVideos = {
   "romanian deadlift": "https://www.youtube.com/watch?v=JCXUYuzwNrM",
 };
 
+const exerciseThumbnailRules = [
+  {
+    match: ["goblet squat", "bodyweight squat", "squat", "reverse lunge", "lunge", "step-up", "step up"],
+    url: "https://images.unsplash.com/photo-1434682881908-b43d0467b798?auto=format&fit=crop&w=1200&q=80",
+  },
+  {
+    match: ["romanian deadlift", "deadlift", "glute bridge", "glute", "hamstring"],
+    url: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?auto=format&fit=crop&w=1200&q=80",
+  },
+  {
+    match: ["push-up", "push up", "floor press", "chest press", "triceps dip", "dip", "chest"],
+    url: "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?auto=format&fit=crop&w=1200&q=80",
+  },
+  {
+    match: ["dumbbell row", "row", "reverse fly", "lat pulldown", "biceps curl", "curl", "back", "pull"],
+    url: "https://images.unsplash.com/photo-1605296867304-46d5465a13f1?auto=format&fit=crop&w=1200&q=80",
+  },
+  {
+    match: ["shoulder press", "lateral raise", "front raise", "shoulder", "deltoid"],
+    url: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1200&q=80",
+  },
+  {
+    match: ["plank", "side plank", "dead bug", "bird dog", "bicycle crunch", "core", "abs", "stability"],
+    url: "https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=1200&q=80",
+  },
+  {
+    match: ["marching", "mountain climber", "jumping jack", "jumping jacks", "burpee", "high knees", "hiit", "cardio", "conditioning"],
+    url: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=1200&q=80",
+  },
+  {
+    match: ["mobility", "stretch", "recovery", "yoga"],
+    url: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=1200&q=80",
+  },
+  {
+    match: ["boxing"],
+    url: "https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?auto=format&fit=crop&w=1200&q=80",
+  },
+];
+
+const representativeExerciseRules = [
+  {
+    workoutMatch: ["pull", "back", "biceps"],
+    exerciseMatch: ["row", "pulldown", "fly", "curl"],
+  },
+  {
+    workoutMatch: ["push", "chest", "triceps"],
+    exerciseMatch: ["push", "press", "dip"],
+  },
+  {
+    workoutMatch: ["shoulder", "deltoid", "posture"],
+    exerciseMatch: ["shoulder", "raise", "press", "fly"],
+  },
+  {
+    workoutMatch: ["leg", "lower", "glute", "squat"],
+    exerciseMatch: ["squat", "lunge", "deadlift", "step", "glute"],
+  },
+  {
+    workoutMatch: ["core", "abs", "stability"],
+    exerciseMatch: ["plank", "bug", "dog", "crunch"],
+  },
+  {
+    workoutMatch: ["cardio", "hiit", "conditioning", "metabolic", "fat"],
+    exerciseMatch: ["marching", "mountain", "jumping", "burpee", "knees"],
+  },
+];
+
+function exerciseImageFor(name, workout = null) {
+  const text = normalizeText(
+    `${name || ""} ${workout?.title || ""} ${workout?.category || ""} ${workout?.muscle_group || ""}`,
+  );
+  const hit = exerciseThumbnailRules.find((rule) => rule.match.some((word) => text.includes(word)));
+  return hit?.url || null;
+}
+
+function withExerciseMedia(exercise, workout = null) {
+  const name = exercise?.name || exercise?.exercise_name || "";
+  return {
+    ...exercise,
+    image_url: exercise?.image_url || exerciseImageFor(name, workout),
+    video_url: exercise?.video_url || fallbackVideoForExercise(name),
+  };
+}
+
+function dayNumberFromTitle(title) {
+  const match = String(title || "").match(/day\s*(\d+)/i);
+  return match ? Number(match[1]) : 0;
+}
+
+function representativeExerciseForWorkout(workout, exercises = []) {
+  const list = exercises.filter(Boolean);
+  if (!list.length) return null;
+
+  const workoutText = normalizeText(
+    `${workout?.slug || ""} ${workout?.title || ""} ${workout?.category || ""} ${workout?.muscle_group || ""}`,
+  );
+
+  for (const rule of representativeExerciseRules) {
+    if (!rule.workoutMatch.some((word) => workoutText.includes(word))) continue;
+    const hit = list.find((exercise) => {
+      const exerciseText = normalizeText(`${exercise?.name || ""} ${exercise?.muscle_group || ""}`);
+      return rule.exerciseMatch.some((word) => exerciseText.includes(word));
+    });
+    if (hit) return hit;
+  }
+
+  const dayNumber = dayNumberFromTitle(workout?.title);
+  if (dayNumber > 0 && list.length > 1) {
+    return list[(dayNumber - 1) % list.length];
+  }
+
+  return list[0];
+}
+
+function shouldLeadWithRepresentativeExercise(workout, exercises = []) {
+  if (exercises.length < 2) return false;
+  const source = normalizeText(workout?.source);
+  const title = normalizeText(workout?.title);
+  const category = normalizeText(workout?.category);
+  const isGeneratedDay = source === "ai_generated" && dayNumberFromTitle(title) > 0;
+  const isGenericGeneratedFocus = [
+    "strength foundation",
+    "hypertrophy volume",
+    "hybrid performance",
+    "metabolic strength",
+    "low-impact conditioning",
+  ].some((value) => title.includes(value) || category.includes(value));
+
+  return isGeneratedDay && isGenericGeneratedFocus;
+}
+
+function orderExercisesForWorkout(workout, exercises = []) {
+  const list = [...exercises];
+  if (!shouldLeadWithRepresentativeExercise(workout, list)) return list;
+
+  const lead = representativeExerciseForWorkout(workout, list);
+  const leadIndex = list.findIndex((exercise) => exercise?.id === lead?.id && exercise?.name === lead?.name);
+  if (leadIndex <= 0) return list;
+
+  return [list[leadIndex], ...list.slice(0, leadIndex), ...list.slice(leadIndex + 1)];
+}
+
 const workoutThumbnailRules = [
   {
     match: ["back", "pull", "biceps", "row"],
@@ -353,7 +516,7 @@ const workoutThumbnailRules = [
   },
 ];
 
-function workoutThumbnailFor(workout, fallback = null) {
+function workoutThumbnailFor(workout, fallback = null, exercises = []) {
   const current = String(fallback || "");
   const isGenericLocal =
     !current ||
@@ -362,9 +525,26 @@ function workoutThumbnailFor(workout, fallback = null) {
     current.includes("/pulse-assets/workout-yoga.jpg") ||
     current.includes("/pulse-assets/workout-stretch.jpg");
 
-  if (!workout?.is_local_catalog && !workout?.slug?.includes?.("starter") && !isGenericLocal) {
+  if (
+    !workout?.is_local_catalog &&
+    !workout?.slug?.includes?.("starter") &&
+    !isGenericLocal
+  ) {
     return fallback;
   }
+
+  const representativeExercise = shouldLeadWithRepresentativeExercise(workout, exercises)
+    ? exercises[0]
+    : representativeExerciseForWorkout(workout, exercises);
+  const exerciseImage = representativeExercise
+    ? exerciseImageFor(representativeExercise.name, {
+        ...workout,
+        title: representativeExercise.name,
+        muscle_group: representativeExercise.muscle_group || workout?.muscle_group,
+      })
+    : null;
+
+  if (exerciseImage) return exerciseImage;
 
   const text = normalizeText(
     `${workout?.slug || ""} ${workout?.title || ""} ${workout?.category || ""} ${workout?.muscle_group || ""}`,
@@ -451,6 +631,7 @@ function fallbackExercisesForWorkout(workout) {
     order_index: index + 1,
     muscle_group: workout.muscle_group || "Full body",
     equipment: workout.equipment || "Bodyweight",
+    image_url: exerciseImageFor(name, workout),
     video_url: fallbackVideoForExercise(name),
     fallback: true,
   }));
@@ -584,9 +765,10 @@ function normalizeLocalCatalogWorkout(row) {
     workout_media: [],
     ...row,
   };
-  workout.thumbnail_url = workoutThumbnailFor(workout, row.thumbnail_url);
+  const exercises = fallbackExercisesForWorkout(workout);
+  workout.thumbnail_url = workoutThumbnailFor(workout, row.thumbnail_url, exercises);
 
-  return withWorkoutSteps(workout, fallbackExercisesForWorkout(workout));
+  return withWorkoutSteps(workout, exercises);
 }
 
 function localWorkoutById(workoutId) {
@@ -1122,6 +1304,19 @@ export async function createNutritionPlan(_userId, profile) {
       ...meal,
     })),
   };
+}
+
+export async function estimateNutritionInput(input) {
+  const response = await fetch("/api/nutrition/estimate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ input }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data?.error || "Could not estimate nutrition.");
+  }
+  return data;
 }
 
 export async function getLatestNutritionPlan() {

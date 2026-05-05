@@ -24,10 +24,55 @@ type DayPlan = {
 };
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const JS_DAY_INDEX: Record<string, number> = {
+  sun: 0,
+  mon: 1,
+  tue: 2,
+  wed: 3,
+  thu: 4,
+  fri: 5,
+  sat: 6,
+};
 
 function cleanNumber(value: unknown, fallback: number) {
   const n = Number(value);
   return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
+function dayKey(value: unknown) {
+  return String(value || "").trim().slice(0, 3).toLowerCase();
+}
+
+function scheduleDates(now: Date, count: number, profile: Record<string, unknown>, plan: DayPlan[]) {
+  const preferredDays = Array.isArray(profile.preferred_workout_days)
+    ? profile.preferred_workout_days.map(dayKey)
+    : [];
+  const planDays = plan.map((day) => dayKey(day.day_of_week));
+  const dayIndexes = [...preferredDays, ...planDays]
+    .map((day) => JS_DAY_INDEX[day])
+    .filter((day): day is number => Number.isInteger(day));
+
+  if (!dayIndexes.length) {
+    return Array.from({ length: count }).map((_, index) => {
+      const date = new Date(now);
+      date.setDate(now.getDate() + index);
+      return date;
+    });
+  }
+
+  const wanted = new Set(dayIndexes);
+  const dates: Date[] = [];
+  const cursor = new Date(now);
+  cursor.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
+
+  for (let guard = 0; dates.length < count && guard < 90; guard += 1) {
+    if (wanted.has(cursor.getDay())) {
+      dates.push(new Date(cursor));
+    }
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  return dates;
 }
 
 function fallbackPlan(profile: Record<string, unknown>): DayPlan[] {
@@ -40,66 +85,427 @@ function fallbackPlan(profile: Record<string, unknown>): DayPlan[] {
     : String(profile?.equipment_available || "Bodyweight");
   const strength = goal === "build_muscle";
   const loss = goal === "lose_weight";
+  const hasDumbbells = equipment.toLowerCase().includes("dumbbell");
+  const rowName = hasDumbbells ? "Dumbbell row" : "Towel row or band row";
+  const squatName = hasDumbbells || strength ? "Goblet squat" : "Bodyweight squat";
+
+  const templates: Array<{ focus: string; exercises: ExercisePlan[] }> = strength
+    ? [
+        {
+          focus: "Squat strength",
+          exercises: [
+            {
+              name: squatName,
+              sets: level === "beginner" ? 3 : 4,
+              reps: level === "advanced" ? "8-10" : "10-12",
+              rest_seconds: 90,
+              notes: "Keep your chest tall, sit hips back, and stand through the full foot.",
+              muscle_group: "Legs",
+              equipment,
+            },
+            {
+              name: "Reverse lunge",
+              sets: 3,
+              reps: "8 each side",
+              rest_seconds: 60,
+              notes: "Step back softly, lower with control, then push through the front foot.",
+              muscle_group: "Legs",
+              equipment: "Bodyweight",
+            },
+            {
+              name: "Romanian deadlift",
+              sets: 3,
+              reps: "10-12",
+              rest_seconds: 75,
+              notes: "Hinge at your hips and keep the weight close to your legs.",
+              muscle_group: "Hamstrings",
+              equipment,
+            },
+            {
+              name: "Glute bridge",
+              sets: 3,
+              reps: "12-15",
+              rest_seconds: 45,
+              notes: "Pause at the top and squeeze your glutes without arching your back.",
+              muscle_group: "Glutes",
+              equipment: "Bodyweight",
+            },
+          ],
+        },
+        {
+          focus: "Push strength",
+          exercises: [
+            {
+              name: "Incline push-up",
+              sets: 3,
+              reps: level === "beginner" ? "6-10" : "10-15",
+              rest_seconds: 60,
+              notes: "Use a bench or wall if needed and keep a straight body line.",
+              muscle_group: "Chest",
+              equipment: "Bodyweight",
+            },
+            {
+              name: "Dumbbell floor press",
+              sets: 3,
+              reps: "10-12",
+              rest_seconds: 75,
+              notes: "Press up smoothly and keep shoulders relaxed on the floor.",
+              muscle_group: "Chest",
+              equipment,
+            },
+            {
+              name: "Shoulder press",
+              sets: 3,
+              reps: "8-12",
+              rest_seconds: 60,
+              notes: "Brace your core and press overhead without shrugging.",
+              muscle_group: "Shoulders",
+              equipment,
+            },
+            {
+              name: "Plank shoulder tap",
+              sets: 3,
+              reps: "20 taps",
+              time_seconds: 40,
+              rest_seconds: 45,
+              notes: "Move slowly and keep your hips as still as possible.",
+              muscle_group: "Core",
+              equipment: "Bodyweight",
+            },
+          ],
+        },
+        {
+          focus: "Pull foundation",
+          exercises: [
+            {
+              name: rowName,
+              sets: 3,
+              reps: "10-12 each side",
+              rest_seconds: 60,
+              notes: "Pull your elbow toward your hip and pause briefly at the top.",
+              muscle_group: "Back",
+              equipment,
+            },
+            {
+              name: "Reverse fly",
+              sets: 3,
+              reps: "10-12",
+              rest_seconds: 60,
+              notes: "Use light weight and squeeze your shoulder blades together.",
+              muscle_group: "Back",
+              equipment,
+            },
+            {
+              name: "Biceps curl",
+              sets: 3,
+              reps: "10-12",
+              rest_seconds: 45,
+              notes: "Keep elbows close and avoid swinging the weight.",
+              muscle_group: "Arms",
+              equipment,
+            },
+            {
+              name: "Dead bug",
+              sets: 3,
+              reps: "8 each side",
+              time_seconds: 40,
+              rest_seconds: 45,
+              notes: "Move opposite arm and leg while keeping your lower back steady.",
+              muscle_group: "Core",
+              equipment: "Bodyweight",
+            },
+          ],
+        },
+        {
+          focus: "Full body volume",
+          exercises: [
+            {
+              name: squatName,
+              sets: 3,
+              reps: "12 reps",
+              rest_seconds: 60,
+              notes: "Move smoothly and keep your knees tracking over your toes.",
+              muscle_group: "Legs",
+              equipment,
+            },
+            {
+              name: "Push-up",
+              sets: 3,
+              reps: "8-12",
+              rest_seconds: 60,
+              notes: "Use an incline if form breaks and stop before shoulder pain.",
+              muscle_group: "Chest",
+              equipment: "Bodyweight",
+            },
+            {
+              name: rowName,
+              sets: 3,
+              reps: "10-12 each side",
+              rest_seconds: 60,
+              notes: "Keep your torso steady and pull toward the hip.",
+              muscle_group: "Back",
+              equipment,
+            },
+            {
+              name: "Side plank",
+              sets: 2,
+              reps: "25 sec each side",
+              time_seconds: 35,
+              rest_seconds: 45,
+              notes: "Keep hips lifted and shoulders stacked.",
+              muscle_group: "Core",
+              equipment: "Bodyweight",
+            },
+          ],
+        },
+      ]
+    : loss
+      ? [
+          {
+            focus: "Low-impact conditioning",
+            exercises: [
+              {
+                name: "Marching intervals",
+                sets: 4,
+                reps: "45 sec steady / 30 sec easy",
+                time_seconds: 45,
+                rest_seconds: 30,
+                notes: "Stay tall and choose a pace where breathing stays controlled.",
+                muscle_group: "Cardio",
+                equipment: "Bodyweight",
+              },
+              {
+                name: "Bodyweight squat",
+                sets: 3,
+                reps: "12 reps",
+                rest_seconds: 45,
+                notes: "Sit hips back and drive through your feet.",
+                muscle_group: "Legs",
+                equipment: "Bodyweight",
+              },
+              {
+                name: "Step-up",
+                sets: 3,
+                reps: "8 each side",
+                rest_seconds: 45,
+                notes: "Use a stable step and place the whole foot down.",
+                muscle_group: "Legs",
+                equipment: "Bench",
+              },
+              {
+                name: "Plank",
+                sets: 2,
+                reps: "30-45 sec",
+                time_seconds: 40,
+                rest_seconds: 45,
+                notes: "Brace your core and breathe steadily.",
+                muscle_group: "Core",
+                equipment: "Bodyweight",
+              },
+            ],
+          },
+          {
+            focus: "HIIT starter",
+            exercises: [
+              {
+                name: "Jumping jacks",
+                sets: 3,
+                reps: "35 sec",
+                time_seconds: 35,
+                rest_seconds: 30,
+                notes: "Land softly and keep a smooth rhythm.",
+                muscle_group: "Cardio",
+                equipment: "Bodyweight",
+              },
+              {
+                name: "Mountain climber",
+                sets: 3,
+                reps: "30 sec",
+                time_seconds: 30,
+                rest_seconds: 45,
+                notes: "Keep shoulders over wrists and move with control.",
+                muscle_group: "Core",
+                equipment: "Bodyweight",
+              },
+              {
+                name: "Reverse lunge",
+                sets: 3,
+                reps: "8 each side",
+                rest_seconds: 45,
+                notes: "Step back softly and stand tall each rep.",
+                muscle_group: "Legs",
+                equipment: "Bodyweight",
+              },
+              {
+                name: "High knees",
+                sets: 3,
+                reps: "25 sec",
+                time_seconds: 25,
+                rest_seconds: 40,
+                notes: "Pick a low-impact march if jumping feels uncomfortable.",
+                muscle_group: "Cardio",
+                equipment: "Bodyweight",
+              },
+            ],
+          },
+          {
+            focus: "Metabolic strength",
+            exercises: [
+              {
+                name: "Bodyweight squat",
+                sets: 3,
+                reps: "12 reps",
+                rest_seconds: 45,
+                notes: "Keep chest tall and stand with control.",
+                muscle_group: "Legs",
+                equipment: "Bodyweight",
+              },
+              {
+                name: "Push-up",
+                sets: 3,
+                reps: "6-10",
+                rest_seconds: 60,
+                notes: "Use an incline if needed and keep your body straight.",
+                muscle_group: "Chest",
+                equipment: "Bodyweight",
+              },
+              {
+                name: rowName,
+                sets: 3,
+                reps: "10 each side",
+                rest_seconds: 60,
+                notes: "Pull toward the hip and lower slowly.",
+                muscle_group: "Back",
+                equipment,
+              },
+              {
+                name: "Burpee",
+                sets: 2,
+                reps: "6-8",
+                time_seconds: 35,
+                rest_seconds: 60,
+                notes: "Step back instead of jumping if that keeps form cleaner.",
+                muscle_group: "Cardio",
+                equipment: "Bodyweight",
+              },
+            ],
+          },
+        ]
+      : [
+          {
+            focus: "Squat and core control",
+            exercises: [
+              {
+                name: "Bodyweight squat",
+                sets: 3,
+                reps: "10-12",
+                rest_seconds: 60,
+                notes: "Sit hips back, keep chest tall, then stand strong.",
+                muscle_group: "Legs",
+                equipment: "Bodyweight",
+              },
+              {
+                name: "Reverse lunge",
+                sets: 3,
+                reps: "8 each side",
+                rest_seconds: 60,
+                notes: "Lower with control and keep the front knee steady.",
+                muscle_group: "Legs",
+                equipment: "Bodyweight",
+              },
+              {
+                name: "Plank",
+                sets: 2,
+                reps: "30-45 sec",
+                time_seconds: 40,
+                rest_seconds: 45,
+                notes: "Keep ribs down and breathe steadily.",
+                muscle_group: "Core",
+                equipment: "Bodyweight",
+              },
+            ],
+          },
+          {
+            focus: "Push and pull basics",
+            exercises: [
+              {
+                name: "Push-up",
+                sets: 3,
+                reps: "6-12",
+                rest_seconds: 60,
+                notes: "Use an incline if needed and stop before form breaks.",
+                muscle_group: "Chest",
+                equipment: "Bodyweight",
+              },
+              {
+                name: rowName,
+                sets: 3,
+                reps: "10-12 each side",
+                rest_seconds: 60,
+                notes: "Pull toward your hip and lower slowly.",
+                muscle_group: "Back",
+                equipment,
+              },
+              {
+                name: "Dead bug",
+                sets: 3,
+                reps: "8 each side",
+                time_seconds: 40,
+                rest_seconds: 45,
+                notes: "Move slowly and keep your lower back steady.",
+                muscle_group: "Core",
+                equipment: "Bodyweight",
+              },
+            ],
+          },
+          {
+            focus: "Cardio stability",
+            exercises: [
+              {
+                name: "Marching intervals",
+                sets: 4,
+                reps: "45 sec",
+                time_seconds: 45,
+                rest_seconds: 30,
+                notes: "Stay tall and keep the pace comfortable.",
+                muscle_group: "Cardio",
+                equipment: "Bodyweight",
+              },
+              {
+                name: "Mountain climber",
+                sets: 3,
+                reps: "30 sec",
+                time_seconds: 30,
+                rest_seconds: 45,
+                notes: "Keep shoulders over wrists and move smoothly.",
+                muscle_group: "Core",
+                equipment: "Bodyweight",
+              },
+              {
+                name: "Side plank",
+                sets: 2,
+                reps: "25 sec each side",
+                time_seconds: 35,
+                rest_seconds: 45,
+                notes: "Keep hips lifted and shoulders stacked.",
+                muscle_group: "Core",
+                equipment: "Bodyweight",
+              },
+            ],
+          },
+        ];
 
   return Array.from({ length: days }).map((_, index) => {
-    const focus = strength
-      ? index % 2 === 0
-        ? "Strength foundation"
-        : "Hypertrophy volume"
-      : loss
-        ? index % 2 === 0
-          ? "Metabolic strength"
-          : "Low-impact conditioning"
-        : "Hybrid performance";
-
-    const exercises: ExercisePlan[] = [
-      {
-        name: strength ? "Goblet squat" : "Bodyweight squat",
-        sets: level === "beginner" ? 3 : 4,
-        reps: level === "advanced" ? "8-10" : "10-12",
-        rest_seconds: strength ? 90 : 60,
-        notes: "Keep ribs stacked over hips and move with control.",
-        muscle_group: "Legs",
-        equipment,
-      },
-      {
-        name: "Push-up",
-        sets: 3,
-        reps: level === "beginner" ? "6-10" : "10-15",
-        rest_seconds: 60,
-        notes: "Use an incline if form breaks. Stop before shoulder pain.",
-        muscle_group: "Chest",
-        equipment: "Bodyweight",
-      },
-      {
-        name: equipment.toLowerCase().includes("dumbbell") ? "Dumbbell row" : "Towel row or band row",
-        sets: 3,
-        reps: "10-12 each side",
-        rest_seconds: 60,
-        notes: "Pull elbows toward hips and pause briefly.",
-        muscle_group: "Back",
-        equipment,
-      },
-      {
-        name: loss ? "Marching intervals" : "Plank",
-        sets: 3,
-        reps: loss ? "45 sec steady / 30 sec easy" : "30-45 sec",
-        time_seconds: loss ? 45 : 40,
-        rest_seconds: 45,
-        notes: loss ? "Choose low impact if joints feel irritated." : "Breathe steadily and keep hips level.",
-        muscle_group: "Core",
-        equipment: "Bodyweight",
-      },
-    ];
+    const template = templates[index % templates.length];
 
     return {
-      title: `Day ${index + 1}: ${focus}`,
-      description: `A ${duration}-minute ${level} session built around ${goal.replace(/_/g, " ")}. Warm up for 5 minutes and stop for sharp pain, dizziness, or chest symptoms.`,
+      title: `Day ${index + 1}: ${template.focus}`,
+      description: `A ${duration}-minute ${level} session for ${goal.replace(/_/g, " ")} with a clear ${template.focus.toLowerCase()} focus. Warm up for 5 minutes and stop for sharp pain, dizziness, or chest symptoms.`,
       day_of_week: DAYS[index],
       difficulty: level === "advanced" ? "Advanced" : level === "intermediate" ? "Intermediate" : "Beginner",
       duration_minutes: duration,
-      focus,
-      exercises,
+      focus: template.focus,
+      exercises: template.exercises,
     };
   });
 }
@@ -127,17 +533,23 @@ function isColumnError(error: unknown) {
   );
 }
 
+function primaryMuscleGroup(day: DayPlan) {
+  const groups = (day.exercises || [])
+    .map((exercise) => exercise.muscle_group)
+    .filter((group): group is string => Boolean(group));
+  return groups[0] || day.focus || "Full body";
+}
+
 async function insertWorkout(supabase: Awaited<ReturnType<typeof createSupabaseRouteClient>>, userId: string, day: DayPlan, profile: Record<string, unknown>) {
   const fullPayload = {
     user_id: userId,
     title: day.title,
     description: day.description,
-    day_of_week: day.day_of_week || null,
     category: day.focus || "AI Plan",
-    muscle_group: "Full body",
+    muscle_group: primaryMuscleGroup(day),
     difficulty: day.difficulty,
     duration_minutes: cleanNumber(day.duration_minutes, 35),
-    equipment: day.exercises?.map((e) => e.equipment).filter(Boolean).join(", ") || "Bodyweight",
+    equipment: Array.from(new Set(day.exercises?.map((e) => e.equipment).filter(Boolean))).join(", ") || "Bodyweight",
     is_public: false,
     source: "ai_generated",
     goal_tags: [String(profile.goal || profile.main_goal || "improve_fitness")],
@@ -153,7 +565,6 @@ async function insertWorkout(supabase: Awaited<ReturnType<typeof createSupabaseR
       user_id: userId,
       title: day.title,
       description: day.description,
-      day_of_week: day.day_of_week || null,
       difficulty: day.difficulty,
       duration_minutes: cleanNumber(day.duration_minutes, 35),
     })
@@ -330,10 +741,10 @@ export async function POST(request: Request) {
     const sessions = [];
     const workouts = [];
     const warnings: string[] = [];
+    const plannedDates = scheduleDates(now, plan.length, profile, plan);
     for (let index = 0; index < plan.length; index += 1) {
       const day = plan[index];
-      const scheduled = new Date(now);
-      scheduled.setDate(now.getDate() + index);
+      const scheduled = plannedDates[index] || new Date(now);
 
       const { data: workout, error: workoutError } = await insertWorkout(supabase, user.id, day, profile);
 

@@ -42,6 +42,7 @@ export function CoachChat({ coachDisplayName, userId, onActivity }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inFlightRef = useRef(false);
   const { sessionStartedAt, resetSession } = useCoachingSession();
 
   useEffect(() => {
@@ -53,8 +54,9 @@ export function CoachChat({ coachDisplayName, userId, onActivity }: Props) {
   const sendText = useCallback(
     async (text: string) => {
       const trimmed = text.trim();
-      if (!trimmed || loading) return;
+      if (!trimmed || inFlightRef.current) return;
 
+      inFlightRef.current = true;
       setError("");
       setInput("");
       setMessages((current) => [...current, { role: "user", text: trimmed }]);
@@ -68,14 +70,19 @@ export function CoachChat({ coachDisplayName, userId, onActivity }: Props) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ message: trimmed }),
         });
-        const data = (await response.json()) as {
+        const data = (await response.json().catch(() => ({}))) as {
           reply?: string;
           error?: string;
         };
 
         if (!response.ok) {
           setMessages((current) => current.slice(0, -1));
-          setError(data.error ?? "Something went wrong.");
+          setError(
+            data.error ??
+              (response.status === 429
+                ? "Coach is getting too many requests right now. Try again in a moment."
+                : "Something went wrong."),
+          );
           return;
         }
 
@@ -94,10 +101,11 @@ export function CoachChat({ coachDisplayName, userId, onActivity }: Props) {
         setMessages((current) => current.slice(0, -1));
         setError("Network error. Try again.");
       } finally {
+        inFlightRef.current = false;
         setLoading(false);
       }
     },
-    [loading, onActivity, userId],
+    [onActivity, userId],
   );
 
   const send = useCallback(() => void sendText(input), [input, sendText]);

@@ -1,9 +1,12 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogOut } from "lucide-react";
 import MobileNav from "@/src/components/MobileNav";
 import { useAuth } from "@/context/AuthContext";
+import { getProfile } from "@/src/utils/supabaseData";
 
 const COACH_EMBED_PREFIXES = [
   "/dashboard",
@@ -25,9 +28,75 @@ function useCoachShellEmbed() {
   return false;
 }
 
-export default function AppLayout({ title, subtitle, actions = null, children }) {
-  const { signOut } = useAuth();
+function formatDisplayName(value, fallback = "Athlete") {
+  const text = String(value || "").trim();
+  if (!text) return fallback;
+  return text
+    .replace(/[._-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function ProfileBadge({ profile, user }) {
+  const displayName = formatDisplayName(
+    profile?.name || user?.user_metadata?.full_name || user?.email?.split("@")?.[0],
+  );
+  const initial = displayName.charAt(0).toUpperCase();
+  const image = profile?.profile_image || "";
+
+  return (
+    <Link
+      href="/profile"
+      className="flex min-w-0 items-center gap-3 rounded-full border border-[#ececef] bg-white px-2.5 py-2 pr-3 shadow-sm transition hover:border-[#d1d5db] hover:bg-[#f9fafb]"
+      aria-label="Open profile"
+    >
+      <span className="relative grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-[#dcfce7] text-sm font-black text-[#15803d]">
+        {image ? (
+          <span
+            role="img"
+            aria-label={`${displayName} profile`}
+            className="block h-full w-full bg-cover bg-center"
+            style={{ backgroundImage: `url(${image})` }}
+          />
+        ) : (
+          initial
+        )}
+      </span>
+      <span className="hidden min-w-0 text-left sm:block">
+        <span className="block max-w-36 truncate text-sm font-black text-[#111827]">
+          {displayName}
+        </span>
+        <span className="block max-w-36 truncate text-[11px] font-semibold text-[#6b7280]">
+          View profile
+        </span>
+      </span>
+    </Link>
+  );
+}
+
+export default function AppLayout({ title, subtitle, actions = null, profile, children }) {
+  const { user, signOut } = useAuth();
+  const [headerProfile, setHeaderProfile] = useState(null);
   const embedded = useCoachShellEmbed();
+
+  useEffect(() => {
+    if (profile || !user) return;
+
+    let cancelled = false;
+    void getProfile()
+      .then((data) => {
+        if (!cancelled) setHeaderProfile(data);
+      })
+      .catch(() => {
+        if (!cancelled) setHeaderProfile(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [profile, user]);
+
+  const displayedProfile = useMemo(() => profile || headerProfile, [headerProfile, profile]);
 
   const logout = async () => {
     await signOut();
@@ -44,6 +113,7 @@ export default function AppLayout({ title, subtitle, actions = null, children })
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
           {actions}
+          {user ? <ProfileBadge profile={displayedProfile} user={user} /> : null}
           <button
             type="button"
             onClick={logout}

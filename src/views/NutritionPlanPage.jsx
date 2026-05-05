@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Droplets, Flame, Plus, RefreshCw, Utensils } from "lucide-react";
+import { Droplets, Flame, Plus, RefreshCw, Sparkles, Utensils } from "lucide-react";
 import AppLayout from "@/src/components/AppLayout";
 import EmptyState from "@/src/components/EmptyState";
 import LoadingSpinner from "@/src/components/LoadingSpinner";
@@ -11,6 +11,7 @@ import {
   addMealLog,
   addWaterLog,
   createNutritionPlan,
+  estimateNutritionInput,
   getLatestNutritionPlan,
 } from "@/src/utils/supabaseData";
 
@@ -50,6 +51,8 @@ function MacroBar({ label, value, target, tone }) {
 function NutritionContent({ user, profile }) {
   const [plan, setPlan] = useState(null);
   const [mealForm, setMealForm] = useState(emptyMeal);
+  const [aiInput, setAiInput] = useState("");
+  const [aiResult, setAiResult] = useState("");
   const [water, setWater] = useState(null);
   const [state, setState] = useState("loading");
   const [error, setError] = useState("");
@@ -91,6 +94,66 @@ function NutritionContent({ user, profile }) {
       const data = await createNutritionPlan(user.id, profile);
       setPlan(data);
       setState("ready");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const submitAiLog = async (event) => {
+    event.preventDefault();
+    const text = aiInput.trim();
+    if (!text) {
+      setError("Write a meal or water amount first.");
+      return;
+    }
+
+    setBusy("ai");
+    setError("");
+    setAiResult("");
+    try {
+      const data = await estimateNutritionInput(text);
+      const estimate = data?.estimate || {};
+      const hasFood =
+        Number(estimate.calories || 0) > 0 ||
+        Number(estimate.protein_g || 0) > 0 ||
+        Number(estimate.carbs_g || 0) > 0 ||
+        Number(estimate.fat_g || 0) > 0;
+      const waterMl = Number(estimate.water_ml || 0);
+
+      if (!hasFood && !waterMl) {
+        setError("I could not estimate that. Try adding a portion like '2 eggs' or '500 ml water'.");
+        return;
+      }
+
+      let nextPlan = plan;
+      if (hasFood) {
+        nextPlan = await addMealLog({
+          title: estimate.title || text.slice(0, 60),
+          meal_type: estimate.meal_type || "meal",
+          calories: estimate.calories || 0,
+          protein_g: estimate.protein_g || 0,
+          carbs_g: estimate.carbs_g || 0,
+          fat_g: estimate.fat_g || 0,
+          description: estimate.notes || text,
+        });
+        setPlan(nextPlan);
+      }
+
+      if (waterMl) {
+        const row = await addWaterLog(waterMl);
+        setWater(row);
+      }
+
+      const parts = [];
+      if (hasFood) {
+        parts.push(`${Math.round(Number(estimate.calories || 0))} kcal`);
+        parts.push(`${Math.round(Number(estimate.protein_g || 0))}g protein`);
+      }
+      if (waterMl) parts.push(`${Math.round(waterMl)} ml water`);
+      setAiResult(`Logged ${parts.join(", ")}${data?.source ? ` via ${data.source}` : ""}.`);
+      setAiInput("");
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -216,6 +279,32 @@ function NutritionContent({ user, profile }) {
                 <Utensils className="h-5 w-5 text-[var(--fc-accent)]" />
                 <h2 className="text-lg font-black text-white">Log food</h2>
               </div>
+              <form onSubmit={submitAiLog} className="mt-5 rounded-[1.25rem] border border-[var(--fc-border)] bg-white/[0.04] p-3">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-[var(--fc-accent)]" />
+                  <p className="text-sm font-black text-white">AI quick log</p>
+                </div>
+                <textarea
+                  value={aiInput}
+                  onChange={(event) => setAiInput(event.target.value)}
+                  className="pulse-input mt-3 min-h-20 px-4 py-3"
+                  placeholder="2 eggs, 1 banana, 500 ml water"
+                  disabled={busy === "ai"}
+                />
+                <button
+                  type="submit"
+                  disabled={busy === "ai" || !aiInput.trim()}
+                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-slate-100 disabled:opacity-70"
+                >
+                  <Sparkles className={`h-4 w-4 ${busy === "ai" ? "animate-pulse" : ""}`} />
+                  {busy === "ai" ? "Estimating..." : "Analyze & add"}
+                </button>
+                {aiResult ? (
+                  <p className="mt-3 rounded-2xl bg-emerald-300/10 px-3 py-2 text-xs font-semibold text-emerald-100">
+                    {aiResult}
+                  </p>
+                ) : null}
+              </form>
               <form onSubmit={submitMeal} className="mt-5 grid gap-3">
                 <input
                   value={mealForm.title}
