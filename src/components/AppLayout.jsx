@@ -78,6 +78,7 @@ export default function AppLayout({ title, subtitle, actions = null, profile, ch
   const { user, signOut } = useAuth();
   const [headerProfile, setHeaderProfile] = useState(null);
   const embedded = useCoachShellEmbed();
+  const pathname = usePathname() ?? "";
 
   useEffect(() => {
     if (profile || !user) return;
@@ -113,7 +114,7 @@ export default function AppLayout({ title, subtitle, actions = null, profile, ch
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
           {actions}
-          {user ? <ProfileBadge profile={displayedProfile} user={user} /> : null}
+          {user && pathname !== "/profile" ? <ProfileBadge profile={displayedProfile} user={user} /> : null}
           <button
             type="button"
             onClick={logout}

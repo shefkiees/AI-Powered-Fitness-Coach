@@ -3,8 +3,11 @@
 import {
   Activity,
   AlertTriangle,
+  CalendarDays,
   Dumbbell,
   Mail,
+  Ruler,
+  Scale,
   ShieldCheck,
   Target,
   UserRound,
@@ -28,26 +31,12 @@ function formatDate(value) {
   });
 }
 
-function DetailRow({ icon: Icon, label, value }) {
-  return (
-    <div className="flex items-center justify-between gap-4 border-b border-[#edf0f3] py-3 last:border-b-0">
-      <div className="flex items-center gap-3">
-        <span className="grid h-9 w-9 place-items-center rounded-2xl bg-[#f3f4f6] text-[#374151]">
-          <Icon className="h-4 w-4" />
-        </span>
-        <span className="text-sm font-bold text-[#4b5563]">{label}</span>
-      </div>
-      <span className="text-right text-sm font-black text-[#111827]">{value}</span>
-    </div>
-  );
-}
-
 function ProfileAvatar({ profile, user }) {
   const name = profile?.name || user?.email || "Athlete";
   const initials = name.trim().charAt(0).toUpperCase();
 
   return (
-    <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-full border-4 border-white bg-[#dcfce7] shadow-[0_18px_40px_rgba(17,24,39,0.12)]">
+    <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[1.7rem] border border-white/20 bg-emerald-300 text-emerald-950 shadow-[0_20px_55px_rgba(0,0,0,0.28)]">
       {profile?.profile_image ? (
         <span
           role="img"
@@ -56,11 +45,53 @@ function ProfileAvatar({ profile, user }) {
           style={{ backgroundImage: `url(${profile.profile_image})` }}
         />
       ) : (
-        <div className="grid h-full w-full place-items-center text-4xl font-black text-[#15803d]">
+        <div className="grid h-full w-full place-items-center text-4xl font-black">
           {initials}
         </div>
       )}
     </div>
+  );
+}
+
+function SummaryPill({ label, value }) {
+  return (
+    <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.07] px-4 py-3">
+      <p className="text-[0.62rem] font-black uppercase tracking-[0.14em] text-emerald-100/65">{label}</p>
+      <p className="mt-1 text-sm font-black text-white">{value}</p>
+    </div>
+  );
+}
+
+function DetailCard({ icon: Icon, label, value, tone = "neutral" }) {
+  const toneClass =
+    tone === "green"
+      ? "bg-emerald-50 text-emerald-700"
+      : tone === "amber"
+        ? "bg-amber-50 text-amber-700"
+        : "bg-[#f3f4f6] text-[#4b5563]";
+
+  return (
+    <div className="rounded-[1.2rem] border border-[#e5e7eb] bg-white p-4 shadow-[0_8px_22px_rgba(17,24,39,0.045)]">
+      <span className={`grid h-10 w-10 place-items-center rounded-2xl ${toneClass}`}>
+        <Icon className="h-5 w-5" />
+      </span>
+      <p className="mt-4 text-xs font-black uppercase tracking-[0.14em] text-[#6b7280]">{label}</p>
+      <p className="mt-1 text-base font-black text-[#111827]">{value}</p>
+    </div>
+  );
+}
+
+function SectionCard({ title, icon: Icon, children }) {
+  return (
+    <section className="rounded-[1.5rem] border border-[#e5e7eb] bg-white p-5 shadow-[0_14px_34px_rgba(17,24,39,0.06)]">
+      <div className="flex items-center gap-3">
+        <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[#ecfdf3] text-[#16a34a]">
+          <Icon className="h-5 w-5" />
+        </span>
+        <h2 className="text-lg font-black tracking-[-0.02em] text-[#111827]">{title}</h2>
+      </div>
+      <div className="mt-5">{children}</div>
+    </section>
   );
 }
 
@@ -71,65 +102,55 @@ function ProfileContent({ user, profile, refreshProfile }) {
     : ["Bodyweight"];
 
   return (
-    <AppLayout title="Profile" subtitle="Your body profile, goals, and training preferences." profile={profile}>
+    <AppLayout title="Profile" subtitle="Body profile, goals, and training preferences." profile={profile}>
       <div className="grid gap-5">
-        <section className="overflow-hidden rounded-[1.75rem] border border-[#e5e7eb] bg-white shadow-[0_18px_45px_rgba(17,24,39,0.07)]">
-          <div className="grid gap-5 p-5 lg:grid-cols-[1fr_0.9fr] lg:items-center lg:p-6">
+        <section className="overflow-hidden rounded-[1.7rem] border border-[#dce7df] bg-[#06120b] p-5 text-white shadow-[0_24px_70px_rgba(5,18,11,0.16)] sm:p-6">
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.72fr)] lg:items-end">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
               <ProfileAvatar profile={profile} user={user} />
               <div className="min-w-0">
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-[#16a34a]">
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-300">
                   Pulse member
                 </p>
-                <h2 className="mt-2 truncate text-3xl font-black tracking-[-0.03em] text-[#111827]">
+                <h2 className="mt-2 truncate text-3xl font-black tracking-[-0.04em] text-white sm:text-4xl">
                   {displayName}
                 </h2>
-                <p className="mt-2 flex min-w-0 items-center gap-2 text-sm font-semibold text-[#6b7280]">
+                <p className="mt-3 flex min-w-0 items-center gap-2 text-sm font-semibold text-emerald-50/70">
                   <Mail className="h-4 w-4 shrink-0" />
                   <span className="truncate">{user?.email}</span>
                 </p>
               </div>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
-              <div className="rounded-[1.2rem] bg-[#f3f4f6] p-4">
-                <p className="text-xs font-black uppercase tracking-[0.14em] text-[#6b7280]">Goal</p>
-                <p className="mt-2 text-sm font-black text-[#111827]">{labelize(profile?.goal)}</p>
-              </div>
-              <div className="rounded-[1.2rem] bg-[#ecfdf5] p-4">
-                <p className="text-xs font-black uppercase tracking-[0.14em] text-[#15803d]">Level</p>
-                <p className="mt-2 text-sm font-black text-[#111827]">{labelize(profile?.fitness_level)}</p>
-              </div>
-              <div className="rounded-[1.2rem] bg-[#fef3c7] p-4">
-                <p className="text-xs font-black uppercase tracking-[0.14em] text-[#92400e]">Member since</p>
-                <p className="mt-2 text-sm font-black text-[#111827]">{formatDate(profile?.created_at)}</p>
-              </div>
+            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+              <SummaryPill label="Goal" value={labelize(profile?.goal)} />
+              <SummaryPill label="Level" value={labelize(profile?.fitness_level)} />
+              <SummaryPill label="Member since" value={formatDate(profile?.created_at)} />
             </div>
           </div>
         </section>
 
-        <section className="grid gap-5 lg:grid-cols-[0.95fr_1.05fr]">
-          <article className="rounded-[1.5rem] border border-[#e5e7eb] bg-white p-5 shadow-[0_14px_34px_rgba(17,24,39,0.06)]">
-            <div className="flex items-center gap-2">
-              <UserRound className="h-5 w-5 text-[#16a34a]" />
-              <h2 className="text-lg font-black text-[#111827]">Body details</h2>
-            </div>
-            <div className="mt-4">
-              <DetailRow icon={UserRound} label="Age" value={profile?.age ? `${profile.age}` : "Not set"} />
-              <DetailRow icon={Activity} label="Gender" value={labelize(profile?.gender)} />
-              <DetailRow icon={Target} label="Goal" value={labelize(profile?.goal)} />
-              <DetailRow icon={ShieldCheck} label="Diet" value={labelize(profile?.dietary_preference, "Standard")} />
-            </div>
-          </article>
+        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <DetailCard icon={UserRound} label="Age" value={profile?.age ? `${profile.age}` : "Not set"} />
+          <DetailCard icon={Ruler} label="Height" value={profile?.height_cm ? `${profile.height_cm} cm` : "Not set"} />
+          <DetailCard icon={Scale} label="Weight" value={profile?.weight_kg ? `${profile.weight_kg} kg` : "Not set"} />
+          <DetailCard icon={CalendarDays} label="Days/week" value={profile?.workout_days_per_week || "Not set"} tone="green" />
+        </section>
 
-          <article className="rounded-[1.5rem] border border-[#e5e7eb] bg-white p-5 shadow-[0_14px_34px_rgba(17,24,39,0.06)]">
-            <div className="flex items-center gap-2">
-              <Dumbbell className="h-5 w-5 text-[#16a34a]" />
-              <h2 className="text-lg font-black text-[#111827]">Training preferences</h2>
+        <section className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
+          <SectionCard title="Body details" icon={Activity}>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <DetailCard icon={Activity} label="Gender" value={labelize(profile?.gender)} />
+              <DetailCard icon={Target} label="Goal" value={labelize(profile?.goal)} tone="green" />
+              <DetailCard icon={ShieldCheck} label="Diet" value={labelize(profile?.dietary_preference, "Standard")} />
+              <DetailCard icon={Dumbbell} label="Level" value={labelize(profile?.fitness_level)} />
             </div>
-            <div className="mt-4 flex flex-wrap gap-2">
+          </SectionCard>
+
+          <SectionCard title="Training preferences" icon={Dumbbell}>
+            <div className="flex flex-wrap gap-2">
               {equipment.map((item) => (
-                <span key={item} className="rounded-full bg-[#f3f4f6] px-3 py-2 text-xs font-black text-[#374151]">
+                <span key={item} className="rounded-full border border-[#dbe5dd] bg-[#f8fafc] px-3 py-2 text-xs font-black text-[#374151]">
                   {item}
                 </span>
               ))}
@@ -145,17 +166,18 @@ function ProfileContent({ user, profile, refreshProfile }) {
                 </div>
               </div>
             </div>
-          </article>
+          </SectionCard>
         </section>
 
-        <section className="rounded-[1.75rem] border border-[#e5e7eb] bg-white p-5 shadow-[0_18px_45px_rgba(17,24,39,0.07)] sm:p-6">
-          <div className="mb-5">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-[#16a34a]">Edit profile</p>
-              <h2 className="mt-2 text-2xl font-black tracking-[-0.03em] text-[#111827]">
-                Quick edit
-              </h2>
-            </div>
+        <section className="rounded-[1.7rem] border border-[#e5e7eb] bg-white p-5 shadow-[0_18px_45px_rgba(17,24,39,0.07)] sm:p-6">
+          <div className="mb-5 flex flex-col gap-2 border-b border-[#e5e7eb] pb-5">
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-[#16a34a]">Edit profile</p>
+            <h2 className="text-2xl font-black tracking-[-0.03em] text-[#111827]">
+              Update your details
+            </h2>
+            <p className="text-sm leading-6 text-[#6b7280]">
+              Keep your body profile and training preferences accurate so plans stay useful.
+            </p>
           </div>
           <ProfileForm
             user={user}

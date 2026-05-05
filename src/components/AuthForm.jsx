@@ -196,14 +196,14 @@ export default function AuthForm({ mode }) {
         <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_18%_12%,rgba(34,197,94,0.22),transparent_32%),radial-gradient(circle_at_82%_18%,rgba(16,185,129,0.18),transparent_30%),linear-gradient(180deg,#071009_0%,#030604_100%)]" />
         <div className="pointer-events-none absolute inset-0 -z-10 opacity-[0.18] [background-image:linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] [background-size:48px_48px]" />
 
-        <div className="mx-auto grid w-full max-w-6xl overflow-hidden rounded-lg border border-white/10 bg-white/[0.045] shadow-[0_28px_120px_rgba(0,0,0,0.55)] backdrop-blur-xl lg:grid-cols-[0.92fr_1.08fr]">
+        <div className="mx-auto grid w-full max-w-6xl overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.045] shadow-[0_28px_120px_rgba(0,0,0,0.55)] backdrop-blur-xl lg:grid-cols-[0.92fr_1.08fr]">
           <aside className="relative hidden min-h-[680px] flex-col justify-between overflow-hidden border-r border-white/10 bg-[#07130b] p-8 lg:flex">
             <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-emerald-400/15 to-transparent" />
             <div className="absolute -right-24 top-24 h-64 w-64 rounded-full bg-emerald-400/20 blur-3xl" />
             <div className="absolute -bottom-20 left-10 h-72 w-72 rounded-full bg-emerald-300/10 blur-3xl" />
 
             <div className="relative">
-              <Link href="/" className="inline-flex items-center gap-3 rounded-lg border border-white/10 bg-white/[0.06] px-4 py-3 transition hover:border-emerald-300/40 hover:bg-white/[0.09]">
+              <Link href="/" className="inline-flex items-center gap-3 rounded-[1.2rem] border border-white/10 bg-white/[0.06] px-4 py-3 transition hover:border-emerald-300/40 hover:bg-white/[0.09]">
                 <Image
                   src="/brand/ai-fitness-coach-icon.svg"
                   width={38}
@@ -218,7 +218,7 @@ export default function AuthForm({ mode }) {
               </Link>
 
               <div className="mt-12 max-w-md">
-                <p className="inline-flex items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-xs font-black uppercase tracking-[0.22em] text-emerald-200">
+                <p className="inline-flex items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1.5 text-xs font-black uppercase tracking-[0.22em] text-emerald-200">
                   <Sparkles className="h-3.5 w-3.5" />
                   Secure member area
                 </p>
@@ -235,7 +235,7 @@ export default function AuthForm({ mode }) {
                 {authBenefits.map((item) => (
                   <div
                     key={item}
-                    className="flex items-center gap-3 rounded-lg border border-white/10 bg-white/[0.055] px-4 py-3 text-sm font-semibold text-white/[0.86]"
+                    className="flex items-center gap-3 rounded-[1.2rem] border border-white/10 bg-white/[0.055] px-4 py-3 text-sm font-semibold text-white/[0.86]"
                   >
                     <CheckCircle2 className="h-5 w-5 flex-none text-emerald-300" />
                     {item}
@@ -246,7 +246,7 @@ export default function AuthForm({ mode }) {
 
             <div className="relative grid grid-cols-3 gap-3">
               {trustItems.map((item) => (
-                <div key={item.label} className="rounded-lg border border-white/10 bg-black/25 p-4">
+                <div key={item.label} className="rounded-[1.25rem] border border-white/10 bg-black/25 p-4">
                   <p className="text-2xl font-black tracking-[-0.04em] text-white">{item.value}</p>
                   <p className="mt-1 text-[0.65rem] font-bold uppercase tracking-[0.16em] text-white/45">
                     {item.label}
@@ -258,7 +258,7 @@ export default function AuthForm({ mode }) {
 
           <section className="p-5 sm:p-8 lg:p-10">
             <div className="mx-auto flex min-h-[620px] w-full max-w-md flex-col justify-center">
-              <Link href="/" className="mb-8 inline-flex w-fit items-center gap-3 rounded-lg border border-white/10 bg-white/[0.06] px-3 py-2 transition hover:border-emerald-300/40 hover:bg-white/[0.09] lg:hidden">
+              <Link href="/" className="mb-8 inline-flex w-fit items-center gap-3 rounded-[1.2rem] border border-white/10 bg-white/[0.06] px-3 py-2 transition hover:border-emerald-300/40 hover:bg-white/[0.09] lg:hidden">
                 <Image
                   src="/brand/ai-fitness-coach-icon.svg"
                   width={34}
@@ -285,12 +285,12 @@ export default function AuthForm({ mode }) {
 
               <form onSubmit={submit} className="mt-8 space-y-4">
                 {notice ? (
-                  <div className="rounded-lg border border-emerald-300/20 bg-emerald-300/10 px-4 py-3 text-sm leading-6 text-emerald-50">
+                  <div className="rounded-[1.1rem] border border-emerald-300/20 bg-emerald-300/10 px-4 py-3 text-sm leading-6 text-emerald-50">
                     {notice}
                   </div>
                 ) : null}
                 {error ? (
-                  <div className="rounded-lg border border-red-400/25 bg-red-400/10 px-4 py-3 text-sm leading-6 text-red-50" role="alert">
+                  <div className="rounded-[1.1rem] border border-red-400/25 bg-red-400/10 px-4 py-3 text-sm leading-6 text-red-50" role="alert">
                     {error}
                   </div>
                 ) : null}
@@ -299,7 +299,7 @@ export default function AuthForm({ mode }) {
                     type="button"
                     onClick={resendEmail}
                     disabled={resending}
-                    className="w-full rounded-lg border border-emerald-300/20 bg-emerald-300/10 px-4 py-3 text-left text-sm font-bold text-emerald-50 transition hover:bg-emerald-300/15 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="w-full rounded-[1.1rem] border border-emerald-300/20 bg-emerald-300/10 px-4 py-3 text-left text-sm font-bold text-emerald-50 transition hover:bg-emerald-300/15 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {resending ? "Duke derguar..." : "Dergo prape email-in e konfirmimit"}
                   </button>
@@ -313,7 +313,7 @@ export default function AuthForm({ mode }) {
                       <input
                         value={name}
                         onChange={(event) => setName(event.target.value)}
-                        className="w-full rounded-lg border border-white/[0.12] bg-black/25 py-4 pl-11 pr-4 text-base font-semibold text-white outline-none transition placeholder:text-white/30 focus:border-emerald-300/70 focus:bg-white/[0.055] focus:ring-4 focus:ring-emerald-300/10"
+                        className="w-full rounded-[1.15rem] border border-white/[0.12] bg-black/25 py-4 pl-11 pr-4 text-base font-semibold text-white outline-none transition placeholder:text-white/30 focus:border-emerald-300/70 focus:bg-white/[0.055] focus:ring-4 focus:ring-emerald-300/10"
                         placeholder="Your name"
                         autoComplete="name"
                       />
@@ -328,7 +328,7 @@ export default function AuthForm({ mode }) {
                     <input
                       value={email}
                       onChange={(event) => setEmail(event.target.value)}
-                      className="w-full rounded-lg border border-white/[0.12] bg-black/25 py-4 pl-11 pr-4 text-base font-semibold text-white outline-none transition placeholder:text-white/30 focus:border-emerald-300/70 focus:bg-white/[0.055] focus:ring-4 focus:ring-emerald-300/10"
+                      className="w-full rounded-[1.15rem] border border-white/[0.12] bg-black/25 py-4 pl-11 pr-4 text-base font-semibold text-white outline-none transition placeholder:text-white/30 focus:border-emerald-300/70 focus:bg-white/[0.055] focus:ring-4 focus:ring-emerald-300/10"
                       placeholder="you@example.com"
                       type="email"
                       autoComplete="email"
@@ -343,7 +343,7 @@ export default function AuthForm({ mode }) {
                     <input
                       value={password}
                       onChange={(event) => setPassword(event.target.value)}
-                      className="w-full rounded-lg border border-white/[0.12] bg-black/25 py-4 pl-11 pr-12 text-base font-semibold text-white outline-none transition placeholder:text-white/30 focus:border-emerald-300/70 focus:bg-white/[0.055] focus:ring-4 focus:ring-emerald-300/10"
+                      className="w-full rounded-[1.15rem] border border-white/[0.12] bg-black/25 py-4 pl-11 pr-12 text-base font-semibold text-white outline-none transition placeholder:text-white/30 focus:border-emerald-300/70 focus:bg-white/[0.055] focus:ring-4 focus:ring-emerald-300/10"
                       placeholder="At least 6 characters"
                       type={showPassword ? "text" : "password"}
                       autoComplete={isSignup ? "new-password" : "current-password"}
@@ -351,7 +351,7 @@ export default function AuthForm({ mode }) {
                     <button
                       type="button"
                       onClick={() => setShowPassword((value) => !value)}
-                      className="absolute right-2 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-lg text-white/45 transition hover:bg-white/[0.07] hover:text-white"
+                      className="absolute right-2 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-[0.95rem] text-white/45 transition hover:bg-white/[0.07] hover:text-white"
                       aria-label={showPassword ? "Hide password" : "Show password"}
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -362,7 +362,7 @@ export default function AuthForm({ mode }) {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="mt-3 inline-flex w-full items-center justify-center gap-3 rounded-lg bg-emerald-400 px-5 py-4 text-sm font-black text-emerald-950 shadow-[0_18px_50px_rgba(52,211,153,0.22)] transition hover:-translate-y-0.5 hover:bg-emerald-300 disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-70"
+                  className="mt-3 inline-flex w-full items-center justify-center gap-3 rounded-[1.15rem] bg-emerald-400 px-5 py-4 text-sm font-black text-emerald-950 shadow-[0_18px_50px_rgba(52,211,153,0.22)] transition hover:-translate-y-0.5 hover:bg-emerald-300 disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-70"
                 >
                   {submitting ? (
                     <>
