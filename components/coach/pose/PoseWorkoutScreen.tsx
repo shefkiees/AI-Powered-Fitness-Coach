@@ -28,7 +28,7 @@ import {
 import { PoseCameraPreview } from "@/components/pose/PoseCameraLazy";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
-import { drawPoseOnCanvas } from "@/lib/pose/drawPose";
+import { averagePoseConfidence, drawPoseOnCanvas } from "@/lib/pose/drawPose";
 import {
   EXERCISE_LABELS,
   type AutoExercise,
@@ -54,6 +54,7 @@ import {
   type PoseAiSummary,
 } from "@/lib/pose/video/sessionSummaryService";
 import type {
+  VideoPlaybackSample,
   PoseVideoAnalysisResult,
   VideoAnalysisProgress,
   VideoKeypointSample,
@@ -304,6 +305,15 @@ function nearestKeypointSample(samples: VideoKeypointSample[], timeSeconds: numb
   );
 }
 
+function nearestPlaybackSample(samples: VideoPlaybackSample[], timeSeconds: number) {
+  if (!samples.length) return null;
+  return samples.reduce((nearest, sample) =>
+    Math.abs(sample.timeSeconds - timeSeconds) < Math.abs(nearest.timeSeconds - timeSeconds)
+      ? sample
+      : nearest,
+  );
+}
+
 export function PoseWorkoutScreen() {
   const [cameraActive, setCameraActive] = useState(false);
   const [durationSeconds, setDurationSeconds] = useState(0);
@@ -324,6 +334,7 @@ export function PoseWorkoutScreen() {
   const [videoError, setVideoError] = useState("");
   const [dragActive, setDragActive] = useState(false);
   const [showSkeletonOverlay, setShowSkeletonOverlay] = useState(false);
+  const [videoPlaybackTime, setVideoPlaybackTime] = useState(0);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const videoAssetRef = useRef<VideoUploadAsset | null>(null);
   const videoAbortRef = useRef<AbortController | null>(null);
@@ -387,7 +398,10 @@ export function PoseWorkoutScreen() {
     let frameId = 0;
     const draw = () => {
       if (!replayVideoRef.current || !skeletonCanvasRef.current) return;
-      const sample = nearestKeypointSample(videoResult.keypointSamples, replayVideoRef.current.currentTime);
+      const time = replayVideoRef.current.currentTime;
+      const sample =
+        nearestPlaybackSample(videoResult.playbackSamples, time) ||
+        nearestKeypointSample(videoResult.keypointSamples, time);
       if (sample) drawPoseOnCanvas(skeletonCanvasRef.current, replayVideoRef.current, sample.keypoints);
       frameId = requestAnimationFrame(draw);
     };
@@ -395,6 +409,25 @@ export function PoseWorkoutScreen() {
     draw();
     return () => cancelAnimationFrame(frameId);
   }, [showSkeletonOverlay, videoResult]);
+
+  useEffect(() => {
+    const video = replayVideoRef.current;
+    if (!video) return undefined;
+
+    const syncTime = () => setVideoPlaybackTime(video.currentTime);
+    syncTime();
+    video.addEventListener("timeupdate", syncTime);
+    video.addEventListener("seeked", syncTime);
+    video.addEventListener("play", syncTime);
+    video.addEventListener("pause", syncTime);
+
+    return () => {
+      video.removeEventListener("timeupdate", syncTime);
+      video.removeEventListener("seeked", syncTime);
+      video.removeEventListener("play", syncTime);
+      video.removeEventListener("pause", syncTime);
+    };
+  }, [videoAsset, videoResult]);
 
   const replaceVideoAsset = (asset: VideoUploadAsset | null) => {
     revokeWorkoutVideoAsset(videoAssetRef.current);
@@ -413,6 +446,7 @@ export function PoseWorkoutScreen() {
     setVideoSummary(null);
     setVideoError("");
     setShowSkeletonOverlay(false);
+    setVideoPlaybackTime(0);
   };
 
   const analyzeVideoFile = async (file: File) => {
@@ -428,6 +462,7 @@ export function PoseWorkoutScreen() {
     setVideoSummary(null);
     setVideoError("");
     setShowSkeletonOverlay(false);
+    setVideoPlaybackTime(0);
 
     try {
       const asset = await prepareWorkoutVideo(file, (progress) => {
@@ -632,6 +667,22 @@ export function PoseWorkoutScreen() {
     (videoStatus === "uploading" ? "Reading video file" : "Drop a workout video to start");
   const videoCompletedTotals = videoResult?.completedTotals || [];
   const videoDuration = videoResult?.durationSeconds || videoAsset?.durationSeconds || 0;
+  const activePlaybackSample = videoResult ? nearestPlaybackSample(videoResult.playbackSamples, videoPlaybackTime) : null;
+  const activeSkeletonSample = videoResult
+    ? nearestKeypointSample(videoResult.keypointSamples, videoPlaybackTime)
+    : null;
+  const playbackDetectedLabel = activePlaybackSample?.detectedLabel || videoDetectedLabel;
+  const playbackRepCount = activePlaybackSample?.totalReps ?? videoRepCount;
+  const skeletonConfidence = activeSkeletonSample
+    ? (activeSkeletonSample.confidence || averagePoseConfidence(activeSkeletonSample.keypoints))
+    : 0;
+  const playbackConfidence =
+    activePlaybackSample?.confidence ??
+    skeletonConfidence ??
+    videoConfidence;
+  const playbackFormScore = activePlaybackSample?.formScore ?? videoResult?.formScore ?? 0;
+  const playbackCue = activePlaybackSample?.cue || videoStatusText;
+  const invalidRepCount = videoResult?.repMarkers.filter((marker) => marker.squatDepthValid === false || marker.squatLockoutValid === false).length || 0;
 
   return (
     <div className="min-h-screen bg-[#070707] px-3 py-4 text-white sm:px-6 lg:px-8">
@@ -764,7 +815,7 @@ export function PoseWorkoutScreen() {
                     poster={videoAsset.thumbnailUrl}
                     muted={videoStatus !== "completed"}
                     autoPlay={videoStatus !== "completed"}
-                    controls={videoStatus === "completed"}
+                    controls
                     playsInline
                     className="h-full min-h-[300px] w-full object-cover"
                   />
@@ -782,11 +833,11 @@ export function PoseWorkoutScreen() {
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0 rounded-2xl bg-black/45 px-4 py-3 backdrop-blur-md">
                           <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/45">Detected</p>
-                          <p className="mt-1 truncate text-xl font-black text-white">{videoDetectedLabel}</p>
+                          <p className="mt-1 truncate text-xl font-black text-white">{playbackDetectedLabel}</p>
                         </div>
                         <div className="shrink-0 rounded-2xl bg-black/45 px-4 py-3 text-right backdrop-blur-md">
                           <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/45">Confidence</p>
-                          <p className="mt-1 text-xl font-black text-[var(--fc-accent-strong)]">{videoConfidence}%</p>
+                          <p className="mt-1 text-xl font-black text-[var(--fc-accent-strong)]">{playbackConfidence}%</p>
                         </div>
                       </div>
 
@@ -794,13 +845,13 @@ export function PoseWorkoutScreen() {
                         <div className="flex items-end justify-between gap-4">
                           <div>
                             <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/45">Reps</p>
-                            <p className="mt-1 text-5xl font-black leading-none text-white">{videoRepCount}</p>
+                            <p className="mt-1 text-5xl font-black leading-none text-white">{playbackRepCount}</p>
                           </div>
                           <div className="text-right">
                             <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/45">
                               {formatEta(videoAnalysisProgress?.estimatedRemainingSeconds)}
                             </p>
-                            <p className="mt-1 text-sm font-bold text-white/70">{videoStatusText}</p>
+                            <p className="mt-1 text-sm font-bold text-white/70">{playbackCue}</p>
                           </div>
                         </div>
                         <div className="mt-4">
@@ -818,7 +869,12 @@ export function PoseWorkoutScreen() {
                           <button
                             key={marker.id}
                             type="button"
-                            className="absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--fc-accent)] ring-4 ring-black/55"
+                            className={cn(
+                              "absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full ring-4 ring-black/55",
+                              marker.squatDepthValid === false || marker.squatLockoutValid === false
+                                ? "bg-amber-400"
+                                : "bg-[var(--fc-accent)]",
+                            )}
                             style={{ left: `${Math.min(100, (marker.timeSeconds / Math.max(1, videoDuration)) * 100)}%` }}
                             aria-label={`Jump to rep ${marker.rep}`}
                             onClick={() => {
@@ -911,6 +967,8 @@ export function PoseWorkoutScreen() {
                 {videoResult.finalState.totalReps > 0 ? <MetricPill label="Total reps" value={videoResult.finalState.totalReps} /> : null}
                 <MetricPill label="Duration" value={formatDuration(videoDuration)} />
                 {videoResult.formScore > 0 ? <MetricPill label="Session score" value={`${Math.round(videoResult.formScore)}/100`} /> : null}
+                {playbackFormScore > 0 ? <MetricPill label="Playback form" value={`${Math.round(playbackFormScore)}/100`} /> : null}
+                {invalidRepCount > 0 ? <MetricPill label="Invalid markers" value={invalidRepCount} /> : null}
               </div>
 
               {videoSummary ? (
@@ -985,6 +1043,40 @@ export function PoseWorkoutScreen() {
                   </div>
                 ) : null}
               </div>
+
+              {videoResult.repMarkers.length ? (
+                <div className="mt-4 rounded-2xl bg-white/[0.035] p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-[11px] font-black uppercase tracking-[0.16em] text-white/45">Rep timestamps</p>
+                    <p className="text-xs font-bold text-white/45">Green = valid, amber = partial/invalid</p>
+                  </div>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    {videoResult.repMarkers.slice(0, 12).map((marker) => {
+                      const invalid = marker.squatDepthValid === false || marker.squatLockoutValid === false;
+                      return (
+                        <button
+                          key={`${marker.id}-summary`}
+                          type="button"
+                          className="flex items-center justify-between gap-3 rounded-xl bg-white/[0.04] px-3 py-2 text-left transition hover:bg-white/[0.07]"
+                          onClick={() => {
+                            if (replayVideoRef.current) replayVideoRef.current.currentTime = marker.timeSeconds;
+                          }}
+                        >
+                          <span className="min-w-0">
+                            <span className="block text-sm font-black text-white">
+                              {marker.label} rep {marker.rep}
+                            </span>
+                            <span className={cn("block text-xs", invalid ? "text-amber-300" : "text-white/45")}>
+                              {invalid ? "Partial / invalid marker" : "Full rep cycle detected"}
+                            </span>
+                          </span>
+                          <span className="shrink-0 text-xs font-bold text-white/60">{formatDuration(marker.timeSeconds)}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
 
               <div className="mt-4 flex flex-wrap gap-2">
                 <Button

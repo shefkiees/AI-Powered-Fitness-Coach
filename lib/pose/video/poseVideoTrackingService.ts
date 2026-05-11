@@ -55,11 +55,35 @@ export type VideoRepMarker = {
   exercise: AutoExercise;
   label: string;
   rep: number;
+  confidence: number;
+  formScore: number;
+  squatDepthValid?: boolean;
+  squatLockoutValid?: boolean;
+  squatBottomTimestamp?: number;
 };
 
 export type VideoKeypointSample = {
   timeSeconds: number;
   keypoints: PoseKeypoint[];
+  confidence: number;
+  interpolated?: boolean;
+};
+
+export type VideoPlaybackSample = {
+  timeSeconds: number;
+  keypoints: PoseKeypoint[];
+  detectedExercise: AutoExercise;
+  detectedLabel: string;
+  totalReps: number;
+  confidence: number;
+  formScore: number;
+  phase: string;
+  cue: string;
+  metrics: Record<string, number>;
+  trackingStable: boolean;
+  repJustCompleted: boolean;
+  invalidRep: boolean;
+  interpolated?: boolean;
 };
 
 export type PoseVideoAnalysisResult = {
@@ -71,8 +95,10 @@ export type PoseVideoAnalysisResult = {
   timeline: VideoTimelineItem[];
   repMarkers: VideoRepMarker[];
   keypointSamples: VideoKeypointSample[];
+  playbackSamples: VideoPlaybackSample[];
   confidence: number;
   formScore: number;
+  squatDepthValidated: boolean;
 };
 
 export type PoseVideoTrackingOptions = {
@@ -160,6 +186,55 @@ function statusFor(state: AutoWorkoutState, percentage: number) {
   return "Detecting exercise rhythm";
 }
 
+function frameScheduleFor(durationSeconds: number) {
+  if (durationSeconds <= 20) return createFrameSchedule(durationSeconds, { targetFps: 14, maxFrames: 1200 });
+  if (durationSeconds <= 45) return createFrameSchedule(durationSeconds, { targetFps: 12, maxFrames: 1200 });
+  return createFrameSchedule(durationSeconds, { targetFps: 10, maxFrames: 1200 });
+}
+
+type PendingSquatRep = {
+  bottomSeen: boolean;
+  bottomTimestamp: number | null;
+  minDepth: number | null;
+  minKneeAngle: number | null;
+  bestBottomScore: number;
+};
+
+function cloneKeypoints(keypoints: PoseKeypoint[]): PoseKeypoint[] {
+  return keypoints.map((point) => ({
+    x: point.x,
+    y: point.y,
+    score: point.score,
+  }));
+}
+
+function interpolateKeypoints(previous: PoseKeypoint[], current: PoseKeypoint[]): PoseKeypoint[] {
+  const size = Math.max(previous.length, current.length);
+  const merged: PoseKeypoint[] = [];
+
+  for (let index = 0; index < size; index += 1) {
+    const before = previous[index];
+    const after = current[index];
+    if (before && after) {
+      merged.push({
+        x: (before.x + after.x) / 2,
+        y: (before.y + after.y) / 2,
+        score: Math.max((before.score ?? 0) * 0.9, (after.score ?? 0) * 0.9),
+      });
+      continue;
+    }
+    if (after) {
+      merged.push({ x: after.x, y: after.y, score: (after.score ?? 0) * 0.9 });
+      continue;
+    }
+    if (before) {
+      merged.push({ x: before.x, y: before.y, score: (before.score ?? 0) * 0.9 });
+    }
+  }
+
+  return merged;
+}
+
 export async function analyzeVideoWithPoseTracking(
   asset: VideoUploadAsset,
   { signal, onProgress }: PoseVideoTrackingOptions = {},
@@ -193,12 +268,13 @@ export async function analyzeVideoWithPoseTracking(
     detector = loadedDetector;
 
     const durationSeconds = asset.durationSeconds || video.duration || 0;
-    const frameTimes = createFrameSchedule(durationSeconds, { targetFps: 8, maxFrames: 720 });
+    const frameTimes = frameScheduleFor(durationSeconds);
     const tracker = createAutoWorkoutTracker();
     const cues: string[] = [];
     const timeline: VideoTimelineItem[] = [];
     const repMarkers: VideoRepMarker[] = [];
     const keypointSamples: VideoKeypointSample[] = [];
+    const playbackSamples: VideoPlaybackSample[] = [];
     const startedAt = performance.now();
     const frame = {
       width: video.videoWidth || asset.width || 1,
@@ -208,19 +284,63 @@ export async function analyzeVideoWithPoseTracking(
     let previousExercise: AutoExercise = "general";
     let previousPhase = "";
     let previousReps = 0;
+    let previousKeypoints: PoseKeypoint[] = [];
+    let squatDepthValidated = false;
+    let pendingSquatRep: PendingSquatRep = {
+      bottomSeen: false,
+      bottomTimestamp: null,
+      minDepth: null,
+      minKneeAngle: null,
+      bestBottomScore: 0,
+    };
 
     for (let index = 0; index < frameTimes.length; index += 1) {
       assertNotAborted(signal);
       const timeSeconds = frameTimes[index];
       await seekVideoToTime(video, timeSeconds, signal);
       const poses = await detector.estimatePoses(video, { flipHorizontal: false });
-      const keypoints = (poses[0]?.keypoints || []) as PoseKeypoint[];
+      let keypoints = cloneKeypoints((poses[0]?.keypoints || []) as PoseKeypoint[]);
+      let interpolated = false;
+      if ((!keypoints.length || keypoints.every((point) => (point.score ?? 0) < 0.2)) && previousKeypoints.length) {
+        keypoints = interpolateKeypoints(previousKeypoints, previousKeypoints);
+        interpolated = true;
+      } else if (previousKeypoints.length && keypoints.length) {
+        keypoints = interpolateKeypoints(previousKeypoints, keypoints);
+      }
       const state = tracker.update(keypoints, frame, timeSeconds * 1000);
       finalState = state;
+      const repCompletedThisFrame = state.totalReps > previousReps;
+      const currentDepth = typeof state.metrics.depth === "number" ? state.metrics.depth : null;
+      const currentKneeAngle = typeof state.metrics.knee_angle === "number" ? state.metrics.knee_angle : null;
 
-      if (index % 4 === 0 || index === frameTimes.length - 1) {
-        keypointSamples.push({ timeSeconds, keypoints });
+      if (state.detectedExercise !== "squat" && pendingSquatRep.bottomSeen) {
+        pendingSquatRep = {
+          bottomSeen: false,
+          bottomTimestamp: null,
+          minDepth: null,
+          minKneeAngle: null,
+          bestBottomScore: 0,
+        };
       }
+
+      if (state.detectedExercise === "squat" && state.phase === "bottom") {
+        pendingSquatRep.bottomSeen = true;
+        pendingSquatRep.bottomTimestamp = pendingSquatRep.bottomTimestamp ?? timeSeconds;
+        pendingSquatRep.minDepth =
+          pendingSquatRep.minDepth === null ? currentDepth : Math.min(pendingSquatRep.minDepth, currentDepth ?? pendingSquatRep.minDepth);
+        pendingSquatRep.minKneeAngle =
+          pendingSquatRep.minKneeAngle === null
+            ? currentKneeAngle
+            : Math.min(pendingSquatRep.minKneeAngle, currentKneeAngle ?? pendingSquatRep.minKneeAngle);
+        pendingSquatRep.bestBottomScore = Math.max(pendingSquatRep.bestBottomScore, state.score);
+      }
+
+      keypointSamples.push({
+        timeSeconds,
+        keypoints,
+        confidence: state.confidence,
+        interpolated,
+      });
 
       if (state.detectedExercise !== previousExercise && state.detectedExercise !== "general") {
         timeline.push({
@@ -244,13 +364,30 @@ export async function analyzeVideoWithPoseTracking(
         previousPhase = state.phase;
       }
 
-      if (state.totalReps > previousReps) {
+      if (repCompletedThisFrame) {
+        const squatDepthValid =
+          state.detectedExercise === "squat" &&
+          pendingSquatRep.bottomSeen &&
+          (
+            (pendingSquatRep.minDepth !== null && pendingSquatRep.minDepth >= -0.035) ||
+            (pendingSquatRep.minKneeAngle !== null && pendingSquatRep.minKneeAngle <= 124)
+          );
+        const squatLockoutValid =
+          state.detectedExercise === "squat" &&
+          state.phase === "standing" &&
+          (currentKneeAngle === null || currentKneeAngle >= 148);
+
         repMarkers.push({
           id: `rep-${state.totalReps}-${index}`,
           timeSeconds,
           exercise: state.detectedExercise,
           label: state.detectedLabel,
           rep: state.totalReps,
+          confidence: state.confidence,
+          formScore: state.score,
+          squatDepthValid: state.detectedExercise === "squat" ? squatDepthValid : undefined,
+          squatLockoutValid: state.detectedExercise === "squat" ? squatLockoutValid : undefined,
+          squatBottomTimestamp: state.detectedExercise === "squat" ? (pendingSquatRep.bottomTimestamp ?? undefined) : undefined,
         });
         timeline.push({
           id: `rep-${state.totalReps}-${index}`,
@@ -259,8 +396,43 @@ export async function analyzeVideoWithPoseTracking(
           detail: state.detectedLabel,
           type: "rep",
         });
+        if (state.detectedExercise === "squat") {
+          squatDepthValidated = squatDepthValidated || squatDepthValid;
+          pendingSquatRep = {
+            bottomSeen: false,
+            bottomTimestamp: null,
+            minDepth: null,
+            minKneeAngle: null,
+            bestBottomScore: 0,
+          };
+        }
         previousReps = state.totalReps;
       }
+
+      playbackSamples.push({
+        timeSeconds,
+        keypoints,
+        detectedExercise: state.detectedExercise,
+        detectedLabel: state.detectedLabel,
+        totalReps: state.totalReps,
+        confidence: state.confidence,
+        formScore: state.score,
+        phase: state.phase,
+        cue: state.feedback[0]?.text || state.tips[0] || "Tracking movement",
+        metrics: state.metrics,
+        trackingStable: state.trackingStable,
+        repJustCompleted: repCompletedThisFrame,
+        invalidRep: Boolean(
+          state.detectedExercise === "squat" &&
+          pendingSquatRep.bottomSeen &&
+          state.phase === "standing" &&
+          currentKneeAngle !== null &&
+          currentKneeAngle < 148,
+        ),
+        interpolated,
+      });
+
+      previousKeypoints = keypoints;
 
       for (const feedback of state.feedback.slice(0, 2)) {
         const cue = cleanCue(feedback.text, feedback.exercise);
@@ -316,8 +488,10 @@ export async function analyzeVideoWithPoseTracking(
       timeline: timeline.slice(0, 32),
       repMarkers,
       keypointSamples,
+      playbackSamples,
       confidence: finalState.confidence,
       formScore: finalState.averageFormScore || finalState.score || 0,
+      squatDepthValidated,
     };
   } finally {
     if (detector) await detector.dispose();
