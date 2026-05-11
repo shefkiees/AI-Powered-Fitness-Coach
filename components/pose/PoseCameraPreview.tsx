@@ -28,12 +28,13 @@ export type PoseCameraPreviewProps = {
   enablePoseDetection?: boolean;
   formFeedback?: boolean;
   feedbackMode?: "default" | "hidden";
-  controlsMode?: "default" | "minimal";
+  controlsMode?: "default" | "minimal" | "hidden";
   showHeader?: boolean;
   showTrackingStatus?: boolean;
   targetExercise?: FormExercise;
   selectedExercise?: AutoExercise;
   autoDetect?: boolean;
+  startSignal?: number;
   sessionResetKey?: string | number;
   onCameraActiveChange?: (active: boolean) => void;
   onWorkoutAnalysis?: (analysis: AutoWorkoutState) => void;
@@ -117,6 +118,7 @@ export function PoseCameraPreview({
   targetExercise = "general",
   selectedExercise = "general",
   autoDetect = false,
+  startSignal,
   sessionResetKey,
   onCameraActiveChange,
   onWorkoutAnalysis,
@@ -131,6 +133,7 @@ export function PoseCameraPreview({
   const trackerRef = useRef<AutoWorkoutTracker | null>(null);
   const activeRef = useRef(false);
   const frameCountRef = useRef(0);
+  const lastStartSignalRef = useRef<number | undefined>(undefined);
 
   const [active, setActive] = useState(false);
   const [cameraStarting, setCameraStarting] = useState(false);
@@ -150,6 +153,7 @@ export function PoseCameraPreview({
 
   const shouldShowHeader = showHeader ?? !embedded;
   const useMinimalControls = controlsMode === "minimal";
+  const hideControls = controlsMode === "hidden";
 
   const stopCamera = useCallback(() => {
     activeRef.current = false;
@@ -373,6 +377,14 @@ export function PoseCameraPreview({
   }, [cameraStarting, embedded, onCameraActiveChange, startPoseModel]);
 
   useEffect(() => {
+    if (startSignal === undefined || startSignal === lastStartSignalRef.current) return;
+    lastStartSignalRef.current = startSignal;
+    if (startSignal > 0) {
+      void startCamera();
+    }
+  }, [startCamera, startSignal]);
+
+  useEffect(() => {
     if (active && enablePoseDetection && !modelReady && !modelLoading && !error) {
       void startPoseModel();
     }
@@ -533,7 +545,7 @@ export function PoseCameraPreview({
         className={cn(
           "flex flex-wrap gap-2 p-3 sm:p-4",
           useMinimalControls ? "items-center justify-between border-t border-white/[0.06] bg-[#090909] px-4 py-3" : "",
-          useMinimalControls && !active ? "hidden" : "",
+          (useMinimalControls && !active) || hideControls ? "hidden" : "",
         )}
       >
         {!active ? (
