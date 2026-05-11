@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
   BadgeCheck,
@@ -168,6 +168,49 @@ function summarizeHistoryTotals(item: PoseHistoryRow) {
   return pieces.length ? pieces.join(" - ") : `${item.reps || 0} reps`;
 }
 
+const panelClass =
+  "rounded-2xl border border-white/10 bg-[#10140f]/90 shadow-[0_18px_46px_rgba(0,0,0,0.28)] backdrop-blur-xl";
+const compactCardClass = "rounded-xl border border-white/10 bg-black/25";
+
+function SectionHeading({ icon, title, action }: { icon: ReactNode; title: string; action?: ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center gap-2 text-[var(--fc-accent-strong)]">
+        {icon}
+        <p className="text-[11px] font-black uppercase tracking-[0.18em]">{title}</p>
+      </div>
+      {action}
+    </div>
+  );
+}
+
+function PrimaryStatCard({
+  icon,
+  label,
+  value,
+  helper,
+  accent = false,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: ReactNode;
+  helper: ReactNode;
+  accent?: boolean;
+}) {
+  return (
+    <div className={cn(compactCardClass, "min-h-28 p-4")}>
+      <div className="flex items-center gap-2 text-[var(--fc-accent-strong)]">
+        {icon}
+        <p className="text-[10px] font-black uppercase tracking-[0.16em]">{label}</p>
+      </div>
+      <p className={cn("mt-2 truncate text-2xl font-black", accent ? "text-[var(--fc-accent-strong)]" : "text-white")}>
+        {value}
+      </p>
+      <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-300">{helper}</p>
+    </div>
+  );
+}
+
 export function PoseWorkoutScreen() {
   const [cameraActive, setCameraActive] = useState(false);
   const [durationSeconds, setDurationSeconds] = useState(0);
@@ -331,25 +374,24 @@ export function PoseWorkoutScreen() {
     "hip_offset",
     "visible_keypoints",
   ];
+  const visibleTotals = activeTotals(totals);
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <p className="pulse-kicker">Pose lab</p>
-          <h1 className="mt-2 text-3xl font-black tracking-tight text-white sm:text-4xl">
-            AI Gym Tracker
-          </h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--fc-muted)]">
-            Start the camera and move. The tracker detects the exercise, counts completed reps, and saves only structured workout metrics.
+    <div className="mx-auto w-full max-w-[1440px] space-y-4 text-slate-100">
+      <div className="flex flex-col gap-4 border-b border-white/10 pb-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
+          <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--fc-accent-strong)]">Pose lab</p>
+          <h1 className="mt-1 text-3xl font-black text-white sm:text-4xl">AI Gym Tracker</h1>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
+            Start the camera and move. The tracker detects exercises, counts clean reps, and saves structured workout metrics.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="ghost" onClick={resetSessionStats}>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <Button type="button" variant="ghost" className="border border-white/10 bg-white/[0.03] px-4 py-2.5" onClick={resetSessionStats}>
             <RefreshCw className="h-4 w-4" />
             Reset session
           </Button>
-          <Button type="button" onClick={saveSession} loading={saving} disabled={saving}>
+          <Button type="button" className="px-4 py-2.5" onClick={saveSession} loading={saving} disabled={saving}>
             <Save className="h-4 w-4" />
             End and save
           </Button>
@@ -357,269 +399,237 @@ export function PoseWorkoutScreen() {
       </div>
 
       {error ? (
-        <div className="rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-100">
+        <div className="rounded-xl border border-red-400/25 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-100">
           {error}
         </div>
       ) : null}
 
       {savedNotice ? (
-        <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-100">
+        <div className="rounded-xl border border-emerald-400/25 bg-emerald-400/10 px-4 py-3 text-sm font-semibold text-emerald-100">
           {savedNotice}
         </div>
       ) : null}
 
-      <div className="grid gap-6 xl:grid-cols-[1.18fr_0.82fr]">
-        <div className="space-y-4">
-          <div className="fc-glass overflow-hidden rounded-[1.75rem] ring-1 ring-white/[0.05]">
-            <PoseCameraPreview
-              autoDetect
-              formFeedback
-              enablePoseDetection
-              sessionResetKey={resetKey}
-              onCameraActiveChange={handleCameraActiveChange}
-              onWorkoutAnalysis={handleWorkoutAnalysis}
-              className="border-none bg-black/50"
+      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_390px] 2xl:grid-cols-[minmax(0,1fr)_420px]">
+        <div className="min-w-0 space-y-4">
+          <PoseCameraPreview
+            autoDetect
+            formFeedback
+            enablePoseDetection
+            sessionResetKey={resetKey}
+            onCameraActiveChange={handleCameraActiveChange}
+            onWorkoutAnalysis={handleWorkoutAnalysis}
+            className="rounded-2xl border-white/10 bg-[#080a08] shadow-[0_20px_56px_rgba(0,0,0,0.34)]"
+          />
+
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <PrimaryStatCard
+              icon={<ScanLine className="h-4 w-4" />}
+              label="Detected exercise"
+              value={detectedLabel}
+              helper={`${confidence}% confidence`}
+            />
+            <PrimaryStatCard
+              icon={<Activity className="h-4 w-4" />}
+              label="Phase"
+              value={phaseLabel(workoutState?.phase)}
+              helper={workoutState?.headline || "Waiting for movement"}
+            />
+            <PrimaryStatCard
+              icon={<Target className="h-4 w-4" />}
+              label="Total reps"
+              value={totalReps}
+              helper="Across all detected exercises"
+              accent
+            />
+            <PrimaryStatCard
+              icon={<Timer className="h-4 w-4" />}
+              label="Duration"
+              value={formatDuration(durationSeconds)}
+              helper={`Form score ${Math.round(averageScore) || "--"}`}
             />
           </div>
 
-          <div className="grid gap-3 md:grid-cols-4">
-            <div className="rounded-2xl border border-[var(--fc-border)] bg-black/20 p-4">
-              <div className="flex items-center gap-2 text-[var(--fc-accent)]">
-                <ScanLine className="h-4 w-4" />
-                <p className="text-[10px] font-black uppercase tracking-[0.18em]">Detected</p>
-              </div>
-              <p className="mt-2 text-xl font-black text-white">{detectedLabel}</p>
-              <p className="mt-1 text-xs text-[var(--fc-muted)]">{confidence}% confidence</p>
-            </div>
-            <div className="rounded-2xl border border-[var(--fc-border)] bg-black/20 p-4">
-              <div className="flex items-center gap-2 text-[var(--fc-accent)]">
-                <Activity className="h-4 w-4" />
-                <p className="text-[10px] font-black uppercase tracking-[0.18em]">Phase</p>
-              </div>
-              <p className="mt-2 text-xl font-black text-white">{phaseLabel(workoutState?.phase)}</p>
-              <p className="mt-1 text-xs text-[var(--fc-muted)]">{workoutState?.headline || "Waiting for movement"}</p>
-            </div>
-            <div className="rounded-2xl border border-[var(--fc-border)] bg-black/20 p-4">
-              <div className="flex items-center gap-2 text-[var(--fc-accent)]">
-                <Target className="h-4 w-4" />
-                <p className="text-[10px] font-black uppercase tracking-[0.18em]">Total reps</p>
-              </div>
-              <p className="mt-2 text-3xl font-black text-[var(--fc-accent-strong)]">{totalReps}</p>
-              <p className="mt-1 text-xs text-[var(--fc-muted)]">Across all detected exercises</p>
-            </div>
-            <div className="rounded-2xl border border-[var(--fc-border)] bg-black/20 p-4">
-              <div className="flex items-center gap-2 text-[var(--fc-accent)]">
-                <Timer className="h-4 w-4" />
-                <p className="text-[10px] font-black uppercase tracking-[0.18em]">Duration</p>
-              </div>
-              <p className="mt-2 text-3xl font-black text-white">{formatDuration(durationSeconds)}</p>
-              <p className="mt-1 text-xs text-[var(--fc-muted)]">Form score {Math.round(averageScore) || "--"}</p>
-            </div>
-          </div>
-
-          <div className="fc-glass rounded-[1.75rem] p-5">
-            <div className="flex items-center gap-2 text-[var(--fc-accent)]">
-              <ListChecks className="h-4 w-4" />
-              <p className="text-xs font-black uppercase tracking-[0.2em]">Session totals</p>
-            </div>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              {activeTotals(totals).map((total) => (
-                <div
-                  key={total.exercise}
-                  className={cn(
-                    "rounded-2xl border p-4 transition",
-                    detectedExercise === total.exercise
-                      ? "border-[var(--fc-accent)]/45 bg-[var(--fc-accent)]/12"
-                      : "border-[var(--fc-border)] bg-black/20",
-                  )}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-sm font-black text-white">{total.label}</p>
-                    {detectedExercise === total.exercise ? (
-                      <span className="rounded-full bg-[var(--fc-accent)] px-2 py-0.5 text-[10px] font-black text-[var(--fc-accent-ink)]">
-                        Live
-                      </span>
-                    ) : null}
-                  </div>
-                  <p className="mt-3 text-3xl font-black text-[var(--fc-accent-strong)]">
-                    {total.exercise === "plank" ? formatDuration(total.hold_seconds) : total.reps}
-                  </p>
-                  <p className="mt-1 text-xs text-[var(--fc-muted)]">
-                    {total.exercise === "plank" ? "hold duration" : "completed reps"}
-                    {total.average_form_score ? ` - ${total.average_form_score}/100` : ""}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid gap-4 lg:grid-cols-2">
-            <div className="fc-glass rounded-[1.75rem] p-5">
-              <div className="flex items-center gap-2 text-[var(--fc-accent)]">
-                <Eye className="h-4 w-4" />
-                <p className="text-xs font-black uppercase tracking-[0.2em]">Body visibility</p>
-              </div>
-              <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                {(setup?.checklist || SETUP_DEFAULTS).map((item) => (
+          <div className="grid gap-4 2xl:grid-cols-[1.05fr_0.95fr]">
+            <section className={cn(panelClass, "p-4")}>
+              <SectionHeading icon={<ListChecks className="h-4 w-4" />} title="Session totals" />
+              <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {visibleTotals.map((total) => (
                   <div
-                    key={item.label}
+                    key={total.exercise}
                     className={cn(
-                      "flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-bold",
-                      item.ok
-                        ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-100"
-                        : "border-amber-400/20 bg-amber-400/10 text-amber-100",
+                      compactCardClass,
+                      "p-3 transition",
+                      detectedExercise === total.exercise
+                        ? "border-[var(--fc-accent)]/45 bg-[var(--fc-accent)]/12"
+                        : "border-white/10",
                     )}
                   >
-                    {item.ok ? <BadgeCheck className="h-4 w-4" /> : <CircleAlert className="h-4 w-4" />}
-                    {item.label}
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="truncate text-sm font-black text-white">{total.label}</p>
+                      {detectedExercise === total.exercise ? (
+                        <span className="rounded-full bg-[var(--fc-accent)] px-2 py-0.5 text-[10px] font-black text-white">
+                          Live
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="mt-2 text-2xl font-black text-[var(--fc-accent-strong)]">
+                      {total.exercise === "plank" ? formatDuration(total.hold_seconds) : total.reps}
+                    </p>
+                    <p className="mt-0.5 text-xs text-slate-300">
+                      {total.exercise === "plank" ? "hold time" : "reps"}
+                      {total.average_form_score ? ` - ${total.average_form_score}/100` : ""}
+                    </p>
                   </div>
                 ))}
               </div>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {(setup?.messages.length ? setup.messages : ["Start camera"]).map((message) => (
-                  <span
-                    key={message}
-                    className="rounded-full border border-[var(--fc-border)] bg-black/25 px-3 py-1.5 text-xs font-black text-[var(--fc-muted)]"
-                  >
-                    {message}
-                  </span>
-                ))}
-              </div>
-            </div>
+            </section>
 
-            <div className="fc-glass rounded-[1.75rem] p-5">
-              <div className="flex items-center gap-2 text-[var(--fc-accent)]">
-                <TrendingUp className="h-4 w-4" />
-                <p className="text-xs font-black uppercase tracking-[0.2em]">Live metrics</p>
-              </div>
-              <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                {topMetricKeys.map((key) => {
-                  const value = workoutState?.metrics?.[key];
-                  return (
+            <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-1">
+              <section className={cn(panelClass, "p-4")}>
+                <SectionHeading icon={<Eye className="h-4 w-4" />} title="Body visibility" />
+                <div className="mt-3 grid gap-2">
+                  {(setup?.checklist || SETUP_DEFAULTS).map((item) => (
                     <div
-                      key={key}
-                      className="rounded-xl border border-[var(--fc-border)] bg-black/20 px-3 py-2"
+                      key={item.label}
+                      className={cn(
+                        "flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-bold",
+                        item.ok
+                          ? "border-emerald-400/25 bg-emerald-400/10 text-emerald-100"
+                          : "border-amber-400/25 bg-amber-400/10 text-amber-100",
+                      )}
                     >
-                      <p className="text-[11px] font-bold capitalize text-[var(--fc-muted)]">
-                        {key.replace(/_/g, " ")}
-                      </p>
-                      <p className="mt-1 text-sm font-black text-white">
-                        {typeof value === "number" ? formatMetricValue(key, value) : "--"}
-                      </p>
+                      {item.ok ? <BadgeCheck className="h-4 w-4 shrink-0" /> : <CircleAlert className="h-4 w-4 shrink-0" />}
+                      <span className="truncate">{item.label}</span>
                     </div>
-                  );
-                })}
-              </div>
+                  ))}
+                </div>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {(setup?.messages.length ? setup.messages : ["Start camera"]).map((message) => (
+                    <span
+                      key={message}
+                      className="rounded-full border border-white/10 bg-black/25 px-2.5 py-1 text-[11px] font-black text-slate-300"
+                    >
+                      {message}
+                    </span>
+                  ))}
+                </div>
+              </section>
+
+              <section className={cn(panelClass, "p-4")}>
+                <SectionHeading icon={<TrendingUp className="h-4 w-4" />} title="Live metrics" />
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  {topMetricKeys.map((key) => {
+                    const value = workoutState?.metrics?.[key];
+                    return (
+                      <div key={key} className={cn(compactCardClass, "px-3 py-2")}>
+                        <p className="text-[11px] font-bold capitalize text-slate-400">
+                          {key.replace(/_/g, " ")}
+                        </p>
+                        <p className="mt-0.5 text-sm font-black text-white">
+                          {typeof value === "number" ? formatMetricValue(key, value) : "--"}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
             </div>
           </div>
         </div>
 
-        <div className="space-y-4">
-          <div className="fc-glass rounded-[1.75rem] p-6">
-            <div className="flex items-center gap-2 text-[var(--fc-accent)]">
-              <Camera className="h-4 w-4" />
-              <p className="text-xs font-black uppercase tracking-[0.2em]">Live coaching</p>
-            </div>
-            <ul className="mt-4 space-y-3">
-              {liveFeedback.length ? liveFeedback.slice(0, 7).map((item) => (
-                <li
-                  key={item.id}
-                  className="rounded-xl border border-[var(--fc-border)] bg-black/20 px-4 py-3 text-sm leading-6 text-[var(--fc-muted)]"
-                >
+        <aside className="space-y-4 xl:sticky xl:top-24">
+          <section className={cn(panelClass, "p-4")}>
+            <SectionHeading
+              icon={<Camera className="h-4 w-4" />}
+              title="Live coaching"
+              action={<span className="rounded-full bg-[var(--fc-accent)]/12 px-2.5 py-1 text-[11px] font-black text-[var(--fc-accent-strong)]">{cameraActive ? "Active" : "Ready"}</span>}
+            />
+            <ul className="mt-3 space-y-2">
+              {liveFeedback.length ? liveFeedback.slice(0, 6).map((item) => (
+                <li key={item.id} className={cn(compactCardClass, "px-3 py-2.5 text-sm leading-6 text-slate-200")}>
                   <span className="font-black text-white">{EXERCISE_LABELS[item.exercise]}: </span>
                   {item.text.replace(`${EXERCISE_LABELS[item.exercise]}: `, "")}
                 </li>
               )) : (
-                <li className="rounded-xl border border-dashed border-[var(--fc-border)] bg-black/10 px-4 py-3 text-sm text-[var(--fc-muted)]">
+                <li className="rounded-xl border border-dashed border-white/15 bg-black/20 px-3 py-3 text-sm leading-6 text-slate-300">
                   Live cues appear here after the skeleton locks on.
                 </li>
               )}
             </ul>
-          </div>
+          </section>
 
-          <div className="fc-glass rounded-[1.75rem] p-6">
-            <div className="flex items-center gap-2 text-[var(--fc-accent)]">
-              <CircleAlert className="h-4 w-4" />
-              <p className="text-xs font-black uppercase tracking-[0.2em]">Common issues</p>
-            </div>
-            <div className="mt-4 space-y-2">
-              {detectedIssues.length ? detectedIssues.slice(0, 6).map((issue) => (
-                <div
-                  key={issue.issue}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-[var(--fc-border)] bg-black/20 px-4 py-3 text-sm"
-                >
-                  <span className="font-bold capitalize text-[var(--fc-muted)]">{issueLabel(issue.issue)}</span>
-                  <span className="rounded-full bg-amber-400/10 px-2 py-0.5 text-xs font-black text-amber-100">
+          <section className={cn(panelClass, "p-4")}>
+            <SectionHeading icon={<CircleAlert className="h-4 w-4" />} title="Common issues" />
+            <div className="mt-3 space-y-2">
+              {detectedIssues.length ? detectedIssues.slice(0, 5).map((issue) => (
+                <div key={issue.issue} className={cn(compactCardClass, "flex items-center justify-between gap-3 px-3 py-2.5 text-sm")}>
+                  <span className="min-w-0 truncate font-bold capitalize text-slate-200">{issueLabel(issue.issue)}</span>
+                  <span className="rounded-full bg-amber-400/12 px-2 py-0.5 text-xs font-black text-amber-100">
                     {issue.count}
                   </span>
                 </div>
               )) : (
-                <p className="rounded-xl border border-dashed border-[var(--fc-border)] bg-black/10 px-4 py-3 text-sm text-[var(--fc-muted)]">
+                <p className="rounded-xl border border-dashed border-white/15 bg-black/20 px-3 py-3 text-sm text-slate-300">
                   No repeated form issue has been detected yet.
                 </p>
               )}
             </div>
-          </div>
+          </section>
 
           {aiSummary ? (
-            <div className="fc-glass rounded-[1.75rem] p-6">
-              <div className="flex items-center gap-2 text-[var(--fc-accent)]">
-                <Sparkles className="h-4 w-4" />
-                <p className="text-xs font-black uppercase tracking-[0.2em]">AI coach summary</p>
-              </div>
+            <section className={cn(panelClass, "p-4")}>
+              <SectionHeading icon={<Sparkles className="h-4 w-4" />} title="AI coach summary" />
               <h2 className="mt-3 text-lg font-black text-white">{aiSummary.headline}</h2>
-              <p className="mt-2 text-sm leading-6 text-[var(--fc-muted)]">{aiSummary.summary}</p>
-              <p className="mt-3 rounded-2xl border border-[var(--fc-border)] bg-black/20 px-4 py-3 text-sm font-bold text-white">
+              <p className="mt-2 text-sm leading-6 text-slate-300">{aiSummary.summary}</p>
+              <p className={cn(compactCardClass, "mt-3 px-3 py-2.5 text-sm font-bold text-white")}>
                 Next focus: {aiSummary.focus_next}
               </p>
-              <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-[var(--fc-muted)]">
+              <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-300">
                 {aiSummary.cues.slice(0, 4).map((cue) => (
                   <li key={cue}>{cue}</li>
                 ))}
               </ul>
-            </div>
+            </section>
           ) : null}
 
-          <div className="flex gap-3 rounded-[1.25rem] border border-amber-500/25 bg-amber-950/20 p-4 text-sm text-amber-100">
+          <div className="flex gap-3 rounded-xl border border-amber-400/25 bg-amber-500/10 p-3 text-sm leading-6 text-amber-100">
             <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-300" />
-            <p>
-              General movement cues only. Stop if you feel sharp pain, dizziness, or instability.
-            </p>
+            <p>General movement cues only. Stop if you feel sharp pain, dizziness, or instability.</p>
           </div>
 
-          <div className="fc-glass rounded-[1.75rem] p-6">
-            <div className="flex items-center gap-2 text-[var(--fc-accent)]">
-              <Clock className="h-4 w-4" />
-              <p className="text-xs font-black uppercase tracking-[0.2em]">Saved sessions</p>
-            </div>
-            <div className="mt-4 space-y-3">
+          <section className={cn(panelClass, "p-4")}>
+            <SectionHeading icon={<Clock className="h-4 w-4" />} title="Saved sessions" />
+            <div className="mt-3 max-h-[360px] space-y-2 overflow-y-auto pr-1 custom-scrollbar">
               {history.slice(0, 5).map((item) => (
-                <div key={item.id} className="rounded-xl border border-[var(--fc-border)] bg-black/20 px-4 py-3">
+                <div key={item.id} className={cn(compactCardClass, "px-3 py-2.5")}>
                   <div className="flex items-center justify-between gap-3">
-                    <p className="font-semibold text-white">{item.exercise_name}</p>
-                    <span className="rounded-full bg-[var(--fc-accent)]/12 px-3 py-1 text-xs font-black text-[var(--fc-accent)]">
+                    <p className="min-w-0 truncate font-semibold text-white">{item.exercise_name}</p>
+                    <span className="rounded-full bg-[var(--fc-accent)]/12 px-2.5 py-1 text-xs font-black text-[var(--fc-accent-strong)]">
                       {Math.round(Number(item.form_score ?? item.score ?? 0))}/100
                     </span>
                   </div>
-                  <p className="mt-1 text-xs text-[var(--fc-muted)]">
+                  <p className="mt-1 text-xs leading-5 text-slate-300">
                     {summarizeHistoryTotals(item)}
                     {item.duration_seconds ? ` - ${formatDuration(item.duration_seconds)}` : ""}
                     {" - "}
                     {new Date(item.completed_at || item.created_at).toLocaleDateString()}
                   </p>
                   {item.ai_coach_summary || item.feedback_summary || item.summary ? (
-                    <p className="mt-2 text-sm leading-6 text-[var(--fc-muted)]">
+                    <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-300">
                       {item.ai_coach_summary || item.feedback_summary || item.summary}
                     </p>
                   ) : null}
                 </div>
               ))}
               {history.length === 0 ? (
-                <p className="text-sm text-[var(--fc-muted)]">No saved pose sessions yet.</p>
+                <p className="rounded-xl border border-dashed border-white/15 bg-black/20 px-3 py-3 text-sm text-slate-300">
+                  No saved pose sessions yet.
+                </p>
               ) : null}
             </div>
-          </div>
-        </div>
+          </section>
+        </aside>
       </div>
     </div>
   );
