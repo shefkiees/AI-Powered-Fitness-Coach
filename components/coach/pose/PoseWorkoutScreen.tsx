@@ -363,6 +363,20 @@ export function PoseWorkoutScreen() {
 
   useEffect(() => {
     const video = replayVideoRef.current;
+    if (!video || !videoAsset) return;
+
+    if (videoStatus === "completed") {
+      video.pause();
+      video.currentTime = 0;
+      return;
+    }
+
+    video.muted = true;
+    void video.play().catch(() => undefined);
+  }, [videoAsset, videoStatus]);
+
+  useEffect(() => {
+    const video = replayVideoRef.current;
     const canvas = skeletonCanvasRef.current;
     if (!showSkeletonOverlay || !videoResult || !video || !canvas) {
       const context = canvas?.getContext("2d");
@@ -748,6 +762,8 @@ export function PoseWorkoutScreen() {
                     ref={replayVideoRef}
                     src={videoAsset.objectUrl}
                     poster={videoAsset.thumbnailUrl}
+                    muted={videoStatus !== "completed"}
+                    autoPlay={videoStatus !== "completed"}
                     controls={videoStatus === "completed"}
                     playsInline
                     className="h-full min-h-[300px] w-full object-cover"

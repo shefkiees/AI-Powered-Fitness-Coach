@@ -131,6 +131,27 @@ async function createMoveNetDetector() {
   )) as PoseDetectorLike;
 }
 
+async function createMoveNetDetectorWithTimeout(timeoutMs = 20000) {
+  let timeoutId = 0;
+
+  try {
+    return await Promise.race([
+      createMoveNetDetector(),
+      new Promise<never>((_, reject) => {
+        timeoutId = window.setTimeout(() => {
+          reject(
+            new Error(
+              "AI model did not finish loading. Refresh the page and make sure your internet connection allows TensorFlow model downloads.",
+            ),
+          );
+        }, timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) window.clearTimeout(timeoutId);
+  }
+}
+
 function statusFor(state: AutoWorkoutState, percentage: number) {
   if (!state.trackingStable) return "Finding your body in frame";
   if (percentage < 18) return "Reading movement pattern";
@@ -166,7 +187,7 @@ export async function analyzeVideoWithPoseTracking(
 
     const [loadedVideo, loadedDetector] = await Promise.all([
       loadVideoElementForAnalysis(asset.objectUrl, signal),
-      createMoveNetDetector(),
+      createMoveNetDetectorWithTimeout(),
     ]);
     video = loadedVideo;
     detector = loadedDetector;

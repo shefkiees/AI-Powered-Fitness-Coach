@@ -1,6 +1,6 @@
 export const SUPPORTED_VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
 export const SUPPORTED_VIDEO_EXTENSIONS = [".mp4", ".webm", ".mov"];
-export const MAX_VIDEO_FILE_SIZE_BYTES = 250 * 1024 * 1024;
+export const MAX_VIDEO_FILE_SIZE_BYTES = 500 * 1024 * 1024;
 
 export type VideoUploadAsset = {
   file: File;
