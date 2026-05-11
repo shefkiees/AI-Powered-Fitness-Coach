@@ -15,8 +15,6 @@ const PROTECTED_PREFIXES = [
   "/workout-plan",
 ];
 
-const AUTH_PAGES = new Set(["/login", "/signup"]);
-
 function isProtectedPath(pathname: string) {
   return PROTECTED_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
@@ -26,9 +24,8 @@ function isProtectedPath(pathname: string) {
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const isProtected = isProtectedPath(pathname);
-  const isAuthPage = AUTH_PAGES.has(pathname);
 
-  if (!isProtected && !isAuthPage) {
+  if (!isProtected) {
     return NextResponse.next();
   }
 
@@ -77,13 +74,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (user && isAuthPage) {
-    const dashboardUrl = request.nextUrl.clone();
-    dashboardUrl.pathname = "/dashboard";
-    dashboardUrl.search = "";
-    return NextResponse.redirect(dashboardUrl);
-  }
-
   return response;
 }
 
@@ -92,14 +82,12 @@ export const config = {
     "/dashboard/:path*",
     "/exercise-library/:path*",
     "/goals/:path*",
-    "/login",
     "/nutrition-plan/:path*",
     "/pose-estimation/:path*",
     "/profile/:path*",
     "/profile-setup",
     "/progress-tracker/:path*",
     "/settings/:path*",
-    "/signup",
     "/workout/:path*",
     "/workout-plan/:path*",
   ],

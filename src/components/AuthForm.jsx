@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -40,7 +40,7 @@ const trustItems = [
 
 export default function AuthForm({ mode }) {
   const isSignup = mode === "signup";
-  const { signIn, signUp, resendConfirmation, user, loading } = useAuth();
+  const { signIn, signUp, resendConfirmation } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -54,36 +54,9 @@ export default function AuthForm({ mode }) {
   const nextPath = useMemo(() => {
     if (typeof window === "undefined") return "/dashboard";
     const params = new URLSearchParams(window.location.search);
-    return params.get("next") || "/dashboard";
+    const next = params.get("next") || "/dashboard";
+    return next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
   }, []);
-
-  useEffect(() => {
-    if (loading || !user) return;
-
-    let cancelled = false;
-    void (async () => {
-      try {
-        const client = requireSupabase();
-        const display =
-          user.user_metadata?.full_name?.trim?.() ||
-          user.email?.split("@")?.[0] ||
-          "";
-        await persistCoachOnboarding(user, client, display);
-        await ensureProfile(user, display);
-        const profile = await getProfile();
-        if (!cancelled) {
-          const dest = isProfileComplete(profile) ? nextPath : "/profile-setup";
-          window.location.replace(dest);
-        }
-      } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : String(err));
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [loading, user, nextPath]);
 
   const submit = async (event) => {
     event.preventDefault();
