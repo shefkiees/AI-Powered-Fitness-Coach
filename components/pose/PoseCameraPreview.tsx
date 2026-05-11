@@ -1,10 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Camera, CameraOff, Loader2 } from "lucide-react";
+import { Camera, CameraOff, Loader2, ScanLine } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
+import {
+  createAutoWorkoutTracker,
+  type AutoWorkoutState,
+  type AutoWorkoutTracker,
+} from "@/lib/pose/autoWorkoutTracker";
 import { drawPoseOnCanvas, type PoseKeypoint } from "@/lib/pose/drawPose";
 import {
   analyzePoseForm,
@@ -19,7 +24,10 @@ export type PoseCameraPreviewProps = {
   enablePoseDetection?: boolean;
   formFeedback?: boolean;
   targetExercise?: FormExercise;
+  autoDetect?: boolean;
+  sessionResetKey?: string | number;
   onCameraActiveChange?: (active: boolean) => void;
+  onWorkoutAnalysis?: (analysis: AutoWorkoutState) => void;
   onFormAnalysis?: (analysis: {
     status: FormStatus;
     headline: string;
@@ -38,7 +46,7 @@ type PoseDetectorLike = {
   dispose: () => void | Promise<void>;
 };
 
-const EXERCISE_LABELS: Record<FormExercise, string> = {
+const MANUAL_EXERCISE_LABELS: Record<FormExercise, string> = {
   general: "Form check",
   squat: "Squat coach",
   lunge: "Lunge coach",
@@ -89,7 +97,10 @@ export function PoseCameraPreview({
   enablePoseDetection = true,
   formFeedback = false,
   targetExercise = "general",
+  autoDetect = false,
+  sessionResetKey,
   onCameraActiveChange,
+  onWorkoutAnalysis,
   onFormAnalysis,
 }: PoseCameraPreviewProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -98,6 +109,7 @@ export function PoseCameraPreview({
   const rafRef = useRef<number>(0);
   const busyRef = useRef(false);
   const detectorRef = useRef<PoseDetectorLike | null>(null);
+  const trackerRef = useRef<AutoWorkoutTracker | null>(null);
   const activeRef = useRef(false);
   const frameCountRef = useRef(0);
 
@@ -111,6 +123,11 @@ export function PoseCameraPreview({
   const [formTips, setFormTips] = useState<string[]>([]);
   const [formPhase, setFormPhase] = useState<FormPhase>("unknown");
   const [formScore, setFormScore] = useState(0);
+  const [workoutState, setWorkoutState] = useState<AutoWorkoutState | null>(null);
+
+  if (!trackerRef.current) {
+    trackerRef.current = createAutoWorkoutTracker();
+  }
 
   const stopCamera = useCallback(() => {
     activeRef.current = false;
@@ -136,6 +153,16 @@ export function PoseCameraPreview({
     setActive(false);
     onCameraActiveChange?.(false);
   }, [onCameraActiveChange]);
+
+  useEffect(() => {
+    trackerRef.current?.reset();
+    setWorkoutState(null);
+    setFormStatus("off_frame");
+    setFormHeadline("Analyzing...");
+    setFormTips([]);
+    setFormPhase("unknown");
+    setFormScore(0);
+  }, [sessionResetKey]);
 
   const runPoseLoop = useCallback(() => {
     const tick = () => {
@@ -165,18 +192,39 @@ export function PoseCameraPreview({
                 flipHorizontal: false,
               });
               const keypoints = poses[0]?.keypoints as PoseKeypoint[] | undefined;
-              if (keypoints?.length) {
-                drawPoseOnCanvas(canvas, video, keypoints);
-                if (formFeedback) {
-                  frameCountRef.current += 1;
-                  if (frameCountRef.current % 10 === 0) {
+              const frame = {
+                width: video.videoWidth || video.clientWidth,
+                height: video.videoHeight || video.clientHeight,
+              };
+              drawPoseOnCanvas(canvas, video, keypoints || []);
+
+              if (formFeedback) {
+                frameCountRef.current += 1;
+                if (frameCountRef.current % (autoDetect ? 3 : 10) === 0) {
+                  if (autoDetect) {
+                    const tracker = trackerRef.current || createAutoWorkoutTracker();
+                    trackerRef.current = tracker;
+                    const analysis = tracker.update(keypoints || [], frame);
+                    setWorkoutState(analysis);
+                    setFormStatus(analysis.status);
+                    setFormHeadline(analysis.headline);
+                    setFormTips(analysis.tips);
+                    setFormPhase(analysis.phase);
+                    setFormScore(analysis.score);
+                    onWorkoutAnalysis?.(analysis);
+                    onFormAnalysis?.({
+                      status: analysis.status,
+                      headline: analysis.headline,
+                      tips: analysis.tips,
+                      phase: analysis.phase,
+                      score: analysis.score,
+                      metrics: analysis.metrics,
+                    });
+                  } else if (keypoints?.length) {
                     const { status, headline, tips, phase, score, metrics } =
                       analyzePoseForm(
                         keypoints,
-                        {
-                          width: video.videoWidth || video.clientWidth,
-                          height: video.videoHeight || video.clientHeight,
-                        },
+                        frame,
                         targetExercise,
                       );
                     setFormStatus(status);
@@ -185,12 +233,7 @@ export function PoseCameraPreview({
                     setFormPhase(phase);
                     setFormScore(score);
                     onFormAnalysis?.({ status, headline, tips, phase, score, metrics });
-                  }
-                }
-              } else if (formFeedback) {
-                drawPoseOnCanvas(canvas, video, []);
-                frameCountRef.current += 1;
-                if (frameCountRef.current % 10 === 0) {
+                  } else {
                   const analysis = {
                     status: "off_frame" as FormStatus,
                     headline: "Body not detected",
@@ -205,6 +248,7 @@ export function PoseCameraPreview({
                   setFormPhase(analysis.phase);
                   setFormScore(analysis.score);
                   onFormAnalysis?.(analysis);
+                  }
                 }
               }
             }
@@ -220,7 +264,7 @@ export function PoseCameraPreview({
     };
 
     tick();
-  }, [formFeedback, onFormAnalysis, targetExercise]);
+  }, [autoDetect, formFeedback, onFormAnalysis, onWorkoutAnalysis, targetExercise]);
 
   const startPoseModel = useCallback(async () => {
     if (!enablePoseDetection) return;
@@ -326,7 +370,7 @@ export function PoseCameraPreview({
             Form lab
           </p>
           <p className="mt-2 text-sm leading-7 text-slate-400">
-            Live camera with MoveNet pose tracking and simple posture cues.
+            Live MoveNet tracking with automatic exercise detection and session totals.
           </p>
         </div>
       ) : null}
@@ -386,17 +430,47 @@ export function PoseCameraPreview({
                   : "border-slate-600/60 bg-slate-950/80 text-slate-200",
             )}
           >
-            <p className="text-[10px] font-semibold uppercase tracking-wider opacity-80">
-              {EXERCISE_LABELS[targetExercise]}
+            <div className="flex items-center gap-2">
+              {autoDetect ? <ScanLine className="h-3.5 w-3.5" /> : null}
+              <p className="text-[10px] font-semibold uppercase tracking-wider opacity-80">
+                {autoDetect ? "Auto-detected exercise" : MANUAL_EXERCISE_LABELS[targetExercise]}
+              </p>
+            </div>
+            <p className="mt-0.5 text-sm font-bold">
+              {autoDetect ? workoutState?.detectedLabel || "Looking for movement" : formHeadline}
             </p>
-            <p className="mt-0.5 text-sm font-bold">{formHeadline}</p>
-            {targetExercise !== "general" ? (
+            <div className="mt-1 flex flex-wrap gap-1.5 text-[10px] font-bold uppercase tracking-wide opacity-90">
+              <span className="rounded-full bg-black/25 px-2 py-0.5">
+                {phaseLabel(formPhase)}
+              </span>
+              <span className="rounded-full bg-black/25 px-2 py-0.5">
+                Score {formScore || "--"}
+              </span>
+              {autoDetect ? (
+                <span className="rounded-full bg-black/25 px-2 py-0.5">
+                  Confidence {workoutState?.confidence ?? 0}%
+                </span>
+              ) : null}
+            </div>
+            {autoDetect && workoutState?.setup.messages.length ? (
+              <div className="mt-1 flex flex-wrap gap-1 text-[10px] font-bold opacity-90">
+                {workoutState.setup.messages.slice(0, 3).map((message) => (
+                  <span key={message} className="rounded-full bg-black/20 px-2 py-0.5">
+                    {message}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+            {!autoDetect || formHeadline !== workoutState?.detectedLabel ? (
+              <p className="mt-1 text-xs font-bold opacity-95">{formHeadline}</p>
+            ) : null}
+            {autoDetect ? (
               <div className="mt-1 flex flex-wrap gap-1.5 text-[10px] font-bold uppercase tracking-wide opacity-90">
                 <span className="rounded-full bg-black/25 px-2 py-0.5">
-                  {phaseLabel(formPhase)}
+                  Reps {workoutState?.totalReps ?? 0}
                 </span>
                 <span className="rounded-full bg-black/25 px-2 py-0.5">
-                  Score {formScore || "--"}
+                  Visible {workoutState?.setup.visibleCount ?? 0}/17
                 </span>
               </div>
             ) : null}

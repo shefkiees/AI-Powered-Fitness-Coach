@@ -15,6 +15,15 @@ type PoseSummary = {
   cues: string[];
 };
 
+type ExerciseTotalInput = {
+  label?: unknown;
+  reps?: unknown;
+  duration_seconds?: unknown;
+  hold_seconds?: unknown;
+  average_form_score?: unknown;
+  issues?: unknown;
+};
+
 const DEFAULT_SUMMARY: PoseSummary = {
   headline: "Form session saved.",
   summary: "Use the latest cues to keep reps smooth before adding speed or load.",
@@ -22,26 +31,83 @@ const DEFAULT_SUMMARY: PoseSummary = {
   cues: ["Keep the full body in frame.", "Move slowly enough to keep position clean."],
 };
 
+function objectRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function issueList(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => objectRecord(item))
+    .map((item) => ({
+      issue: cleanText(item.issue, "", 80).replace(/_/g, " "),
+      count: cleanNumber(item.count),
+    }))
+    .filter((item) => item.issue)
+    .slice(0, 8);
+}
+
+function summarizeTotals(totals: Record<string, unknown>) {
+  return Object.entries(totals)
+    .map(([exercise, raw]) => {
+      const total = objectRecord(raw) as ExerciseTotalInput;
+      const label = cleanText(total.label, exercise.replace(/_/g, " "), 60);
+      const reps = cleanNumber(total.reps);
+      const holdSeconds = cleanNumber(total.hold_seconds);
+      const durationSeconds = cleanNumber(total.duration_seconds);
+      const score = cleanNumber(total.average_form_score);
+      const issues = issueList(total.issues);
+      return {
+        exercise,
+        label,
+        reps,
+        hold_seconds: holdSeconds,
+        duration_seconds: durationSeconds,
+        average_form_score: score,
+        issues,
+      };
+    })
+    .filter((total) => total.reps > 0 || total.hold_seconds > 0 || total.duration_seconds > 0);
+}
+
+function totalsSentence(totals: ReturnType<typeof summarizeTotals>, fallbackReps: number) {
+  const parts = totals.flatMap((total) => {
+    if (total.exercise === "plank" && total.hold_seconds > 0) {
+      return [`${Math.round(total.hold_seconds)} seconds of plank`];
+    }
+    if (total.reps > 0) return [`${total.reps} ${total.label}${total.reps === 1 ? "" : "s"}`];
+    return [];
+  });
+  if (parts.length) return parts.join(" and ");
+  return `${fallbackReps} reps`;
+}
+
 function localSummary(input: Record<string, unknown>, previousScore: number | null): PoseSummary {
-  const score = cleanNumber(input.score);
+  const score = cleanNumber(input.average_form_score ?? input.score);
   const reps = cleanNumber(input.reps);
   const durationSeconds = cleanNumber(input.duration_seconds);
   const durationText = durationSeconds > 0 ? ` in ${Math.round(durationSeconds)} seconds` : "";
   const delta = previousScore !== null ? Math.round(score - previousScore) : null;
   const cues = Array.isArray(input.cues) ? input.cues.map((cue) => cleanText(cue, "", 120)).filter(Boolean) : [];
+  const totals = summarizeTotals(objectRecord(input.exercise_totals));
+  const issues = issueList(input.detected_issues);
+  const completed = totalsSentence(totals, reps);
+  const issueText = issues.length
+    ? ` Main issue: ${issues[0].issue}.`
+    : " No repeated form issue stood out.";
 
   return {
     headline:
       delta !== null && delta > 0
         ? `Form improved by ${delta} points.`
         : score >= 85
-          ? "Strong form quality."
-          : "Good check-in. Keep technique simple.",
+          ? "Strong automatic workout session."
+          : "Automatic workout session saved.",
     summary:
       delta !== null
-        ? `${reps} reps logged${durationText} with a ${score}/100 score. Compared with your last session, the trend changed by ${delta} points.`
-        : `${reps} reps logged${durationText} with a ${score}/100 score.`,
-    focus_next: score >= 85 ? "Keep the same tempo next time" : "Slow down and repeat the main cue",
+        ? `You completed ${completed}${durationText} with a ${score}/100 average form score. Compared with your last session, the trend changed by ${delta} points.${issueText}`
+        : `You completed ${completed}${durationText} with a ${score}/100 average form score.${issueText}`,
+    focus_next: issues[0]?.issue || (score >= 85 ? "Keep the same tempo next time" : "Slow down and finish each range of motion"),
     cues: cues.length ? cues.slice(0, 3) : DEFAULT_SUMMARY.cues,
   };
 }
@@ -75,18 +141,23 @@ export async function POST(request: Request) {
     if (rateLimitResponse) return rateLimitResponse;
 
     const body = await request.json().catch(() => ({}));
-    const exerciseName = cleanText(body.exercise_name, "Movement check", 80);
+    const exerciseName = cleanText(body.exercise_name, "AI Gym Tracker", 80);
     const exerciseType = cleanText(body.exercise_type || body.movement, "general", 60);
-    const score = cleanNumber(body.score);
+    const score = cleanNumber(body.average_form_score ?? body.score);
     const reps = cleanNumber(body.reps);
     const durationSeconds = cleanNumber(body.duration_seconds);
+    const exerciseTotals = objectRecord(body.exercise_totals);
+    const detectedIssues = issueList(body.detected_issues);
+    const movementDurations = objectRecord(body.movement_durations);
+    const bestReps = objectRecord(body.best_reps);
+    const worstReps = objectRecord(body.worst_reps);
     const cues = Array.isArray(body.cues)
-      ? body.cues.slice(0, 5).map((cue: unknown) => cleanText(cue, "", 120))
+      ? body.cues.slice(0, 8).map((cue: unknown) => cleanText(cue, "", 140))
       : [];
 
     const { data: previous } = await supabase
       .from("pose_sessions")
-      .select("score,summary,completed_at")
+      .select("score,average_form_score,summary,completed_at")
       .eq("user_id", user.id)
       .eq("exercise_name", exerciseName)
       .order("completed_at", { ascending: false })
@@ -96,14 +167,27 @@ export async function POST(request: Request) {
     const context = {
       exercise_name: exerciseName,
       exercise_type: exerciseType,
+      detected_exercises: Array.isArray(body.detected_exercises)
+        ? body.detected_exercises.map((item: unknown) => cleanText(item, "", 60)).filter(Boolean)
+        : [],
+      exercise_totals: exerciseTotals,
       reps,
-      score,
+      average_form_score: score,
       duration_seconds: durationSeconds,
+      movement_durations: movementDurations,
+      detected_issues: detectedIssues,
+      best_reps: bestReps,
+      worst_reps: worstReps,
       cues,
-      previous_score: previous?.score ?? null,
+      previous_score: previous?.average_form_score ?? previous?.score ?? null,
       previous_summary: previous?.summary ?? null,
     };
-    const previousScore = previous?.score !== undefined && previous?.score !== null ? cleanNumber(previous.score) : null;
+    const previousScore =
+      previous?.average_form_score !== undefined && previous?.average_form_score !== null
+        ? cleanNumber(previous.average_form_score)
+        : previous?.score !== undefined && previous?.score !== null
+          ? cleanNumber(previous.score)
+          : null;
     const fallback = localSummary(context, previousScore);
     const provider = getFitnessAiProvider("chat");
 
@@ -126,7 +210,7 @@ export async function POST(request: Request) {
           {
             role: "system",
             content:
-              "You summarize pose/form check data for a fitness app. Return only JSON with keys headline, summary, focus_next, cues. Do not diagnose injuries or give medical advice.",
+              "You summarize an automatic AI gym tracker session for a fitness app. Use only the structured metrics provided: detected exercises, reps, scores, issues, durations, and best/worst reps. Do not claim you saw images or video. Return only JSON with keys headline, summary, focus_next, cues. Keep it short, practical, and non-medical.",
           },
           {
             role: "user",

@@ -291,29 +291,58 @@ function poseFeedbackSchemaFallbackNeeded(error) {
 
 function normalizePoseHistoryRow(row, feedback = []) {
   const completedAt = row.completed_at || row.ended_at || row.created_at || null;
+  const endedAt = row.ended_at || completedAt;
   const startedAt = row.started_at || completedAt;
   const deviceInfo = row.device_info && typeof row.device_info === "object" ? row.device_info : {};
+  const exerciseTotals =
+    row.exercise_totals && typeof row.exercise_totals === "object"
+      ? row.exercise_totals
+      : deviceInfo.exercise_totals && typeof deviceInfo.exercise_totals === "object"
+        ? deviceInfo.exercise_totals
+        : null;
+  const totalRepsFromExercises = exerciseTotals
+    ? Object.values(exerciseTotals).reduce((sum, total) => sum + Number(total?.reps || 0), 0)
+    : 0;
   const durationSeconds =
     Number(row.duration_seconds || deviceInfo.duration_seconds || 0) ||
-    (startedAt && completedAt
-      ? Math.max(0, Math.round((new Date(completedAt).getTime() - new Date(startedAt).getTime()) / 1000))
+    (startedAt && endedAt
+      ? Math.max(0, Math.round((new Date(endedAt).getTime() - new Date(startedAt).getTime()) / 1000))
       : 0);
-  const formScore = Number(row.form_score ?? row.score ?? row.avg_form_score ?? 0);
+  const formScore = Number(row.average_form_score ?? row.form_score ?? row.score ?? row.avg_form_score ?? 0);
   const exerciseType = row.exercise_type || row.exercise_key || "general";
   const exerciseName = row.exercise_name || deviceInfo.exercise_name || String(exerciseType).replace(/_/g, " ") || "Movement check";
-  const summary = row.feedback_summary || row.summary || deviceInfo.feedback_summary || feedback[0]?.cue || feedback[0]?.message || "";
+  const summary =
+    row.ai_coach_summary ||
+    row.feedback_summary ||
+    row.summary ||
+    deviceInfo.ai_coach_summary ||
+    deviceInfo.feedback_summary ||
+    feedback[0]?.cue ||
+    feedback[0]?.message ||
+    "";
+  const detectedIssues =
+    Array.isArray(row.detected_issues)
+      ? row.detected_issues
+      : Array.isArray(deviceInfo.detected_issues)
+        ? deviceInfo.detected_issues
+        : [];
 
   return {
     ...row,
     exercise_name: exerciseName,
     exercise_type: exerciseType,
     completed_at: completedAt,
+    ended_at: endedAt,
     duration_seconds: durationSeconds,
-    reps: Number(row.reps ?? row.total_reps ?? 0),
+    reps: Number(row.reps ?? row.total_reps ?? totalRepsFromExercises ?? 0),
     score: formScore,
     form_score: formScore,
+    average_form_score: formScore,
     summary,
     feedback_summary: summary,
+    ai_coach_summary: row.ai_coach_summary || deviceInfo.ai_coach_summary || "",
+    exercise_totals: exerciseTotals,
+    detected_issues: detectedIssues,
     pose_feedback: feedback,
   };
 }
@@ -322,9 +351,10 @@ export async function savePoseSession(values = {}) {
   const client = requireSupabase();
   const userId = await currentUserId(client);
   const completedAt = values.completed_at || new Date().toISOString();
+  const endedAt = values.ended_at || completedAt;
   const startedAt = values.started_at || completedAt;
   const score = Number(values.form_score ?? values.score ?? 0);
-  const summary = values.feedback_summary || values.summary || "Pose session saved.";
+  const summary = values.feedback_summary || values.summary || values.ai_coach_summary || "Pose session saved.";
   const ownedPayload = userId ? { user_id: userId } : {};
   const basePayload = {
     ...ownedPayload,
@@ -342,21 +372,35 @@ export async function savePoseSession(values = {}) {
     form_score: score,
     feedback_summary: summary,
   };
+  const aiGymPayload = {
+    ...poseLabPayload,
+    ended_at: endedAt,
+    average_form_score: score,
+    exercise_totals: values.exercise_totals || {},
+    detected_issues: values.detected_issues || [],
+    ai_coach_summary: values.ai_coach_summary || summary,
+  };
   const legacyPayload = {
     ...ownedPayload,
     exercise_key: values.exercise_type || values.movement || "general",
     started_at: startedAt,
-    ended_at: completedAt,
+    ended_at: endedAt,
     total_reps: Number(values.reps || 0),
     avg_form_score: score,
     device_info: {
       exercise_name: values.exercise_name || "Movement check",
       duration_seconds: Number(values.duration_seconds || 0),
       feedback_summary: summary,
+      ai_coach_summary: values.ai_coach_summary || summary,
+      exercise_totals: values.exercise_totals || {},
+      detected_issues: values.detected_issues || [],
     },
   };
 
-  let insertResult = await client.from("pose_sessions").insert(poseLabPayload).select().single();
+  let insertResult = await client.from("pose_sessions").insert(aiGymPayload).select().single();
+  if (insertResult.error && isMissingColumnError(insertResult.error)) {
+    insertResult = await client.from("pose_sessions").insert(poseLabPayload).select().single();
+  }
   if (insertResult.error && isMissingColumnError(insertResult.error)) {
     insertResult = await client.from("pose_sessions").insert(legacyPayload).select().single();
   }
