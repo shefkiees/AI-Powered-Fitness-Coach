@@ -7,6 +7,7 @@ import {
   CircleAlert,
   Clock,
   Eye,
+  Play,
   RefreshCw,
   Save,
   ShieldAlert,
@@ -48,6 +49,23 @@ type AiSummary = {
   summary: string;
   focus_next: string;
   cues: string[];
+};
+
+type FinalSessionResult = {
+  state: AutoWorkoutState | null;
+  totals: Record<AutoExercise, ExerciseTotal>;
+  durationSeconds: number;
+  totalReps: number;
+  averageScore: number;
+  detectedExercise: AutoExercise;
+  detectedLabel: string;
+  confidence: number;
+  completedTotals: ExerciseTotal[];
+  feedback: LiveFeedbackItem[];
+  detectedIssues: Array<{ issue: string; count: number }>;
+  aiSummary: AiSummary | null;
+  endedAt: string;
+  saved: boolean;
 };
 
 const TRACKED_EXERCISES: AutoExercise[] = [
@@ -189,6 +207,73 @@ function MetricPill({ label, value }: { label: string; value: ReactNode }) {
   );
 }
 
+function ScoreBar({ value }: { value: number }) {
+  const safeValue = Math.max(0, Math.min(100, Math.round(value)));
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-3 text-xs font-black uppercase tracking-[0.16em] text-white/45">
+        <span>Form score</span>
+        <span className="text-white">{safeValue}/100</span>
+      </div>
+      <div className="mt-2 h-3 overflow-hidden rounded-full bg-white/[0.08]">
+        <div
+          className="h-full rounded-full bg-[var(--fc-accent)] transition-all duration-500"
+          style={{ width: `${safeValue}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function scoreLabel(score: number) {
+  if (score >= 90) return "Excellent";
+  if (score >= 72) return "Good";
+  return "Needs work";
+}
+
+function primaryExerciseLabel(completedTotals: ExerciseTotal[], fallback: string) {
+  const primary = [...completedTotals].sort((a, b) => {
+    const aValue = a.exercise === "plank" ? a.hold_seconds : a.reps;
+    const bValue = b.exercise === "plank" ? b.hold_seconds : b.reps;
+    return bValue - aValue;
+  })[0];
+  return primary?.label || fallback;
+}
+
+function bestSetLabel(completedTotals: ExerciseTotal[]) {
+  const best = completedTotals
+    .flatMap((total) => total.best_rep ? [{ label: total.label, rep: total.best_rep }] : [])
+    .sort((a, b) => b.rep.score - a.rep.score)[0];
+  if (best) return `${best.label} rep ${best.rep.rep_index} - ${best.rep.score}/100`;
+
+  const bestAverage = [...completedTotals]
+    .filter((total) => total.average_form_score > 0)
+    .sort((a, b) => b.average_form_score - a.average_form_score)[0];
+  return bestAverage ? `${bestAverage.label} - ${bestAverage.average_form_score}/100` : "No completed set yet";
+}
+
+function weakestMovementLabel(completedTotals: ExerciseTotal[], issues: Array<{ issue: string; count: number }>) {
+  const worst = completedTotals
+    .flatMap((total) => total.worst_rep ? [{ label: total.label, rep: total.worst_rep }] : [])
+    .sort((a, b) => a.rep.score - b.rep.score)[0];
+  if (worst) return `${worst.label} rep ${worst.rep.rep_index} - ${worst.rep.score}/100`;
+
+  const topIssue = issues[0];
+  return topIssue ? issueLabel(topIssue.issue) : "No weak movement detected";
+}
+
+function uniqueLines(lines: string[], limit = 4) {
+  const seen = new Set<string>();
+  return lines
+    .map((line) => line.trim())
+    .filter((line) => {
+      if (!line || seen.has(line)) return false;
+      seen.add(line);
+      return true;
+    })
+    .slice(0, limit);
+}
+
 function TrackingOverlay({
   exercise,
   countLabel,
@@ -238,7 +323,9 @@ export function PoseWorkoutScreen() {
   const [savedNotice, setSavedNotice] = useState("");
   const [aiSummary, setAiSummary] = useState<AiSummary | null>(null);
   const [workoutState, setWorkoutState] = useState<AutoWorkoutState | null>(null);
+  const [finalSessionResult, setFinalSessionResult] = useState<FinalSessionResult | null>(null);
   const [resetKey, setResetKey] = useState(0);
+  const historySectionRef = useRef<HTMLDivElement | null>(null);
   const sessionStartedAtRef = useRef<number | null>(null);
 
   const totals = useMemo(() => workoutState?.totals || emptyTotals(), [workoutState?.totals]);
@@ -296,26 +383,72 @@ export function PoseWorkoutScreen() {
     sessionStartedAtRef.current = cameraActive ? Date.now() : null;
     setDurationSeconds(0);
     setWorkoutState(null);
+    setFinalSessionResult(null);
     setAiSummary(null);
     setSavedNotice("");
     setError("");
     setResetKey((current) => current + 1);
   };
 
-  const saveSession = async () => {
+  const startNewSession = () => {
+    sessionStartedAtRef.current = null;
+    setCameraActive(false);
+    setDurationSeconds(0);
+    setWorkoutState(null);
+    setFinalSessionResult(null);
+    setAiSummary(null);
+    setSavedNotice("");
+    setError("");
+    setResetKey((current) => current + 1);
+  };
+
+  const endSession = () => {
+    const finalTotals = workoutState?.totals || emptyTotals();
+    const finalCompletedTotals = completedExerciseTotals(finalTotals);
+    const completedAt = new Date();
+    const safeDuration = Math.max(
+      durationSeconds,
+      sessionStartedAtRef.current
+        ? Math.round((completedAt.getTime() - sessionStartedAtRef.current) / 1000)
+        : durationSeconds,
+    );
+
+    setFinalSessionResult({
+      state: workoutState,
+      totals: finalTotals,
+      durationSeconds: safeDuration,
+      totalReps: workoutState?.totalReps || 0,
+      averageScore: workoutState?.averageFormScore || workoutState?.score || 0,
+      detectedExercise: workoutState?.detectedExercise || "general",
+      detectedLabel: workoutState?.detectedLabel || "No exercise detected",
+      confidence: workoutState?.confidence || 0,
+      completedTotals: finalCompletedTotals,
+      feedback: workoutState?.feedback || [],
+      detectedIssues: workoutState?.detectedIssues || [],
+      aiSummary,
+      endedAt: completedAt.toISOString(),
+      saved: false,
+    });
+    setCameraActive(false);
+    setSavedNotice("");
+    setError("");
+  };
+
+  const saveSession = async (session = finalSessionResult) => {
+    if (!session) return;
     setSaving(true);
     setError("");
     setSavedNotice("");
     try {
-      const completedAt = new Date();
+      const completedAt = new Date(session.endedAt);
       const startedAt = sessionStartedAtRef.current
         ? new Date(sessionStartedAtRef.current)
-        : new Date(completedAt.getTime() - durationSeconds * 1000);
+        : new Date(completedAt.getTime() - session.durationSeconds * 1000);
       const safeDuration = Math.max(
-        durationSeconds,
+        session.durationSeconds,
         Math.round((completedAt.getTime() - startedAt.getTime()) / 1000),
       );
-      const exerciseTotals = workoutState?.totals || emptyTotals();
+      const exerciseTotals = session.totals;
       const movementDurations = Object.fromEntries(
         allExerciseTotals(exerciseTotals)
           .filter((total) => total.reps > 0 || total.hold_seconds > 0 || total.duration_seconds > 0)
@@ -324,8 +457,8 @@ export function PoseWorkoutScreen() {
             total.exercise === "plank" ? total.hold_seconds : total.duration_seconds,
           ]),
       );
-      const commonIssues = workoutState?.detectedIssues || [];
-      const feedbackLines = liveFeedback.map((item) => item.text);
+      const commonIssues = session.detectedIssues;
+      const feedbackLines = session.feedback.map((item) => item.text);
       const summaryResponse = await fetch("/api/coach/pose-summary", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -336,14 +469,14 @@ export function PoseWorkoutScreen() {
             .filter((total) => total.reps > 0 || total.hold_seconds > 0)
             .map((total) => total.exercise),
           exercise_totals: exerciseTotals,
-          reps: totalReps,
-          score: averageScore,
-          average_form_score: averageScore,
+          reps: session.totalReps,
+          score: session.averageScore,
+          average_form_score: session.averageScore,
           duration_seconds: safeDuration,
           movement_durations: movementDurations,
           detected_issues: commonIssues,
-          best_reps: workoutState?.bestReps || {},
-          worst_reps: workoutState?.worstReps || {},
+          best_reps: session.state?.bestReps || {},
+          worst_reps: session.state?.worstReps || {},
           cues: feedbackLines.slice(0, 8),
         }),
       });
@@ -352,6 +485,11 @@ export function PoseWorkoutScreen() {
       };
       const coachSummary = summaryResponse.ok ? summaryData.summary : null;
       if (coachSummary) setAiSummary(coachSummary);
+      if (coachSummary) {
+        setFinalSessionResult((current) =>
+          current ? { ...current, aiSummary: coachSummary } : current,
+        );
+      }
 
       await savePoseSession({
         exercise_name: "AI Gym Tracker",
@@ -361,25 +499,26 @@ export function PoseWorkoutScreen() {
         completed_at: completedAt.toISOString(),
         ended_at: completedAt.toISOString(),
         duration_seconds: safeDuration,
-        reps: totalReps,
-        score: averageScore,
-        form_score: averageScore,
+        reps: session.totalReps,
+        score: session.averageScore,
+        form_score: session.averageScore,
         exercise_totals: exerciseTotals,
         detected_issues: commonIssues,
         ai_coach_summary: coachSummary?.summary || "",
         feedback_summary:
           coachSummary?.summary ||
-          (totalReps > 0
-            ? `Tracked ${totalReps} reps across detected movements.`
+          (session.totalReps > 0
+            ? `Tracked ${session.totalReps} reps across detected movements.`
             : "Tracked an automatic pose session."),
         summary:
           coachSummary?.summary ||
-          (totalReps > 0
-            ? `Tracked ${totalReps} reps across detected movements.`
+          (session.totalReps > 0
+            ? `Tracked ${session.totalReps} reps across detected movements.`
             : "Tracked an automatic pose session."),
         cues: feedbackLines,
       });
       await loadHistory();
+      setFinalSessionResult((current) => current ? { ...current, saved: true } : current);
       setSavedNotice("Session saved.");
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -407,6 +546,35 @@ export function PoseWorkoutScreen() {
     workoutState?.headline ||
     (cameraActive ? "Center your body and settle into the movement." : "Start when you are ready.");
   const showSessionDetails = cameraActive || durationSeconds > 0 || completedTotals.length > 0;
+  const report = finalSessionResult;
+  const reportPrimaryExercise = report
+    ? primaryExerciseLabel(report.completedTotals, report.detectedLabel)
+    : "";
+  const reportScoreLabel = report ? scoreLabel(report.averageScore) : "";
+  const reportCueLines = report
+    ? uniqueLines([
+      ...(report.aiSummary?.cues || []),
+      ...report.feedback.map(cleanCueText),
+      ...(report.state?.tips || []),
+    ], 5)
+    : [];
+  const reportTipLines = report
+    ? uniqueLines([
+      report.aiSummary?.focus_next || "",
+      ...report.detectedIssues.map((issue) => `Improve ${issueLabel(issue.issue)}.`),
+      report.state?.headline || "",
+    ], 4)
+    : [];
+  const reportFeedback =
+    report?.aiSummary?.summary ||
+    report?.state?.headline ||
+    (report?.totalReps ? `Completed ${report.totalReps} reps with automatic form tracking.` : "Session completed.");
+  const reportMetricRows = report
+    ? topMetricKeys.flatMap((key) => {
+      const value = report.state?.metrics?.[key];
+      return typeof value === "number" ? [{ key, value }] : [];
+    })
+    : [];
 
   return (
     <div className="min-h-screen bg-[#070707] px-3 py-4 text-white sm:px-6 lg:px-8">
@@ -418,27 +586,27 @@ export function PoseWorkoutScreen() {
             </p>
             <h1 className="mt-2 text-4xl font-black leading-none text-white sm:text-5xl">Train in frame.</h1>
           </div>
-          <div className="flex shrink-0 gap-2">
-            <Button
-              type="button"
-              variant="ghost"
-              className="border border-white/10 bg-white/[0.03] px-4 py-2.5 shadow-none hover:bg-white/[0.06]"
-              onClick={resetSessionStats}
-            >
-              <RefreshCw className="h-4 w-4" />
-              <span className="hidden sm:inline">Reset</span>
-            </Button>
-            <Button
-              type="button"
-              className="px-4 py-2.5 shadow-none hover:shadow-none"
-              onClick={saveSession}
-              loading={saving}
-              disabled={saving}
-            >
-              <Save className="h-4 w-4" />
-              End
-            </Button>
-          </div>
+          {!report ? (
+            <div className="flex shrink-0 gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                className="border border-white/10 bg-white/[0.03] px-4 py-2.5 shadow-none hover:bg-white/[0.06]"
+                onClick={resetSessionStats}
+              >
+                <RefreshCw className="h-4 w-4" />
+                <span className="hidden sm:inline">Reset</span>
+              </Button>
+              <Button
+                type="button"
+                className="px-4 py-2.5 shadow-none hover:shadow-none"
+                onClick={endSession}
+              >
+                <Save className="h-4 w-4" />
+                End
+              </Button>
+            </div>
+          ) : null}
         </header>
 
         {error ? (
@@ -447,39 +615,188 @@ export function PoseWorkoutScreen() {
           </div>
         ) : null}
 
-        {savedNotice ? (
+        {savedNotice && !report ? (
           <div className="rounded-2xl bg-emerald-400/10 px-4 py-3 text-sm font-semibold text-emerald-100 ring-1 ring-emerald-400/20">
             {savedNotice}
           </div>
         ) : null}
 
-        <PoseCameraPreview
-          autoDetect
-          formFeedback
-          enablePoseDetection
-          sessionResetKey={resetKey}
-          showHeader={false}
-          showTrackingStatus={false}
-          feedbackMode="hidden"
-          controlsMode="minimal"
-          cameraFrameClassName="aspect-[4/5] min-h-[420px] sm:aspect-video sm:min-h-[520px] lg:min-h-[620px]"
-          onCameraActiveChange={handleCameraActiveChange}
-          onWorkoutAnalysis={handleWorkoutAnalysis}
-          className="!rounded-[2rem] !border-white/10 !bg-[#090909] !p-0 !shadow-none"
-          cameraOverlay={
-            cameraActive ? (
-              <TrackingOverlay
-                exercise={detectedLabel}
-                countLabel={countLabel}
-                countValue={countValue}
-                confidence={`${confidence}%`}
-                cue={cueText}
-              />
-            ) : null
-          }
-        />
+        {report ? (
+          <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+            <div className={cn(quietPanelClass, "overflow-hidden")}>
+              <div className="border-b border-white/[0.06] p-5">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--fc-accent-strong)]">
+                      Session completed
+                    </p>
+                    <h2 className="mt-2 text-3xl font-black text-white sm:text-4xl">Workout performance</h2>
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-white/55">{reportFeedback}</p>
+                  </div>
+                  <span className="inline-flex w-fit items-center rounded-full bg-[var(--fc-accent)]/15 px-3 py-1 text-xs font-black text-[var(--fc-accent-strong)]">
+                    {reportScoreLabel}
+                  </span>
+                </div>
 
-        {aiSummary ? (
+                <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  <MetricPill label="Duration" value={formatDuration(report.durationSeconds)} />
+                  <MetricPill label="Total reps" value={report.totalReps} />
+                  <MetricPill label="Form score" value={`${Math.round(report.averageScore)}/100`} />
+                  <MetricPill label="Primary exercise" value={reportPrimaryExercise} />
+                  <MetricPill label="Confidence" value={`${report.confidence}%`} />
+                  <MetricPill label="Ended" value={new Date(report.endedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} />
+                </div>
+
+                <div className="mt-5">
+                  <ScoreBar value={report.averageScore} />
+                </div>
+              </div>
+
+              <div className="grid gap-4 p-5 lg:grid-cols-2">
+                <div className="rounded-2xl bg-white/[0.035] p-4">
+                  <p className="text-[11px] font-black uppercase tracking-[0.16em] text-white/45">Reps by exercise</p>
+                  <div className="mt-3 grid gap-2">
+                    {report.completedTotals.length ? report.completedTotals.map((total) => (
+                      <div key={total.exercise} className="flex items-center justify-between gap-3 rounded-xl bg-white/[0.04] px-3 py-2">
+                        <span className="font-bold text-white">{total.label}</span>
+                        <span className="text-sm font-black text-[var(--fc-accent-strong)]">
+                          {total.exercise === "plank" ? formatDuration(total.hold_seconds) : `${total.reps} reps`}
+                        </span>
+                      </div>
+                    )) : (
+                      <p className="text-sm leading-6 text-white/55">No completed reps were detected.</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl bg-white/[0.035] p-4">
+                  <p className="text-[11px] font-black uppercase tracking-[0.16em] text-white/45">Performance cards</p>
+                  <div className="mt-3 grid gap-2">
+                    <MetricPill label="Best set" value={bestSetLabel(report.completedTotals)} />
+                    <MetricPill label="Weakest movement" value={weakestMovementLabel(report.completedTotals, report.detectedIssues)} />
+                    <MetricPill
+                      label="Timed exercise"
+                      value={report.completedTotals.find((total) => total.exercise === "plank" && total.hold_seconds > 0)
+                        ? formatDuration(report.completedTotals.find((total) => total.exercise === "plank")?.hold_seconds || 0)
+                        : "No timed hold"}
+                    />
+                  </div>
+                </div>
+
+                <div className="rounded-2xl bg-white/[0.035] p-4">
+                  <p className="text-[11px] font-black uppercase tracking-[0.16em] text-white/45">Coach cues</p>
+                  <div className="mt-3 grid gap-2">
+                    {reportCueLines.length ? reportCueLines.map((line) => (
+                      <p key={line} className="rounded-xl bg-white/[0.04] px-3 py-2 text-sm font-semibold leading-6 text-white/70">
+                        {line}
+                      </p>
+                    )) : (
+                      <p className="text-sm leading-6 text-white/55">No coach cues were recorded.</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl bg-white/[0.035] p-4">
+                  <p className="text-[11px] font-black uppercase tracking-[0.16em] text-white/45">Improvement tips</p>
+                  <div className="mt-3 grid gap-2">
+                    {reportTipLines.length ? reportTipLines.map((line) => (
+                      <p key={line} className="rounded-xl bg-white/[0.04] px-3 py-2 text-sm font-semibold leading-6 text-white/70">
+                        {line}
+                      </p>
+                    )) : (
+                      <p className="text-sm leading-6 text-white/55">No improvement tips available for this session.</p>
+                    )}
+                  </div>
+                </div>
+
+                {reportMetricRows.length ? (
+                  <div className="rounded-2xl bg-white/[0.035] p-4 lg:col-span-2">
+                    <p className="text-[11px] font-black uppercase tracking-[0.16em] text-white/45">Advanced tracking</p>
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                      {reportMetricRows.map(({ key, value }) => (
+                        <MetricPill key={key} label={key.replace(/_/g, " ")} value={formatMetricValue(key, value)} />
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+
+            <aside className="flex flex-col gap-4">
+              <div className={cn(quietPanelClass, "overflow-hidden")}>
+                <div className="grid aspect-video place-items-center bg-[#050505] p-5 text-center">
+                  <div>
+                    <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[var(--fc-accent)]/15 text-[var(--fc-accent-strong)]">
+                      <BadgeCheck className="h-7 w-7" />
+                    </div>
+                    <p className="mt-4 text-lg font-black text-white">Session completed</p>
+                    <p className="mt-1 text-sm leading-6 text-white/50">Live camera tracking is stopped.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className={cn(quietPanelClass, "p-4")}>
+                <div className="grid gap-2">
+                  <Button
+                    type="button"
+                    className="justify-center px-4 py-2.5 shadow-none"
+                    onClick={() => void saveSession(report)}
+                    loading={saving}
+                    disabled={saving || report.saved}
+                  >
+                    <Save className="h-4 w-4" />
+                    {report.saved ? "Session saved" : "Save session"}
+                  </Button>
+                  <Button type="button" variant="ghost" className="border border-white/10 bg-white/[0.03] px-4 py-2.5" onClick={startNewSession}>
+                    <Play className="h-4 w-4" />
+                    Start new session
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="border border-white/10 bg-white/[0.03] px-4 py-2.5"
+                    onClick={() => historySectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                  >
+                    <Clock className="h-4 w-4" />
+                    View history
+                  </Button>
+                  <Button type="button" variant="ghost" className="border border-white/10 bg-white/[0.03] px-4 py-2.5" onClick={startNewSession}>
+                    <RefreshCw className="h-4 w-4" />
+                    Retry analysis
+                  </Button>
+                </div>
+              </div>
+            </aside>
+          </section>
+        ) : (
+          <PoseCameraPreview
+            autoDetect
+            formFeedback
+            enablePoseDetection
+            sessionResetKey={resetKey}
+            showHeader={false}
+            showTrackingStatus={false}
+            feedbackMode="hidden"
+            controlsMode="minimal"
+            cameraFrameClassName="aspect-[4/5] min-h-[420px] sm:aspect-video sm:min-h-[520px] lg:min-h-[620px]"
+            onCameraActiveChange={handleCameraActiveChange}
+            onWorkoutAnalysis={handleWorkoutAnalysis}
+            className="!rounded-[2rem] !border-white/10 !bg-[#090909] !p-0 !shadow-none"
+            cameraOverlay={
+              cameraActive ? (
+                <TrackingOverlay
+                  exercise={detectedLabel}
+                  countLabel={countLabel}
+                  countValue={countValue}
+                  confidence={`${confidence}%`}
+                  cue={cueText}
+                />
+              ) : null
+            }
+          />
+        )}
+
+        {!report && aiSummary ? (
           <section className={cn(quietPanelClass, "p-5")}>
             <div className="flex items-center gap-3 text-[var(--fc-accent-strong)]">
               <Sparkles className="h-4 w-4" />
@@ -492,7 +809,7 @@ export function PoseWorkoutScreen() {
         ) : null}
 
         <div className="grid gap-3 lg:grid-cols-2">
-          {showSessionDetails ? (
+          {!report && showSessionDetails ? (
             <AdvancedSection icon={<Timer className="h-4 w-4" />} title="Session details">
               <div className="grid gap-3 sm:grid-cols-3">
                 <MetricPill label="Duration" value={formatDuration(durationSeconds)} />
@@ -522,7 +839,7 @@ export function PoseWorkoutScreen() {
             </AdvancedSection>
           ) : null}
 
-          {workoutState ? (
+          {!report && workoutState ? (
             <AdvancedSection icon={<TrendingUp className="h-4 w-4" />} title="Advanced tracking">
               <div className="grid gap-4">
                 <div>
@@ -581,6 +898,7 @@ export function PoseWorkoutScreen() {
           ) : null}
 
           {history.length ? (
+            <div ref={historySectionRef}>
             <AdvancedSection icon={<Clock className="h-4 w-4" />} title="Recent sessions">
               <div className="grid gap-2">
                 {history.slice(0, 4).map((item) => (
@@ -604,6 +922,7 @@ export function PoseWorkoutScreen() {
                 ))}
               </div>
             </AdvancedSection>
+            </div>
           ) : null}
         </div>
 
