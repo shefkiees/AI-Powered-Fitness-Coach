@@ -280,7 +280,7 @@ export function createAutoWorkoutTracker(): AutoWorkoutTracker {
     if (!setup.trackable) {
       const lastGoodAge = lastGoodState ? safeTimestamp - lastGoodState.timestamp : Infinity;
       if (lastGoodAge < TRACKING_LOSS_GRACE_MS) {
-        return {
+        const recoveringState: AutoWorkoutState = {
           ...lastGoodState!.state,
           status: "adjust",
           headline: "Tracking through a brief dropout",
@@ -288,6 +288,7 @@ export function createAutoWorkoutTracker(): AutoWorkoutTracker {
           setup,
           trackingStable: false,
         };
+        return recoveringState;
       }
       return buildOffFrameState({
         setup,

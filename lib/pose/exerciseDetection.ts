@@ -10,21 +10,24 @@ import { baseMetrics, clamp, normalize, range, round, stdDev } from "@/lib/pose/
 export function phaseForExercise(exercise: AutoExercise, features: FrameFeatures): FormPhase {
   switch (exercise) {
     case "squat": {
-      if (!Number.isFinite(features.kneeAngle) || !features.hip || !features.knee) return "unknown";
-      if (features.kneeAngle > 148 && features.hip.y < features.knee.y - features.height * 0.035) return "standing";
-      if (features.kneeAngle < 124 || (features.hipToKnee ?? -1) > -0.015) return "bottom";
+      const kneeAngle = features.kneeAngle;
+      if (kneeAngle === null || !Number.isFinite(kneeAngle) || !features.hip || !features.knee) return "unknown";
+      if (kneeAngle > 148 && features.hip.y < features.knee.y - features.height * 0.035) return "standing";
+      if (kneeAngle < 124 || (features.hipToKnee ?? -1) > -0.015) return "bottom";
       return "unknown";
     }
     case "lunge": {
-      if (!Number.isFinite(features.frontKneeAngle)) return "unknown";
-      if (features.frontKneeAngle > 148 && (features.kneeAsymmetry ?? 0) < 24) return "standing";
-      if (features.frontKneeAngle < 124 && (features.kneeAsymmetry ?? 0) > 16) return "bottom";
+      const frontKneeAngle = features.frontKneeAngle;
+      if (frontKneeAngle === null || !Number.isFinite(frontKneeAngle)) return "unknown";
+      if (frontKneeAngle > 148 && (features.kneeAsymmetry ?? 0) < 24) return "standing";
+      if (frontKneeAngle < 124 && (features.kneeAsymmetry ?? 0) > 16) return "bottom";
       return "unknown";
     }
     case "pushup": {
-      if (!Number.isFinite(features.elbowAngle)) return "unknown";
-      if (features.elbowAngle > 152) return "top";
-      if (features.elbowAngle < 116) return "bottom";
+      const elbowAngle = features.elbowAngle;
+      if (elbowAngle === null || !Number.isFinite(elbowAngle)) return "unknown";
+      if (elbowAngle > 152) return "top";
+      if (elbowAngle < 116) return "bottom";
       return "unknown";
     }
     case "plank": {
@@ -32,21 +35,24 @@ export function phaseForExercise(exercise: AutoExercise, features: FrameFeatures
       return "hold";
     }
     case "biceps_curl": {
-      if (!Number.isFinite(features.elbowAngle)) return "unknown";
-      if (features.elbowAngle > 145) return "down";
-      if (features.elbowAngle < 82) return "top";
+      const elbowAngle = features.elbowAngle;
+      if (elbowAngle === null || !Number.isFinite(elbowAngle)) return "unknown";
+      if (elbowAngle > 145) return "down";
+      if (elbowAngle < 82) return "top";
       return "unknown";
     }
     case "shoulder_press": {
-      if (!features.wrist || !features.shoulder || !Number.isFinite(features.elbowAngle)) return "unknown";
-      if (features.wrist.y < features.shoulder.y - features.height * 0.09 && features.elbowAngle > 136) return "top";
-      if (features.wrist.y > features.shoulder.y - features.height * 0.015 && features.elbowAngle < 142) return "down";
+      const elbowAngle = features.elbowAngle;
+      if (!features.wrist || !features.shoulder || elbowAngle === null || !Number.isFinite(elbowAngle)) return "unknown";
+      if (features.wrist.y < features.shoulder.y - features.height * 0.09 && elbowAngle > 136) return "top";
+      if (features.wrist.y > features.shoulder.y - features.height * 0.015 && elbowAngle < 142) return "down";
       return "unknown";
     }
     case "jumping_jack": {
-      if (!Number.isFinite(features.ankleWidthRatio)) return "unknown";
-      if (features.armsOverhead && features.ankleWidthRatio > 1.25) return "open";
-      if (!features.armsOverhead && features.ankleWidthRatio < 1.14) return "closed";
+      const ankleWidthRatio = features.ankleWidthRatio;
+      if (ankleWidthRatio === null || !Number.isFinite(ankleWidthRatio)) return "unknown";
+      if (features.armsOverhead && ankleWidthRatio > 1.25) return "open";
+      if (!features.armsOverhead && ankleWidthRatio < 1.14) return "closed";
       return "unknown";
     }
     default:
