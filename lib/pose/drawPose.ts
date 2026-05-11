@@ -87,10 +87,3 @@ export function drawPoseOnCanvas(
 
   ctx.restore();
 }
-
-export function averagePoseConfidence(keypoints: PoseKeypoint[]) {
-  const visible = keypoints.filter((point) => (point.score ?? 0) >= SCORE_MIN);
-  if (!visible.length) return 0;
-  const total = visible.reduce((sum, point) => sum + (point.score ?? 0), 0);
-  return Math.round((total / visible.length) * 100);
-}
