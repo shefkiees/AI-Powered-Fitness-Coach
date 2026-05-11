@@ -15,7 +15,10 @@ export type FormExercise =
   | "plank"
   | "shoulder_press"
   | "biceps_curl"
-  | "jumping_jack";
+  | "jumping_jack"
+  | "situp"
+  | "lateral_raise"
+  | "deadlift";
 export type FormPhase =
   | "unknown"
   | "not_detected"
@@ -25,7 +28,15 @@ export type FormPhase =
   | "down"
   | "hold"
   | "open"
-  | "closed";
+  | "closed"
+  | "lowering"
+  | "returning"
+  | "lifting"
+  | "pressing"
+  | "curling"
+  | "raising"
+  | "hinging"
+  | "peak";
 
 type AnalysisResult = {
   status: FormStatus;

@@ -70,6 +70,36 @@ export const REP_RULES: Record<CountedExercise, RepRule> = {
     minScore: 45,
     message: "Jumping jack counted after a full closed-open-closed rhythm.",
   },
+  situp: {
+    start: "down",
+    arm: "top",
+    count: "down",
+    minMotionMs: 300,
+    debounceMs: 620,
+    minConfidence: 0.42,
+    minScore: 42,
+    message: "Sit-up counted after a full curl-up and controlled return.",
+  },
+  lateral_raise: {
+    start: "down",
+    arm: "top",
+    count: "down",
+    minMotionMs: 300,
+    debounceMs: 620,
+    minConfidence: 0.42,
+    minScore: 42,
+    message: "Lateral raise counted after reaching shoulder height and lowering with control.",
+  },
+  deadlift: {
+    start: "standing",
+    arm: "bottom",
+    count: "standing",
+    minMotionMs: 380,
+    debounceMs: 720,
+    minConfidence: 0.44,
+    minScore: 44,
+    message: "Deadlift counted after a clear hinge and full return to standing.",
+  },
 };
 
 export function createPhaseStates(): Record<CountedExercise, PhaseState> {

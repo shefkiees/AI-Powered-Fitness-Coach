@@ -1,17 +1,15 @@
 "use client";
 
-import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   BadgeCheck,
-  ChevronDown,
-  CircleAlert,
+  Brain,
   Clock,
-  Eye,
+  Move3D,
   Play,
   RefreshCw,
   Save,
   ShieldAlert,
-  Sparkles,
   Target,
   Timer,
   TrendingUp,
@@ -25,13 +23,13 @@ import {
   type AutoWorkoutState,
   type ExerciseTotal,
   type LiveFeedbackItem,
+  type RepSummary,
 } from "@/lib/pose/autoWorkoutTracker";
 import { getPoseHistory, savePoseSession } from "@/src/services/workoutService";
 
 type PoseHistoryRow = {
   id: string;
   exercise_name: string;
-  exercise_type?: string | null;
   reps: number;
   score: number;
   form_score?: number | null;
@@ -42,6 +40,7 @@ type PoseHistoryRow = {
   duration_seconds?: number | null;
   completed_at?: string | null;
   created_at: string;
+  final_session_result?: FinalSessionResult | null;
 };
 
 type AiSummary = {
@@ -52,23 +51,31 @@ type AiSummary = {
 };
 
 type FinalSessionResult = {
-  state: AutoWorkoutState | null;
-  totals: Record<AutoExercise, ExerciseTotal>;
-  durationSeconds: number;
-  totalReps: number;
-  averageScore: number;
-  detectedExercise: AutoExercise;
-  detectedLabel: string;
-  confidence: number;
-  completedTotals: ExerciseTotal[];
-  feedback: LiveFeedbackItem[];
-  detectedIssues: Array<{ issue: string; count: number }>;
-  aiSummary: AiSummary | null;
+  startedAt: string;
   endedAt: string;
+  duration: number;
+  selectedExercise: AutoExercise;
+  detectedExercises: AutoExercise[];
+  totalReps: number;
+  repsByExercise: Record<AutoExercise, ExerciseTotal>;
+  formScore: number;
+  avgConfidence: number;
+  validReps: number;
+  invalidReps: number;
+  partialReps: number;
+  plankDuration: number;
+  repEvents: RepSummary[];
+  coachCues: string[];
+  improvementTips: string[];
+  feedbackSummary: string;
+  bestExercise: string;
+  weakestMovement: string;
   saved: boolean;
+  historySavedStatus: string;
 };
 
-const TRACKED_EXERCISES: AutoExercise[] = [
+const EXERCISE_OPTIONS: AutoExercise[] = [
+  "general",
   "squat",
   "pushup",
   "lunge",
@@ -76,18 +83,13 @@ const TRACKED_EXERCISES: AutoExercise[] = [
   "shoulder_press",
   "jumping_jack",
   "plank",
+  "situp",
+  "lateral_raise",
+  "deadlift",
 ];
 
-const SETUP_DEFAULTS = [
-  { label: "Shoulders visible", ok: false },
-  { label: "Hips visible", ok: false },
-  { label: "Knees visible", ok: false },
-  { label: "Ankles visible", ok: false },
-  { label: "Hands visible", ok: false },
-  { label: "Tracking confidence", ok: false },
-];
-
-const quietPanelClass = "rounded-2xl bg-white/[0.035] ring-1 ring-white/[0.08] backdrop-blur-xl";
+const TRACKED_EXERCISES = EXERCISE_OPTIONS.filter((exercise) => exercise !== "general");
+const panelClass = "rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))] shadow-[0_18px_60px_rgba(0,0,0,0.28)]";
 
 function formatDuration(totalSeconds: number) {
   const safeSeconds = Math.max(0, Math.round(totalSeconds));
@@ -96,219 +98,136 @@ function formatDuration(totalSeconds: number) {
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
-function formatMetricValue(key: string, value: number) {
-  if (key === "arms_overhead" || key === "setup_ready") return value >= 1 ? "Yes" : "No";
-  if (key === "visible_keypoints") return `${Math.round(value)}/17`;
-  if (key === "confidence") return `${Math.round(value * 100)}%`;
-  if (key.includes("ratio")) return `${value.toFixed(2)}x`;
-  if (key.includes("angle") || key === "asymmetry" || key === "range_of_motion") return `${Math.round(value)} deg`;
-  if (
-    key.includes("shift") ||
-    key.includes("lean") ||
-    key.includes("offset") ||
-    key.includes("drift") ||
-    key.includes("depth") ||
-    key.includes("motion") ||
-    key.includes("stability")
-  ) {
-    return `${Math.round(Math.abs(value) * 100)}%`;
-  }
-  return Number.isInteger(value) ? String(value) : value.toFixed(2);
-}
-
-function issueLabel(issue: string) {
-  return issue
-    .replace(/^jack_/, "jumping jack ")
-    .replace(/^curl_/, "curl ")
-    .replace(/^press_/, "press ")
-    .replace(/^plank_/, "plank ")
-    .replace(/_/g, " ");
-}
-
 function emptyTotals() {
-  return TRACKED_EXERCISES.reduce<Record<AutoExercise, ExerciseTotal>>((totals, exercise) => {
-    totals[exercise] = {
+  return EXERCISE_OPTIONS.reduce<Record<AutoExercise, ExerciseTotal>>((acc, exercise) => {
+    acc[exercise] = {
       exercise,
       label: EXERCISE_LABELS[exercise],
       reps: 0,
+      valid_reps: 0,
+      invalid_reps: 0,
+      partial_reps: 0,
       duration_seconds: 0,
       hold_seconds: 0,
       average_form_score: 0,
+      average_confidence: 0,
       issues: [],
       best_rep: null,
       worst_rep: null,
+      rep_events: [],
+      average_tempo_ms: 0,
+      last_rep_at: null,
     };
-    return totals;
+    return acc;
   }, {} as Record<AutoExercise, ExerciseTotal>);
 }
 
-function allExerciseTotals(totals: Record<string, ExerciseTotal>) {
-  return TRACKED_EXERCISES.map((exercise) => totals[exercise]).filter(Boolean);
-}
-
-function completedExerciseTotals(totals: Record<string, ExerciseTotal>) {
-  return allExerciseTotals(totals).filter((total) => total.reps > 0 || total.hold_seconds > 0);
-}
-
-function summarizeHistoryTotals(item: PoseHistoryRow) {
-  const totals = item.exercise_totals;
-  if (!totals || typeof totals !== "object") {
-    return `${item.reps || 0} reps`;
-  }
-  const pieces = TRACKED_EXERCISES.flatMap((exercise) => {
-    const total = totals[exercise];
-    if (!total) return [];
-    if (exercise === "plank" && total.hold_seconds > 0) {
-      return [`Plank ${formatDuration(total.hold_seconds)}`];
-    }
-    if (total.reps > 0) return [`${total.label} ${total.reps}`];
-    return [];
-  });
-  return pieces.length ? pieces.join(" - ") : `${item.reps || 0} reps`;
-}
-
-function cleanCueText(item?: LiveFeedbackItem) {
-  if (!item?.text) return "";
-  const label = EXERCISE_LABELS[item.exercise];
-  return item.text.replace(`${label}: `, "");
-}
-
-function AdvancedSection({
-  icon,
-  title,
-  children,
-}: {
-  icon: ReactNode;
-  title: string;
-  children: ReactNode;
-}) {
+function metricValue(label: string, value: ReactNode, accent = false) {
   return (
-    <details className={cn(quietPanelClass, "group overflow-hidden")}>
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-left [&::-webkit-details-marker]:hidden">
-        <span className="flex min-w-0 items-center gap-3 text-sm font-black text-white">
-          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white/[0.06] text-[var(--fc-accent-strong)]">
-            {icon}
-          </span>
-          <span className="truncate">{title}</span>
-        </span>
-        <ChevronDown className="h-4 w-4 shrink-0 text-white/45 transition group-open:rotate-180" />
-      </summary>
-      <div className="border-t border-white/[0.06] px-5 py-4">{children}</div>
-    </details>
-  );
-}
-
-function MetricPill({ label, value }: { label: string; value: ReactNode }) {
-  return (
-    <div className="rounded-xl bg-white/[0.04] px-3 py-2">
-      <p className="text-[11px] font-semibold capitalize text-white/45">{label}</p>
-      <p className="mt-0.5 text-sm font-black text-white">{value}</p>
-    </div>
-  );
-}
-
-function ScoreBar({ value }: { value: number }) {
-  const safeValue = Math.max(0, Math.min(100, Math.round(value)));
-  return (
-    <div>
-      <div className="flex items-center justify-between gap-3 text-xs font-black uppercase tracking-[0.16em] text-white/45">
-        <span>Form score</span>
-        <span className="text-white">{safeValue}/100</span>
-      </div>
-      <div className="mt-2 h-3 overflow-hidden rounded-full bg-white/[0.08]">
-        <div
-          className="h-full rounded-full bg-[var(--fc-accent)] transition-all duration-500"
-          style={{ width: `${safeValue}%` }}
-        />
-      </div>
+    <div className="rounded-2xl bg-white/[0.04] px-4 py-3">
+      <p className="text-[11px] font-black uppercase tracking-[0.16em] text-white/42">{label}</p>
+      <p className={cn("mt-1 text-sm font-black text-white", accent ? "text-[var(--fc-accent-strong)]" : "")}>{value}</p>
     </div>
   );
 }
 
 function scoreLabel(score: number) {
-  if (score >= 90) return "Excellent";
-  if (score >= 72) return "Good";
+  if (score >= 90) return "Elite";
+  if (score >= 80) return "Strong";
+  if (score >= 65) return "Building";
   return "Needs work";
 }
 
-function primaryExerciseLabel(completedTotals: ExerciseTotal[], fallback: string) {
-  const primary = [...completedTotals].sort((a, b) => {
-    const aValue = a.exercise === "plank" ? a.hold_seconds : a.reps;
-    const bValue = b.exercise === "plank" ? b.hold_seconds : b.reps;
-    return bValue - aValue;
-  })[0];
-  return primary?.label || fallback;
+function issueLabel(value: string) {
+  return value.replace(/_/g, " ").replace(/\bjack\b/g, "jumping jack");
 }
 
-function bestSetLabel(completedTotals: ExerciseTotal[]) {
-  const best = completedTotals
-    .flatMap((total) => total.best_rep ? [{ label: total.label, rep: total.best_rep }] : [])
-    .sort((a, b) => b.rep.score - a.rep.score)[0];
-  if (best) return `${best.label} rep ${best.rep.rep_index} - ${best.rep.score}/100`;
-
-  const bestAverage = [...completedTotals]
-    .filter((total) => total.average_form_score > 0)
-    .sort((a, b) => b.average_form_score - a.average_form_score)[0];
-  return bestAverage ? `${bestAverage.label} - ${bestAverage.average_form_score}/100` : "No completed set yet";
+function cleanCueText(item?: LiveFeedbackItem) {
+  if (!item?.text) return "";
+  return item.text.replace(/^[A-Za-z -]+:\s*/, "");
 }
 
-function weakestMovementLabel(completedTotals: ExerciseTotal[], issues: Array<{ issue: string; count: number }>) {
-  const worst = completedTotals
-    .flatMap((total) => total.worst_rep ? [{ label: total.label, rep: total.worst_rep }] : [])
-    .sort((a, b) => a.rep.score - b.rep.score)[0];
-  if (worst) return `${worst.label} rep ${worst.rep.rep_index} - ${worst.rep.score}/100`;
-
-  const topIssue = issues[0];
-  return topIssue ? issueLabel(topIssue.issue) : "No weak movement detected";
+function topExercises(totals: Record<AutoExercise, ExerciseTotal>) {
+  return TRACKED_EXERCISES
+    .map((exercise) => totals[exercise])
+    .filter((item) => item && (item.reps > 0 || item.hold_seconds > 0 || item.invalid_reps > 0))
+    .sort((a, b) => {
+      const aValue = a.exercise === "plank" ? a.hold_seconds : a.reps;
+      const bValue = b.exercise === "plank" ? b.hold_seconds : b.reps;
+      return bValue - aValue;
+    });
 }
 
-function uniqueLines(lines: string[], limit = 4) {
-  const seen = new Set<string>();
-  return lines
-    .map((line) => line.trim())
-    .filter((line) => {
-      if (!line || seen.has(line)) return false;
-      seen.add(line);
-      return true;
-    })
-    .slice(0, limit);
+function bestExerciseLabel(totals: Record<AutoExercise, ExerciseTotal>) {
+  const best = topExercises(totals)[0];
+  return best ? best.label : "No completed exercise";
 }
 
-function TrackingOverlay({
-  exercise,
-  countLabel,
-  countValue,
-  confidence,
-  cue,
+function weakestMovementLabel(totals: Record<AutoExercise, ExerciseTotal>) {
+  const worstRep = topExercises(totals)
+    .flatMap((item) => (item.worst_rep ? [{ label: item.label, score: item.worst_rep.score }] : []))
+    .sort((a, b) => a.score - b.score)[0];
+  return worstRep ? `${worstRep.label} ${worstRep.score}/100` : "No weak movement detected";
+}
+
+function repBadge(event: RepSummary) {
+  const tone =
+    event.kind === "invalid"
+      ? "bg-red-500/12 text-red-100 ring-red-400/20"
+      : event.partial
+        ? "bg-amber-500/12 text-amber-100 ring-amber-400/20"
+        : "bg-emerald-500/12 text-emerald-100 ring-emerald-400/20";
+  return (
+    <div key={event.id} className={cn("rounded-2xl px-3 py-3 ring-1", tone)}>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm font-black">{event.exercise_label}</p>
+        <span className="text-[10px] font-black uppercase tracking-[0.16em]">
+          {event.kind === "invalid" ? "Invalid" : event.partial ? "Partial" : "Valid"}
+        </span>
+      </div>
+      <p className="mt-1 text-xs font-semibold opacity-90">
+        {new Date(event.completed_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+      </p>
+      <p className="mt-2 text-sm font-semibold opacity-90">
+        Score {event.score}/100
+        {typeof event.confidence === "number" ? ` - Confidence ${Math.round(event.confidence * 100)}%` : ""}
+      </p>
+    </div>
+  );
+}
+
+function ExerciseSelector({
+  selectedExercise,
+  onChange,
 }: {
-  exercise: string;
-  countLabel: string;
-  countValue: ReactNode;
-  confidence: string;
-  cue: string;
+  selectedExercise: AutoExercise;
+  onChange: (exercise: AutoExercise) => void;
 }) {
   return (
-    <div className="flex h-full flex-col justify-between p-4 sm:p-6">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0 rounded-2xl bg-black/45 px-4 py-3 backdrop-blur-md">
-          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/45">Current exercise</p>
-          <p className="mt-1 truncate text-xl font-black text-white sm:text-2xl">{exercise}</p>
-        </div>
-        <div className="shrink-0 rounded-2xl bg-black/45 px-4 py-3 text-right backdrop-blur-md">
-          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/45">Confidence</p>
-          <p className="mt-1 text-xl font-black text-[var(--fc-accent-strong)] sm:text-2xl">{confidence}</p>
-        </div>
+    <div className={cn(panelClass, "p-4")}>
+      <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--fc-accent-strong)]">
+        <Target className="h-4 w-4" />
+        Exercise mode
       </div>
-
-      <div className="grid gap-3 sm:grid-cols-[220px_minmax(0,1fr)] sm:items-end">
-        <div className="rounded-2xl bg-black/50 px-5 py-4 backdrop-blur-md">
-          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/45">{countLabel}</p>
-          <p className="mt-1 text-6xl font-black leading-none text-white sm:text-7xl">{countValue}</p>
-        </div>
-        <div className="rounded-2xl bg-black/50 px-5 py-4 backdrop-blur-md">
-          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/45">Coach cue</p>
-          <p className="mt-2 text-lg font-black leading-7 text-white sm:text-2xl sm:leading-9">{cue}</p>
-        </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {EXERCISE_OPTIONS.map((exercise) => {
+          const active = selectedExercise === exercise;
+          return (
+            <button
+              key={exercise}
+              type="button"
+              onClick={() => onChange(exercise)}
+              className={cn(
+                "rounded-full px-3 py-2 text-xs font-black uppercase tracking-[0.14em] transition",
+                active
+                  ? "bg-[var(--fc-accent)] text-black"
+                  : "border border-white/10 bg-white/[0.04] text-white/70 hover:bg-white/[0.08]",
+              )}
+            >
+              {exercise === "general" ? "Auto detect" : EXERCISE_LABELS[exercise]}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -320,25 +239,12 @@ export function PoseWorkoutScreen() {
   const [history, setHistory] = useState<PoseHistoryRow[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [savedNotice, setSavedNotice] = useState("");
-  const [aiSummary, setAiSummary] = useState<AiSummary | null>(null);
   const [workoutState, setWorkoutState] = useState<AutoWorkoutState | null>(null);
   const [finalSessionResult, setFinalSessionResult] = useState<FinalSessionResult | null>(null);
+  const [selectedExercise, setSelectedExercise] = useState<AutoExercise>("general");
   const [resetKey, setResetKey] = useState(0);
-  const historySectionRef = useRef<HTMLDivElement | null>(null);
   const sessionStartedAtRef = useRef<number | null>(null);
-
-  const totals = useMemo(() => workoutState?.totals || emptyTotals(), [workoutState?.totals]);
-  const setup = workoutState?.setup;
-  const liveFeedback = workoutState?.feedback || [];
-  const detectedIssues = workoutState?.detectedIssues || [];
-  const totalReps = workoutState?.totalReps || 0;
-  const averageScore = workoutState?.averageFormScore || workoutState?.score || 0;
-  const detectedExercise = workoutState?.detectedExercise || "general";
-  const detectedLabel = workoutState?.detectedLabel || "Finding your movement";
-  const confidence = workoutState?.confidence || 0;
-  const completedTotals = useMemo(() => completedExerciseTotals(totals), [totals]);
-  const activeExerciseTotal = detectedExercise !== "general" ? totals[detectedExercise] : undefined;
+  const historySectionRef = useRef<HTMLDivElement | null>(null);
 
   const loadHistory = useCallback(async () => {
     try {
@@ -360,575 +266,453 @@ export function PoseWorkoutScreen() {
   }, []);
 
   const handleWorkoutAnalysis = useCallback((analysis: AutoWorkoutState) => {
-    if (!sessionStartedAtRef.current) {
-      sessionStartedAtRef.current = Date.now();
-    }
+    if (!sessionStartedAtRef.current) sessionStartedAtRef.current = Date.now();
     setWorkoutState(analysis);
   }, []);
 
   useEffect(() => {
     if (!cameraActive) return undefined;
-    if (!sessionStartedAtRef.current) sessionStartedAtRef.current = Date.now();
-    const updateDuration = () => {
+    const updateTimer = () => {
       if (sessionStartedAtRef.current) {
         setDurationSeconds(Math.round((Date.now() - sessionStartedAtRef.current) / 1000));
       }
     };
-    updateDuration();
-    const intervalId = window.setInterval(updateDuration, 1000);
+    updateTimer();
+    const intervalId = window.setInterval(updateTimer, 1000);
     return () => window.clearInterval(intervalId);
   }, [cameraActive]);
 
-  const resetSessionStats = () => {
+  const liveTotals = workoutState?.totals || emptyTotals();
+  const liveRepEvents = workoutState?.repTimeline || [];
+  const activeExercise = workoutState?.activeExercise || selectedExercise;
+  const activeTotal = liveTotals[activeExercise] || liveTotals.general;
+  const liveCue = cleanCueText(workoutState?.feedback?.[0]) || workoutState?.tips?.[0] || "Move into frame or select an exercise.";
+
+  const resetSession = useCallback(() => {
     sessionStartedAtRef.current = cameraActive ? Date.now() : null;
     setDurationSeconds(0);
     setWorkoutState(null);
     setFinalSessionResult(null);
-    setAiSummary(null);
-    setSavedNotice("");
     setError("");
-    setResetKey((current) => current + 1);
-  };
+    setResetKey((value) => value + 1);
+  }, [cameraActive]);
 
-  const startNewSession = () => {
+  const startNewSession = useCallback(() => {
     sessionStartedAtRef.current = null;
     setCameraActive(false);
     setDurationSeconds(0);
     setWorkoutState(null);
     setFinalSessionResult(null);
-    setAiSummary(null);
-    setSavedNotice("");
     setError("");
-    setResetKey((current) => current + 1);
-  };
+    setResetKey((value) => value + 1);
+  }, []);
 
-  const endSession = () => {
-    const finalTotals = workoutState?.totals || emptyTotals();
-    const finalCompletedTotals = completedExerciseTotals(finalTotals);
-    const completedAt = new Date();
-    const safeDuration = Math.max(
-      durationSeconds,
-      sessionStartedAtRef.current
-        ? Math.round((completedAt.getTime() - sessionStartedAtRef.current) / 1000)
-        : durationSeconds,
-    );
-
-    setFinalSessionResult({
-      state: workoutState,
-      totals: finalTotals,
-      durationSeconds: safeDuration,
+  const buildFinalSessionResult = useCallback((): FinalSessionResult => {
+    const now = new Date();
+    const startedAt = sessionStartedAtRef.current ? new Date(sessionStartedAtRef.current) : new Date(now.getTime() - durationSeconds * 1000);
+    const totals = workoutState?.totals || emptyTotals();
+    const feedbackSummary = workoutState?.headline || "Session completed.";
+    return {
+      startedAt: startedAt.toISOString(),
+      endedAt: now.toISOString(),
+      duration: Math.max(durationSeconds, Math.round((now.getTime() - startedAt.getTime()) / 1000)),
+      selectedExercise,
+      detectedExercises: workoutState?.detectedExercises || topExercises(totals).map((item) => item.exercise),
       totalReps: workoutState?.totalReps || 0,
-      averageScore: workoutState?.averageFormScore || workoutState?.score || 0,
-      detectedExercise: workoutState?.detectedExercise || "general",
-      detectedLabel: workoutState?.detectedLabel || "No exercise detected",
-      confidence: workoutState?.confidence || 0,
-      completedTotals: finalCompletedTotals,
-      feedback: workoutState?.feedback || [],
-      detectedIssues: workoutState?.detectedIssues || [],
-      aiSummary,
-      endedAt: completedAt.toISOString(),
+      repsByExercise: totals,
+      formScore: workoutState?.averageFormScore || workoutState?.score || 0,
+      avgConfidence: workoutState?.averageConfidence || workoutState?.confidence || 0,
+      validReps: workoutState?.validReps || 0,
+      invalidReps: workoutState?.invalidReps || 0,
+      partialReps: workoutState?.partialReps || 0,
+      plankDuration: workoutState?.plankDuration || totals.plank.hold_seconds || 0,
+      repEvents: workoutState?.repEvents || [],
+      coachCues: workoutState?.coachCues || [],
+      improvementTips: workoutState?.improvementTips || [],
+      feedbackSummary,
+      bestExercise: bestExerciseLabel(totals),
+      weakestMovement: weakestMovementLabel(totals),
       saved: false,
-    });
-    setCameraActive(false);
-    setSavedNotice("");
-    setError("");
-  };
+      historySavedStatus: "Not saved yet",
+    };
+  }, [durationSeconds, selectedExercise, workoutState]);
 
-  const saveSession = async (session = finalSessionResult) => {
+  const endSession = useCallback(() => {
+    setFinalSessionResult(buildFinalSessionResult());
+    setCameraActive(false);
+  }, [buildFinalSessionResult]);
+
+  const saveSession = useCallback(async (session = finalSessionResult) => {
     if (!session) return;
     setSaving(true);
     setError("");
-    setSavedNotice("");
     try {
-      const completedAt = new Date(session.endedAt);
-      const startedAt = sessionStartedAtRef.current
-        ? new Date(sessionStartedAtRef.current)
-        : new Date(completedAt.getTime() - session.durationSeconds * 1000);
-      const safeDuration = Math.max(
-        session.durationSeconds,
-        Math.round((completedAt.getTime() - startedAt.getTime()) / 1000),
-      );
-      const exerciseTotals = session.totals;
       const movementDurations = Object.fromEntries(
-        allExerciseTotals(exerciseTotals)
-          .filter((total) => total.reps > 0 || total.hold_seconds > 0 || total.duration_seconds > 0)
-          .map((total) => [
-            total.exercise,
-            total.exercise === "plank" ? total.hold_seconds : total.duration_seconds,
-          ]),
+        TRACKED_EXERCISES.map((exercise) => {
+          const total = session.repsByExercise[exercise];
+          return [exercise, exercise === "plank" ? total.hold_seconds : total.duration_seconds];
+        }).filter(([, value]) => Number(value) > 0),
       );
-      const commonIssues = session.detectedIssues;
-      const feedbackLines = session.feedback.map((item) => item.text);
+
+      const feedbackLines = session.coachCues.length ? session.coachCues : [session.feedbackSummary];
       const summaryResponse = await fetch("/api/coach/pose-summary", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          exercise_name: "AI Gym Tracker",
-          exercise_type: "auto",
-          detected_exercises: allExerciseTotals(exerciseTotals)
-            .filter((total) => total.reps > 0 || total.hold_seconds > 0)
-            .map((total) => total.exercise),
-          exercise_totals: exerciseTotals,
+          exercise_name: "AI Form Coach",
+          exercise_type: selectedExercise === "general" ? "auto" : selectedExercise,
+          detected_exercises: session.detectedExercises,
+          exercise_totals: session.repsByExercise,
           reps: session.totalReps,
-          score: session.averageScore,
-          average_form_score: session.averageScore,
-          duration_seconds: safeDuration,
+          score: session.formScore,
+          average_form_score: session.formScore,
+          duration_seconds: session.duration,
           movement_durations: movementDurations,
-          detected_issues: commonIssues,
-          best_reps: session.state?.bestReps || {},
-          worst_reps: session.state?.worstReps || {},
+          detected_issues: TRACKED_EXERCISES.flatMap((exercise) => session.repsByExercise[exercise]?.issues || []),
           cues: feedbackLines.slice(0, 8),
         }),
       });
-      const summaryData = (await summaryResponse.json().catch(() => ({}))) as {
-        summary?: AiSummary;
+      const summaryData = (await summaryResponse.json().catch(() => ({}))) as { summary?: AiSummary };
+      const aiSummary = summaryResponse.ok ? summaryData.summary : null;
+
+      const nextSession = {
+        ...session,
+        coachCues: aiSummary?.cues?.length ? aiSummary.cues : session.coachCues,
+        improvementTips: aiSummary?.focus_next ? [aiSummary.focus_next, ...session.improvementTips] : session.improvementTips,
+        feedbackSummary: aiSummary?.summary || session.feedbackSummary,
+        saved: true,
+        historySavedStatus: "Saved to history",
       };
-      const coachSummary = summaryResponse.ok ? summaryData.summary : null;
-      if (coachSummary) setAiSummary(coachSummary);
-      if (coachSummary) {
-        setFinalSessionResult((current) =>
-          current ? { ...current, aiSummary: coachSummary } : current,
-        );
-      }
 
       await savePoseSession({
-        exercise_name: "AI Gym Tracker",
-        exercise_type: "auto",
-        movement: "auto",
-        started_at: startedAt.toISOString(),
-        completed_at: completedAt.toISOString(),
-        ended_at: completedAt.toISOString(),
-        duration_seconds: safeDuration,
+        exercise_name: "AI Form Coach",
+        exercise_type: selectedExercise === "general" ? "auto" : selectedExercise,
+        movement: selectedExercise === "general" ? "auto" : selectedExercise,
+        started_at: session.startedAt,
+        completed_at: session.endedAt,
+        ended_at: session.endedAt,
+        duration_seconds: session.duration,
         reps: session.totalReps,
-        score: session.averageScore,
-        form_score: session.averageScore,
-        exercise_totals: exerciseTotals,
-        detected_issues: commonIssues,
-        ai_coach_summary: coachSummary?.summary || "",
-        feedback_summary:
-          coachSummary?.summary ||
-          (session.totalReps > 0
-            ? `Tracked ${session.totalReps} reps across detected movements.`
-            : "Tracked an automatic pose session."),
-        summary:
-          coachSummary?.summary ||
-          (session.totalReps > 0
-            ? `Tracked ${session.totalReps} reps across detected movements.`
-            : "Tracked an automatic pose session."),
-        cues: feedbackLines,
+        score: session.formScore,
+        form_score: session.formScore,
+        exercise_totals: session.repsByExercise,
+        detected_issues: TRACKED_EXERCISES.flatMap((exercise) => session.repsByExercise[exercise]?.issues || []),
+        ai_coach_summary: aiSummary?.summary || session.feedbackSummary,
+        feedback_summary: aiSummary?.summary || session.feedbackSummary,
+        summary: aiSummary?.summary || session.feedbackSummary,
+        cues: nextSession.coachCues,
+        final_session_result: nextSession,
       });
+
+      setFinalSessionResult(nextSession);
       await loadHistory();
-      setFinalSessionResult((current) => current ? { ...current, saved: true } : current);
-      setSavedNotice("Session saved.");
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setSaving(false);
     }
-  };
+  }, [finalSessionResult, loadHistory, selectedExercise]);
 
-  const topMetricKeys = [
-    "knee_angle",
-    "elbow_angle",
-    "body_angle",
-    "ankle_width_ratio",
-    "hip_offset",
-    "visible_keypoints",
-  ];
-  const metricRows = topMetricKeys.flatMap((key) => {
-    const value = workoutState?.metrics?.[key];
-    return typeof value === "number" ? [{ key, value }] : [];
-  });
-  const countLabel = detectedExercise === "plank" ? "Hold" : "Reps";
-  const countValue = detectedExercise === "plank" ? formatDuration(activeExerciseTotal?.hold_seconds || 0) : totalReps;
-  const cueText =
-    cleanCueText(liveFeedback[0]) ||
-    workoutState?.headline ||
-    (cameraActive ? "Center your body and settle into the movement." : "Start when you are ready.");
-  const showSessionDetails = cameraActive || durationSeconds > 0 || completedTotals.length > 0;
   const report = finalSessionResult;
-  const reportPrimaryExercise = report
-    ? primaryExerciseLabel(report.completedTotals, report.detectedLabel)
-    : "";
-  const reportScoreLabel = report ? scoreLabel(report.averageScore) : "";
-  const reportCueLines = report
-    ? uniqueLines([
-      ...(report.aiSummary?.cues || []),
-      ...report.feedback.map(cleanCueText),
-      ...(report.state?.tips || []),
-    ], 5)
-    : [];
-  const reportTipLines = report
-    ? uniqueLines([
-      report.aiSummary?.focus_next || "",
-      ...report.detectedIssues.map((issue) => `Improve ${issueLabel(issue.issue)}.`),
-      report.state?.headline || "",
-    ], 4)
-    : [];
-  const reportFeedback =
-    report?.aiSummary?.summary ||
-    report?.state?.headline ||
-    (report?.totalReps ? `Completed ${report.totalReps} reps with automatic form tracking.` : "Session completed.");
-  const reportMetricRows = report
-    ? topMetricKeys.flatMap((key) => {
-      const value = report.state?.metrics?.[key];
-      return typeof value === "number" ? [{ key, value }] : [];
-    })
-    : [];
+  const advancedMetrics = workoutState?.metrics || {};
+  const historyCards = history.filter((item) => item.final_session_result);
 
-  return (
-    <div className="min-h-screen bg-[#070707] px-3 py-4 text-white sm:px-6 lg:px-8">
-      <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-5">
-        <header className="flex flex-col gap-4 pt-1 sm:flex-row sm:items-end sm:justify-between">
-          <div className="min-w-0">
-            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--fc-accent-strong)]">
-              AI Form Coach
-            </p>
-            <h1 className="mt-2 text-4xl font-black leading-none text-white sm:text-5xl">Train in frame.</h1>
-          </div>
-          {!report ? (
-            <div className="flex shrink-0 gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                className="border border-white/10 bg-white/[0.03] px-4 py-2.5 shadow-none hover:bg-white/[0.06]"
-                onClick={resetSessionStats}
-              >
-                <RefreshCw className="h-4 w-4" />
-                <span className="hidden sm:inline">Reset</span>
-              </Button>
-              <Button
-                type="button"
-                className="px-4 py-2.5 shadow-none hover:shadow-none"
-                onClick={endSession}
-              >
-                <Save className="h-4 w-4" />
-                End
-              </Button>
-            </div>
-          ) : null}
-        </header>
-
-        {error ? (
-          <div className="rounded-2xl bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-100 ring-1 ring-red-400/20">
-            {error}
-          </div>
-        ) : null}
-
-        {savedNotice && !report ? (
-          <div className="rounded-2xl bg-emerald-400/10 px-4 py-3 text-sm font-semibold text-emerald-100 ring-1 ring-emerald-400/20">
-            {savedNotice}
-          </div>
-        ) : null}
-
-        {report ? (
-          <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-            <div className={cn(quietPanelClass, "overflow-hidden")}>
-              <div className="border-b border-white/[0.06] p-5">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--fc-accent-strong)]">
-                      Session completed
-                    </p>
-                    <h2 className="mt-2 text-3xl font-black text-white sm:text-4xl">Workout performance</h2>
-                    <p className="mt-2 max-w-2xl text-sm leading-6 text-white/55">{reportFeedback}</p>
-                  </div>
-                  <span className="inline-flex w-fit items-center rounded-full bg-[var(--fc-accent)]/15 px-3 py-1 text-xs font-black text-[var(--fc-accent-strong)]">
-                    {reportScoreLabel}
-                  </span>
-                </div>
-
-                <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  <MetricPill label="Duration" value={formatDuration(report.durationSeconds)} />
-                  <MetricPill label="Total reps" value={report.totalReps} />
-                  <MetricPill label="Form score" value={`${Math.round(report.averageScore)}/100`} />
-                  <MetricPill label="Primary exercise" value={reportPrimaryExercise} />
-                  <MetricPill label="Confidence" value={`${report.confidence}%`} />
-                  <MetricPill label="Ended" value={new Date(report.endedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} />
-                </div>
-
-                <div className="mt-5">
-                  <ScoreBar value={report.averageScore} />
-                </div>
+  if (report) {
+    const scoredExercises = topExercises(report.repsByExercise);
+    return (
+      <div className="min-h-screen bg-[#070707] px-3 py-4 text-white sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-[1320px] flex-col gap-5">
+          <section className={cn(panelClass, "overflow-hidden p-6")}>
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--fc-accent-strong)]">Session completed</p>
+                <h1 className="mt-2 text-4xl font-black">Performance report</h1>
+                <p className="mt-3 max-w-3xl text-sm leading-6 text-white/60">{report.feedbackSummary}</p>
               </div>
+              <div className="rounded-full bg-[var(--fc-accent)]/12 px-4 py-2 text-sm font-black text-[var(--fc-accent-strong)]">
+                {scoreLabel(report.formScore)}
+              </div>
+            </div>
 
-              <div className="grid gap-4 p-5 lg:grid-cols-2">
-                <div className="rounded-2xl bg-white/[0.035] p-4">
-                  <p className="text-[11px] font-black uppercase tracking-[0.16em] text-white/45">Reps by exercise</p>
-                  <div className="mt-3 grid gap-2">
-                    {report.completedTotals.length ? report.completedTotals.map((total) => (
-                      <div key={total.exercise} className="flex items-center justify-between gap-3 rounded-xl bg-white/[0.04] px-3 py-2">
-                        <span className="font-bold text-white">{total.label}</span>
-                        <span className="text-sm font-black text-[var(--fc-accent-strong)]">
-                          {total.exercise === "plank" ? formatDuration(total.hold_seconds) : `${total.reps} reps`}
-                        </span>
+            <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {metricValue("Duration", formatDuration(report.duration))}
+              {metricValue("Total reps", report.totalReps)}
+              {metricValue("Form score", `${Math.round(report.formScore)}/100`, true)}
+              {metricValue("Average confidence", `${Math.round(report.avgConfidence)}%`)}
+              {metricValue("Best exercise", report.bestExercise)}
+              {metricValue("Weakest movement", report.weakestMovement)}
+              {metricValue("Valid vs invalid", `${report.validReps} / ${report.invalidReps}`)}
+              {metricValue("Plank duration", report.plankDuration ? formatDuration(report.plankDuration) : "0:00")}
+            </div>
+          </section>
+
+          <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+            <div className="grid gap-5">
+              <section className={cn(panelClass, "p-6")}>
+                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-white/45">Reps by exercise</p>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  {scoredExercises.length ? scoredExercises.map((item) => (
+                    <div key={item.exercise} className="rounded-2xl bg-white/[0.04] px-4 py-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm font-black">{item.label}</p>
+                        <p className="text-xs font-black text-[var(--fc-accent-strong)]">
+                          {item.exercise === "plank" ? formatDuration(item.hold_seconds) : `${item.reps} reps`}
+                        </p>
                       </div>
-                    )) : (
-                      <p className="text-sm leading-6 text-white/55">No completed reps were detected.</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="rounded-2xl bg-white/[0.035] p-4">
-                  <p className="text-[11px] font-black uppercase tracking-[0.16em] text-white/45">Performance cards</p>
-                  <div className="mt-3 grid gap-2">
-                    <MetricPill label="Best set" value={bestSetLabel(report.completedTotals)} />
-                    <MetricPill label="Weakest movement" value={weakestMovementLabel(report.completedTotals, report.detectedIssues)} />
-                    <MetricPill
-                      label="Timed exercise"
-                      value={report.completedTotals.find((total) => total.exercise === "plank" && total.hold_seconds > 0)
-                        ? formatDuration(report.completedTotals.find((total) => total.exercise === "plank")?.hold_seconds || 0)
-                        : "No timed hold"}
-                    />
-                  </div>
-                </div>
-
-                <div className="rounded-2xl bg-white/[0.035] p-4">
-                  <p className="text-[11px] font-black uppercase tracking-[0.16em] text-white/45">Coach cues</p>
-                  <div className="mt-3 grid gap-2">
-                    {reportCueLines.length ? reportCueLines.map((line) => (
-                      <p key={line} className="rounded-xl bg-white/[0.04] px-3 py-2 text-sm font-semibold leading-6 text-white/70">
-                        {line}
+                      <p className="mt-2 text-sm text-white/60">
+                        Valid {item.valid_reps} - Invalid {item.invalid_reps} - Partial {item.partial_reps}
                       </p>
-                    )) : (
-                      <p className="text-sm leading-6 text-white/55">No coach cues were recorded.</p>
-                    )}
-                  </div>
+                    </div>
+                  )) : <p className="text-sm text-white/55">No tracked movement was saved for this session.</p>}
                 </div>
+              </section>
 
-                <div className="rounded-2xl bg-white/[0.035] p-4">
-                  <p className="text-[11px] font-black uppercase tracking-[0.16em] text-white/45">Improvement tips</p>
-                  <div className="mt-3 grid gap-2">
-                    {reportTipLines.length ? reportTipLines.map((line) => (
-                      <p key={line} className="rounded-xl bg-white/[0.04] px-3 py-2 text-sm font-semibold leading-6 text-white/70">
-                        {line}
-                      </p>
-                    )) : (
-                      <p className="text-sm leading-6 text-white/55">No improvement tips available for this session.</p>
-                    )}
-                  </div>
+              <section className={cn(panelClass, "p-6")}>
+                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-white/45">Rep timeline</p>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {report.repEvents.length ? report.repEvents.slice(0, 9).map(repBadge) : <p className="text-sm text-white/55">No rep events were recorded.</p>}
                 </div>
+              </section>
 
-                {reportMetricRows.length ? (
-                  <div className="rounded-2xl bg-white/[0.035] p-4 lg:col-span-2">
-                    <p className="text-[11px] font-black uppercase tracking-[0.16em] text-white/45">Advanced tracking</p>
-                    <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                      {reportMetricRows.map(({ key, value }) => (
-                        <MetricPill key={key} label={key.replace(/_/g, " ")} value={formatMetricValue(key, value)} />
-                      ))}
+              <section className={cn(panelClass, "p-6")}>
+                <div className="grid gap-5 lg:grid-cols-2">
+                  <div>
+                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-white/45">Feedback summary</p>
+                    <p className="mt-3 text-sm leading-6 text-white/65">{report.feedbackSummary}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-white/45">Improvement tips</p>
+                    <div className="mt-3 grid gap-2">
+                      {report.improvementTips.length ? report.improvementTips.slice(0, 5).map((tip) => (
+                        <div key={tip} className="rounded-2xl bg-white/[0.04] px-4 py-3 text-sm font-semibold text-white/72">
+                          {tip}
+                        </div>
+                      )) : <p className="text-sm text-white/55">No improvement tips captured.</p>}
                     </div>
                   </div>
-                ) : null}
-              </div>
+                </div>
+              </section>
             </div>
 
-            <aside className="flex flex-col gap-4">
-              <div className={cn(quietPanelClass, "overflow-hidden")}>
-                <div className="grid aspect-video place-items-center bg-[#050505] p-5 text-center">
-                  <div>
-                    <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[var(--fc-accent)]/15 text-[var(--fc-accent-strong)]">
-                      <BadgeCheck className="h-7 w-7" />
-                    </div>
-                    <p className="mt-4 text-lg font-black text-white">Session completed</p>
-                    <p className="mt-1 text-sm leading-6 text-white/50">Live camera tracking is stopped.</p>
+            <aside className="grid gap-5">
+              <section className={cn(panelClass, "p-5")}>
+                <div className="grid place-items-center rounded-[24px] bg-[#060606] px-4 py-8 text-center">
+                  <div className="grid h-16 w-16 place-items-center rounded-full bg-[var(--fc-accent)]/12 text-[var(--fc-accent-strong)]">
+                    <BadgeCheck className="h-8 w-8" />
                   </div>
+                  <p className="mt-4 text-xl font-black">History status</p>
+                  <p className="mt-2 text-sm text-white/55">{report.historySavedStatus}</p>
                 </div>
-              </div>
-
-              <div className={cn(quietPanelClass, "p-4")}>
-                <div className="grid gap-2">
-                  <Button
-                    type="button"
-                    className="justify-center px-4 py-2.5 shadow-none"
-                    onClick={() => void saveSession(report)}
-                    loading={saving}
-                    disabled={saving || report.saved}
-                  >
+                <div className="mt-4 grid gap-2">
+                  <Button type="button" className="justify-center shadow-none" onClick={() => void saveSession(report)} disabled={saving || report.saved} loading={saving}>
                     <Save className="h-4 w-4" />
                     {report.saved ? "Session saved" : "Save session"}
                   </Button>
-                  <Button type="button" variant="ghost" className="border border-white/10 bg-white/[0.03] px-4 py-2.5" onClick={startNewSession}>
+                  <Button type="button" variant="ghost" className="border border-white/10 bg-white/[0.03]" onClick={startNewSession}>
                     <Play className="h-4 w-4" />
                     Start new session
                   </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className="border border-white/10 bg-white/[0.03] px-4 py-2.5"
-                    onClick={() => historySectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
-                  >
+                  <Button type="button" variant="ghost" className="border border-white/10 bg-white/[0.03]" onClick={() => historySectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}>
                     <Clock className="h-4 w-4" />
                     View history
                   </Button>
-                  <Button type="button" variant="ghost" className="border border-white/10 bg-white/[0.03] px-4 py-2.5" onClick={startNewSession}>
-                    <RefreshCw className="h-4 w-4" />
-                    Retry analysis
-                  </Button>
                 </div>
-              </div>
+              </section>
             </aside>
-          </section>
-        ) : (
-          <PoseCameraPreview
-            autoDetect
-            formFeedback
-            enablePoseDetection
-            sessionResetKey={resetKey}
-            showHeader={false}
-            showTrackingStatus={false}
-            feedbackMode="hidden"
-            controlsMode="minimal"
-            cameraFrameClassName="aspect-[4/5] min-h-[420px] sm:aspect-video sm:min-h-[520px] lg:min-h-[620px]"
-            onCameraActiveChange={handleCameraActiveChange}
-            onWorkoutAnalysis={handleWorkoutAnalysis}
-            className="!rounded-[2rem] !border-white/10 !bg-[#090909] !p-0 !shadow-none"
-            cameraOverlay={
-              cameraActive ? (
-                <TrackingOverlay
-                  exercise={detectedLabel}
-                  countLabel={countLabel}
-                  countValue={countValue}
-                  confidence={`${confidence}%`}
-                  cue={cueText}
-                />
-              ) : null
-            }
-          />
-        )}
+          </div>
 
-        {!report && aiSummary ? (
-          <section className={cn(quietPanelClass, "p-5")}>
-            <div className="flex items-center gap-3 text-[var(--fc-accent-strong)]">
-              <Sparkles className="h-4 w-4" />
-              <p className="text-[11px] font-black uppercase tracking-[0.18em]">Coach recap</p>
+          <section ref={historySectionRef} className={cn(panelClass, "p-6")}>
+            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-white/45">Saved history</p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {historyCards.length ? historyCards.slice(0, 6).map((item) => {
+                const session = item.final_session_result as FinalSessionResult;
+                return (
+                  <div key={item.id} className="rounded-2xl bg-white/[0.04] px-4 py-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-black">{session.bestExercise}</p>
+                      <p className="text-xs font-black text-white/45">{new Date(item.completed_at || item.created_at).toLocaleDateString()}</p>
+                    </div>
+                    <p className="mt-2 text-sm text-white/60">{formatDuration(session.duration)} - {session.totalReps} reps - {Math.round(session.formScore)}/100</p>
+                    <p className="mt-2 line-clamp-3 text-sm leading-6 text-white/65">{session.feedbackSummary}</p>
+                  </div>
+                );
+              }) : <p className="text-sm text-white/55">No saved final reports yet.</p>}
             </div>
-            <h2 className="mt-3 text-2xl font-black text-white">{aiSummary.headline}</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-white/60">{aiSummary.summary}</p>
-            <p className="mt-4 text-sm font-bold text-white">Next focus: {aiSummary.focus_next}</p>
           </section>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#070707] px-3 py-4 text-white sm:px-6 lg:px-8">
+      <div className="mx-auto flex max-w-[1320px] flex-col gap-5">
+        <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--fc-accent-strong)]">AI Form Coach</p>
+            <h1 className="mt-2 text-4xl font-black sm:text-5xl">Professional movement tracking</h1>
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-white/58">
+              Multi-exercise rep counting, joint-aware coaching, and a final performance report built for real training sessions.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button type="button" variant="ghost" className="border border-white/10 bg-white/[0.03]" onClick={resetSession}>
+              <RefreshCw className="h-4 w-4" />
+              Reset
+            </Button>
+            <Button type="button" className="shadow-none" onClick={endSession}>
+              <Save className="h-4 w-4" />
+              End session
+            </Button>
+          </div>
+        </header>
+
+        {error ? <div className="rounded-2xl bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-100 ring-1 ring-red-400/20">{error}</div> : null}
+
+        <ExerciseSelector selectedExercise={selectedExercise} onChange={setSelectedExercise} />
+
+        {workoutState?.manualSelectionRecommended ? (
+          <div className="rounded-2xl bg-amber-500/10 px-4 py-3 text-sm font-semibold text-amber-100 ring-1 ring-amber-400/20">
+            Auto-detect confidence is low. Select an exercise manually for more accurate rep counting.
+          </div>
         ) : null}
 
-        <div className="grid gap-3 lg:grid-cols-2">
-          {!report && showSessionDetails ? (
-            <AdvancedSection icon={<Timer className="h-4 w-4" />} title="Session details">
-              <div className="grid gap-3 sm:grid-cols-3">
-                <MetricPill label="Duration" value={formatDuration(durationSeconds)} />
-                {totalReps > 0 ? <MetricPill label="Total reps" value={totalReps} /> : null}
-                {averageScore > 0 ? <MetricPill label="Form score" value={`${Math.round(averageScore)}/100`} /> : null}
-              </div>
-
-              {completedTotals.length ? (
-                <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                  {completedTotals.map((total) => (
-                    <div key={total.exercise} className="rounded-xl bg-white/[0.04] px-3 py-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="truncate text-sm font-black text-white">{total.label}</p>
-                        {detectedExercise === total.exercise ? (
-                          <span className="rounded-full bg-[var(--fc-accent)]/15 px-2 py-0.5 text-[10px] font-black text-[var(--fc-accent-strong)]">
-                            Live
-                          </span>
-                        ) : null}
-                      </div>
-                      <p className="mt-2 text-2xl font-black text-white">
-                        {total.exercise === "plank" ? formatDuration(total.hold_seconds) : total.reps}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-            </AdvancedSection>
-          ) : null}
-
-          {!report && workoutState ? (
-            <AdvancedSection icon={<TrendingUp className="h-4 w-4" />} title="Advanced tracking">
-              <div className="grid gap-4">
-                <div>
-                  <div className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-white/45">
-                    <Eye className="h-3.5 w-3.5" />
-                    Body visibility
-                  </div>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {(setup?.checklist || SETUP_DEFAULTS).map((item) => (
-                      <div key={item.label} className="flex items-center gap-2 rounded-xl bg-white/[0.04] px-3 py-2 text-xs font-bold text-white/70">
-                        {item.ok ? (
-                          <BadgeCheck className="h-4 w-4 shrink-0 text-[var(--fc-accent-strong)]" />
-                        ) : (
-                          <CircleAlert className="h-4 w-4 shrink-0 text-white/35" />
-                        )}
-                        <span className="truncate">{item.label}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {metricRows.length ? (
-                  <div>
-                    <div className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-white/45">
-                      <Target className="h-3.5 w-3.5" />
-                      Tracking metrics
-                    </div>
-                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                      {metricRows.map(({ key, value }) => (
-                        <MetricPill key={key} label={key.replace(/_/g, " ")} value={formatMetricValue(key, value)} />
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-
-                {detectedIssues.length ? (
-                  <div>
-                    <div className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-white/45">
-                      <CircleAlert className="h-3.5 w-3.5" />
-                      Repeated cues
-                    </div>
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      {detectedIssues.slice(0, 4).map((issue) => (
-                        <div key={issue.issue} className="flex items-center justify-between gap-3 rounded-xl bg-white/[0.04] px-3 py-2 text-sm">
-                          <span className="min-w-0 truncate font-bold capitalize text-white/70">{issueLabel(issue.issue)}</span>
-                          <span className="rounded-full bg-white/[0.06] px-2 py-0.5 text-xs font-black text-white">
-                            {issue.count}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            </AdvancedSection>
-          ) : null}
-
-          {history.length ? (
-            <div ref={historySectionRef}>
-            <AdvancedSection icon={<Clock className="h-4 w-4" />} title="Recent sessions">
-              <div className="grid gap-2">
-                {history.slice(0, 4).map((item) => (
-                  <div key={item.id} className="rounded-xl bg-white/[0.04] px-3 py-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="min-w-0 truncate text-sm font-black text-white">{item.exercise_name}</p>
-                      <span className="text-xs font-bold text-white/45">
-                        {new Date(item.completed_at || item.created_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-xs leading-5 text-white/50">
-                      {summarizeHistoryTotals(item)}
-                      {item.duration_seconds ? ` - ${formatDuration(item.duration_seconds)}` : ""}
-                    </p>
-                    {item.ai_coach_summary || item.feedback_summary || item.summary ? (
-                      <p className="mt-2 line-clamp-2 text-sm leading-6 text-white/62">
-                        {item.ai_coach_summary || item.feedback_summary || item.summary}
-                      </p>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            </AdvancedSection>
+        <section className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_380px]">
+          <div className="grid gap-5">
+            <div className={cn(panelClass, "overflow-hidden p-4")}>
+              <PoseCameraPreview
+                autoDetect={selectedExercise === "general"}
+                selectedExercise={selectedExercise}
+                formFeedback
+                enablePoseDetection
+                sessionResetKey={resetKey}
+                showHeader={false}
+                showTrackingStatus={false}
+                feedbackMode="hidden"
+                controlsMode="minimal"
+                cameraFrameClassName="aspect-video min-h-[320px] max-h-[520px]"
+                onCameraActiveChange={handleCameraActiveChange}
+                onWorkoutAnalysis={handleWorkoutAnalysis}
+                className="!rounded-[24px] !border-white/10 !bg-[#090909] !p-0 !shadow-none"
+              />
             </div>
-          ) : null}
-        </div>
+
+            <section className={cn(panelClass, "p-5")}>
+              <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-white/45">
+                <Move3D className="h-4 w-4" />
+                Rep timeline
+              </div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {liveRepEvents.length ? liveRepEvents.map(repBadge) : <p className="text-sm text-white/55">No advanced tracking data yet. Start moving or select an exercise.</p>}
+              </div>
+            </section>
+          </div>
+
+          <aside className="grid gap-5">
+            <section className={cn(panelClass, "p-5")}>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--fc-accent-strong)]">Live stats</p>
+                  <h2 className="mt-2 text-2xl font-black">{activeExercise === "general" ? "Awaiting movement" : EXERCISE_LABELS[activeExercise]}</h2>
+                </div>
+                <span className="rounded-full bg-white/[0.06] px-3 py-1 text-xs font-black uppercase tracking-[0.14em] text-white/72">
+                  {workoutState?.currentRepPhase || "ready"}
+                </span>
+              </div>
+
+              <div className="mt-4 grid gap-3">
+                {metricValue("Selected exercise", selectedExercise === "general" ? "Auto detect" : EXERCISE_LABELS[selectedExercise])}
+                {metricValue("Detected exercise", workoutState?.detectedExercise === "general" ? "Unknown" : workoutState?.detectedLabel || "Unknown")}
+                {metricValue("Reps", activeExercise === "plank" ? formatDuration(activeTotal.hold_seconds || 0) : workoutState?.totalReps || 0, true)}
+                {metricValue("Form score", `${Math.round(workoutState?.averageFormScore || workoutState?.score || 0)}/100`)}
+                {metricValue("Confidence", `${workoutState?.confidence || 0}%`)}
+                {metricValue("Current phase", String(workoutState?.phase || "unknown"))}
+                {metricValue("Session timer", formatDuration(durationSeconds))}
+                <div className="rounded-2xl bg-white/[0.04] px-4 py-3">
+                  <p className="text-[11px] font-black uppercase tracking-[0.16em] text-white/42">Coach cue</p>
+                  <p className="mt-2 text-sm font-black leading-6 text-white">{liveCue}</p>
+                </div>
+              </div>
+            </section>
+
+            <section className={cn(panelClass, "p-5")}>
+              <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-white/45">
+                <Timer className="h-4 w-4" />
+                Session details
+              </div>
+              <div className="mt-4 grid gap-3">
+                {metricValue("Total reps", workoutState?.totalReps || 0)}
+                {metricValue("Valid vs invalid", `${workoutState?.validReps || 0} / ${workoutState?.invalidReps || 0}`)}
+                {metricValue("Partial reps", workoutState?.partialReps || 0)}
+                {metricValue("Plank duration", formatDuration(workoutState?.plankDuration || 0))}
+              </div>
+            </section>
+          </aside>
+        </section>
+
+        <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]">
+          <section className={cn(panelClass, "p-5")}>
+            <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-white/45">
+              <TrendingUp className="h-4 w-4" />
+              Advanced tracking
+            </div>
+            {workoutState ? (
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {metricValue("Visible joints", workoutState.visibleJoints.length)}
+                {metricValue("Tracking confidence", `${Math.round(Number(advancedMetrics.tracking_confidence || 0))}%`)}
+                {metricValue("Current rep phase", String(workoutState.currentRepPhase))}
+                {metricValue("ROM percentage", `${Math.round(Number(advancedMetrics.rom_progress || 0))}%`)}
+                {metricValue("Joint angles", `${Math.round(Number(advancedMetrics.knee_angle || advancedMetrics.elbow_angle || 0))} deg`)}
+                {metricValue("Average tempo", advancedMetrics.average_tempo_ms ? `${Math.round(Number(advancedMetrics.average_tempo_ms))} ms` : "No data")}
+                {metricValue("Last rep timestamp", advancedMetrics.last_rep_timestamp ? new Date(Number(advancedMetrics.last_rep_timestamp)).toLocaleTimeString() : "No rep yet")}
+                {metricValue("Warnings", workoutState.warnings.length ? workoutState.warnings.map(issueLabel).join(", ") : "None")}
+                {metricValue("Missing joints", workoutState.missingJoints.length ? workoutState.missingJoints.join(", ") : "None")}
+              </div>
+            ) : (
+              <p className="mt-4 text-sm text-white/55">No advanced tracking data yet. Start moving or select an exercise.</p>
+            )}
+          </section>
+
+          <section className={cn(panelClass, "p-5")}>
+            <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-white/45">
+              <Brain className="h-4 w-4" />
+              Live coaching
+            </div>
+            <div className="mt-4 grid gap-2">
+              {workoutState?.coachCues?.length ? workoutState.coachCues.slice(0, 6).map((cue) => (
+                <div key={cue} className="rounded-2xl bg-white/[0.04] px-4 py-3 text-sm font-semibold leading-6 text-white/72">
+                  {cue}
+                </div>
+              )) : <p className="text-sm text-white/55">Move into frame or select an exercise.</p>}
+            </div>
+          </section>
+        </section>
+
+        <section ref={historySectionRef} className={cn(panelClass, "p-5")}>
+          <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-white/45">
+            <Clock className="h-4 w-4" />
+            Saved history
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {historyCards.length ? historyCards.slice(0, 6).map((item) => {
+              const session = item.final_session_result as FinalSessionResult;
+              return (
+                <div key={item.id} className="rounded-2xl bg-white/[0.04] px-4 py-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-black">{session.bestExercise}</p>
+                    <p className="text-xs font-black text-white/45">{new Date(item.completed_at || item.created_at).toLocaleDateString()}</p>
+                  </div>
+                  <p className="mt-2 text-sm text-white/60">{formatDuration(session.duration)} - {session.totalReps} reps - {Math.round(session.formScore)}/100</p>
+                  <p className="mt-2 line-clamp-3 text-sm leading-6 text-white/65">{session.feedbackSummary}</p>
+                </div>
+              );
+            }) : <p className="text-sm text-white/55">No saved final reports yet.</p>}
+          </div>
+        </section>
 
         <div className="flex items-start gap-2 pb-4 text-xs leading-5 text-white/40">
           <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
-          <p>General movement cues only. Stop if you feel sharp pain, dizziness, or instability.</p>
+          <p>Coaching cues are movement-specific and non-medical. Stop if you feel pain, dizziness, or instability.</p>
         </div>
       </div>
     </div>

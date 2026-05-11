@@ -9,30 +9,48 @@ export type AutoExercise =
   | "plank"
   | "shoulder_press"
   | "biceps_curl"
-  | "jumping_jack";
+  | "jumping_jack"
+  | "situp"
+  | "lateral_raise"
+  | "deadlift";
 
 export type SetupChecklistItem = {
   label: string;
   ok: boolean;
 };
 
+export type RepSummary = {
+  id: string;
+  rep_index: number;
+  score: number;
+  confidence: number;
+  phase: string;
+  issues: string[];
+  timestamp: number;
+  completed_at: string;
+  kind?: "valid" | "invalid";
+  partial?: boolean;
+  exercise?: AutoExercise;
+  exercise_label?: string;
+};
+
 export type ExerciseTotal = {
   exercise: AutoExercise;
   label: string;
   reps: number;
+  valid_reps: number;
+  invalid_reps: number;
+  partial_reps: number;
   duration_seconds: number;
   hold_seconds: number;
   average_form_score: number;
+  average_confidence: number;
   issues: Array<{ issue: string; count: number }>;
   best_rep: RepSummary | null;
   worst_rep: RepSummary | null;
-};
-
-export type RepSummary = {
-  rep_index: number;
-  score: number;
-  issues: string[];
-  completed_at: string;
+  rep_events: RepSummary[];
+  average_tempo_ms: number;
+  last_rep_at: string | null;
 };
 
 export type LiveFeedbackItem = {
@@ -46,12 +64,14 @@ export type AutoWorkoutState = {
   status: FormStatus;
   headline: string;
   tips: string[];
-  phase: FormPhase;
+  phase: FormPhase | string;
   score: number;
   detectedExercise: AutoExercise;
+  selectedExercise: AutoExercise;
   detectedLabel: string;
   confidence: number;
   confidenceScore: number;
+  averageConfidence: number;
   setup: {
     trackable: boolean;
     messages: string[];
@@ -67,10 +87,26 @@ export type AutoWorkoutState = {
   feedback: LiveFeedbackItem[];
   detectedIssues: Array<{ issue: string; count: number }>;
   exerciseScores: Record<string, number>;
-  metrics: Record<string, number>;
+  metrics: Record<string, number | string>;
   bestReps: Partial<Record<AutoExercise, RepSummary>>;
   worstReps: Partial<Record<AutoExercise, RepSummary>>;
   trackingStable: boolean;
+  repTimeline: RepSummary[];
+  repEvents: RepSummary[];
+  validReps: number;
+  invalidReps: number;
+  partialReps: number;
+  plankDuration: number;
+  coachCues: string[];
+  improvementTips: string[];
+  warnings: string[];
+  manualSelectionRecommended: boolean;
+  currentRepPhase: string;
+  activeExercise: AutoExercise;
+  visibleJoints: string[];
+  missingJoints: string[];
+  sessionReady: boolean;
+  detectedExercises: AutoExercise[];
 };
 
 export type AutoWorkoutTracker = {
@@ -78,6 +114,7 @@ export type AutoWorkoutTracker = {
     keypoints: PoseKeypoint[],
     frame: { width: number; height: number },
     timestamp?: number,
+    options?: { selectedExercise?: AutoExercise; autoDetect?: boolean },
   ) => AutoWorkoutState;
   reset: () => void;
 };
@@ -85,6 +122,7 @@ export type AutoWorkoutTracker = {
 export const EXERCISE_LABELS: Record<AutoExercise, string>;
 export const EXERCISES: AutoExercise[];
 export const COUNTED_EXERCISES: Exclude<AutoExercise, "general" | "plank">[];
+export const EXERCISE_CONFIG: Record<string, unknown>;
 
 export function createAutoWorkoutTracker(): AutoWorkoutTracker;
 export function extractFrameFeatures(
@@ -92,5 +130,5 @@ export function extractFrameFeatures(
   frame: { width: number; height: number },
   timestamp?: number,
 ): Record<string, unknown>;
-export function phaseForExercise(exercise: AutoExercise, features: Record<string, unknown>): FormPhase;
-export function setupGuidance(features: Record<string, unknown>): AutoWorkoutState["setup"];
+export function phaseForExercise(exercise: AutoExercise, features: Record<string, unknown>, progress?: number): FormPhase | string;
+export function setupGuidance(features: Record<string, unknown>, selectedExercise?: AutoExercise): AutoWorkoutState["setup"];

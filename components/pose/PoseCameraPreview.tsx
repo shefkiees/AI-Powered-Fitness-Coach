@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import {
   createAutoWorkoutTracker,
+  EXERCISE_LABELS,
+  type AutoExercise,
   type AutoWorkoutState,
   type AutoWorkoutTracker,
 } from "@/lib/pose/autoWorkoutTracker";
@@ -30,6 +32,7 @@ export type PoseCameraPreviewProps = {
   showHeader?: boolean;
   showTrackingStatus?: boolean;
   targetExercise?: FormExercise;
+  selectedExercise?: AutoExercise;
   autoDetect?: boolean;
   sessionResetKey?: string | number;
   onCameraActiveChange?: (active: boolean) => void;
@@ -61,9 +64,12 @@ const MANUAL_EXERCISE_LABELS: Record<FormExercise, string> = {
   shoulder_press: "Shoulder press coach",
   biceps_curl: "Curl coach",
   jumping_jack: "Jumping jack coach",
+  situp: "Sit-up coach",
+  lateral_raise: "Lateral raise coach",
+  deadlift: "Deadlift coach",
 };
 
-function phaseLabel(phase: FormPhase) {
+function phaseLabel(phase: FormPhase | string) {
   switch (phase) {
     case "not_detected":
       return "Not detected";
@@ -109,6 +115,7 @@ export function PoseCameraPreview({
   showHeader,
   showTrackingStatus = true,
   targetExercise = "general",
+  selectedExercise = "general",
   autoDetect = false,
   sessionResetKey,
   onCameraActiveChange,
@@ -133,7 +140,7 @@ export function PoseCameraPreview({
   const [formStatus, setFormStatus] = useState<FormStatus>("off_frame");
   const [formHeadline, setFormHeadline] = useState("Analyzing...");
   const [formTips, setFormTips] = useState<string[]>([]);
-  const [formPhase, setFormPhase] = useState<FormPhase>("unknown");
+  const [formPhase, setFormPhase] = useState<FormPhase | string>("unknown");
   const [formScore, setFormScore] = useState(0);
   const [workoutState, setWorkoutState] = useState<AutoWorkoutState | null>(null);
 
@@ -219,7 +226,10 @@ export function PoseCameraPreview({
                   if (autoDetect) {
                     const tracker = trackerRef.current || createAutoWorkoutTracker();
                     trackerRef.current = tracker;
-                    const analysis = tracker.update(keypoints || [], frame);
+                    const analysis = tracker.update(keypoints || [], frame, Date.now(), {
+                      autoDetect,
+                      selectedExercise,
+                    });
                     setWorkoutState(analysis);
                     setFormStatus(analysis.status);
                     setFormHeadline(analysis.headline);
@@ -231,9 +241,9 @@ export function PoseCameraPreview({
                       status: analysis.status,
                       headline: analysis.headline,
                       tips: analysis.tips,
-                      phase: analysis.phase,
+                      phase: analysis.phase as FormPhase,
                       score: analysis.score,
-                      metrics: analysis.metrics,
+                      metrics: analysis.metrics as Record<string, number>,
                     });
                   } else if (keypoints?.length) {
                     const { status, headline, tips, phase, score, metrics } =
@@ -279,7 +289,7 @@ export function PoseCameraPreview({
     };
 
     tick();
-  }, [autoDetect, formFeedback, onFormAnalysis, onWorkoutAnalysis, targetExercise]);
+  }, [autoDetect, formFeedback, onFormAnalysis, onWorkoutAnalysis, selectedExercise, targetExercise]);
 
   const startPoseModel = useCallback(async () => {
     if (!enablePoseDetection) return;
@@ -463,7 +473,7 @@ export function PoseCameraPreview({
               </p>
             </div>
             <p className="mt-0.5 text-sm font-bold">
-              {autoDetect ? workoutState?.detectedLabel || "Looking for movement" : formHeadline}
+              {autoDetect ? workoutState?.detectedLabel || "Looking for movement" : EXERCISE_LABELS[selectedExercise] || formHeadline}
             </p>
             <div className="mt-1 flex flex-wrap gap-1.5 text-[10px] font-bold uppercase tracking-wide opacity-90">
               <span className="rounded-full bg-black/25 px-2 py-0.5">
@@ -476,7 +486,11 @@ export function PoseCameraPreview({
                 <span className="rounded-full bg-black/25 px-2 py-0.5">
                   Confidence {workoutState?.confidence ?? 0}%
                 </span>
-              ) : null}
+              ) : (
+                <span className="rounded-full bg-black/25 px-2 py-0.5">
+                  {selectedExercise === "general" ? "Auto detect off" : EXERCISE_LABELS[selectedExercise]}
+                </span>
+              )}
             </div>
             {autoDetect && workoutState?.setup.messages.length ? (
               <div className="mt-1 flex flex-wrap gap-1 text-[10px] font-bold opacity-90">

@@ -9,6 +9,9 @@ export const EXERCISES = [
   "shoulder_press",
   "jumping_jack",
   "plank",
+  "situp",
+  "lateral_raise",
+  "deadlift",
   "general",
 ] as const;
 
@@ -21,6 +24,9 @@ export const COUNTED_EXERCISES = [
   "biceps_curl",
   "shoulder_press",
   "jumping_jack",
+  "situp",
+  "lateral_raise",
+  "deadlift",
 ] as const;
 
 export type CountedExercise = (typeof COUNTED_EXERCISES)[number];
@@ -33,6 +39,9 @@ export const TRACKED_EXERCISES = [
   "shoulder_press",
   "jumping_jack",
   "plank",
+  "situp",
+  "lateral_raise",
+  "deadlift",
 ] as const satisfies readonly AutoExercise[];
 
 export const EXERCISE_LABELS: Record<AutoExercise, string> = {
@@ -43,6 +52,9 @@ export const EXERCISE_LABELS: Record<AutoExercise, string> = {
   shoulder_press: "Shoulder press",
   jumping_jack: "Jumping jack",
   plank: "Plank",
+  situp: "Sit-up",
+  lateral_raise: "Lateral raise",
+  deadlift: "Deadlift",
   general: "General / unknown",
 };
 

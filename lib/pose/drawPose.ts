@@ -26,6 +26,7 @@ const EDGES: [number, number][] = [
 ];
 
 const SCORE_MIN = 0.25;
+const SCORE_WARN = 0.4;
 
 export function drawPoseOnCanvas(
   canvas: HTMLCanvasElement,
@@ -62,8 +63,12 @@ export function drawPoseOnCanvas(
   });
 
   const pts = keypoints.map(map);
+  const strongPoints = pts.filter((point) => point.score >= SCORE_MIN);
+  if (strongPoints.length < 5) {
+    ctx.restore();
+    return;
+  }
 
-  ctx.strokeStyle = "rgba(163, 230, 53, 0.95)";
   ctx.lineWidth = 3;
   ctx.lineCap = "round";
   for (const [a, b] of EDGES) {
@@ -71,15 +76,17 @@ export function drawPoseOnCanvas(
     const pb = pts[b];
     if (!pa || !pb) continue;
     if (pa.score < SCORE_MIN || pb.score < SCORE_MIN) continue;
+    const edgeLowConfidence = pa.score < SCORE_WARN || pb.score < SCORE_WARN;
+    ctx.strokeStyle = edgeLowConfidence ? "rgba(251, 191, 36, 0.9)" : "rgba(52, 211, 153, 0.95)";
     ctx.beginPath();
     ctx.moveTo(pa.x, pa.y);
     ctx.lineTo(pb.x, pb.y);
     ctx.stroke();
   }
 
-  ctx.fillStyle = "rgba(217, 249, 157, 0.95)";
   for (const p of pts) {
     if (p.score < SCORE_MIN) continue;
+    ctx.fillStyle = p.score < SCORE_WARN ? "rgba(253, 224, 71, 0.95)" : "rgba(167, 243, 208, 0.95)";
     ctx.beginPath();
     ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
     ctx.fill();

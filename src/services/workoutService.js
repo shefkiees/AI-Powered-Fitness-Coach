@@ -300,6 +300,12 @@ function normalizePoseHistoryRow(row, feedback = []) {
       : deviceInfo.exercise_totals && typeof deviceInfo.exercise_totals === "object"
         ? deviceInfo.exercise_totals
         : null;
+  const finalSessionResult =
+    row.final_session_result && typeof row.final_session_result === "object"
+      ? row.final_session_result
+      : deviceInfo.final_session_result && typeof deviceInfo.final_session_result === "object"
+        ? deviceInfo.final_session_result
+        : null;
   const totalRepsFromExercises = exerciseTotals
     ? Object.values(exerciseTotals).reduce((sum, total) => sum + Number(total?.reps || 0), 0)
     : 0;
@@ -342,6 +348,7 @@ function normalizePoseHistoryRow(row, feedback = []) {
     feedback_summary: summary,
     ai_coach_summary: row.ai_coach_summary || deviceInfo.ai_coach_summary || "",
     exercise_totals: exerciseTotals,
+    final_session_result: finalSessionResult,
     detected_issues: detectedIssues,
     pose_feedback: feedback,
   };
@@ -379,6 +386,9 @@ export async function savePoseSession(values = {}) {
     exercise_totals: values.exercise_totals || {},
     detected_issues: values.detected_issues || [],
     ai_coach_summary: values.ai_coach_summary || summary,
+    device_info: {
+      final_session_result: values.final_session_result || null,
+    },
   };
   const legacyPayload = {
     ...ownedPayload,
@@ -394,6 +404,7 @@ export async function savePoseSession(values = {}) {
       ai_coach_summary: values.ai_coach_summary || summary,
       exercise_totals: values.exercise_totals || {},
       detected_issues: values.detected_issues || [],
+      final_session_result: values.final_session_result || null,
     },
   };
 

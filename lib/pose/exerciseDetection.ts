@@ -140,6 +140,9 @@ export function candidateScores(features: FrameFeatures, history: FrameFeatures[
     biceps_curl: round(bicepsCurl, 3),
     shoulder_press: round(shoulderPress, 3),
     jumping_jack: round(jumpingJack, 3),
+    situp: 0,
+    lateral_raise: 0,
+    deadlift: 0,
     general: 0.18,
   };
 }
