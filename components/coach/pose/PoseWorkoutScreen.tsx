@@ -2,16 +2,13 @@
 
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Activity,
   BadgeCheck,
-  Camera,
+  ChevronDown,
   CircleAlert,
   Clock,
   Eye,
-  ListChecks,
   RefreshCw,
   Save,
-  ScanLine,
   ShieldAlert,
   Sparkles,
   Target,
@@ -26,6 +23,7 @@ import {
   type AutoExercise,
   type AutoWorkoutState,
   type ExerciseTotal,
+  type LiveFeedbackItem,
 } from "@/lib/pose/autoWorkoutTracker";
 import { getPoseHistory, savePoseSession } from "@/src/services/workoutService";
 
@@ -71,28 +69,7 @@ const SETUP_DEFAULTS = [
   { label: "Tracking confidence", ok: false },
 ];
 
-function phaseLabel(phase?: string) {
-  switch (phase) {
-    case "standing":
-      return "Standing";
-    case "bottom":
-      return "Bottom";
-    case "top":
-      return "Top";
-    case "down":
-      return "Down";
-    case "hold":
-      return "Hold";
-    case "open":
-      return "Open";
-    case "closed":
-      return "Closed";
-    case "not_detected":
-      return "Not detected";
-    default:
-      return "Tracking";
-  }
-}
+const quietPanelClass = "rounded-2xl bg-white/[0.035] ring-1 ring-white/[0.08] backdrop-blur-xl";
 
 function formatDuration(totalSeconds: number) {
   const safeSeconds = Math.max(0, Math.round(totalSeconds));
@@ -147,8 +124,12 @@ function emptyTotals() {
   }, {} as Record<AutoExercise, ExerciseTotal>);
 }
 
-function activeTotals(totals: Record<string, ExerciseTotal>) {
+function allExerciseTotals(totals: Record<string, ExerciseTotal>) {
   return TRACKED_EXERCISES.map((exercise) => totals[exercise]).filter(Boolean);
+}
+
+function completedExerciseTotals(totals: Record<string, ExerciseTotal>) {
+  return allExerciseTotals(totals).filter((total) => total.reps > 0 || total.hold_seconds > 0);
 }
 
 function summarizeHistoryTotals(item: PoseHistoryRow) {
@@ -168,45 +149,82 @@ function summarizeHistoryTotals(item: PoseHistoryRow) {
   return pieces.length ? pieces.join(" - ") : `${item.reps || 0} reps`;
 }
 
-const panelClass =
-  "rounded-2xl border border-white/10 bg-[#10140f]/90 shadow-[0_18px_46px_rgba(0,0,0,0.28)] backdrop-blur-xl";
-const compactCardClass = "rounded-xl border border-white/10 bg-black/25";
+function cleanCueText(item?: LiveFeedbackItem) {
+  if (!item?.text) return "";
+  const label = EXERCISE_LABELS[item.exercise];
+  return item.text.replace(`${label}: `, "");
+}
 
-function SectionHeading({ icon, title, action }: { icon: ReactNode; title: string; action?: ReactNode }) {
+function AdvancedSection({
+  icon,
+  title,
+  children,
+}: {
+  icon: ReactNode;
+  title: string;
+  children: ReactNode;
+}) {
   return (
-    <div className="flex items-center justify-between gap-3">
-      <div className="flex items-center gap-2 text-[var(--fc-accent-strong)]">
-        {icon}
-        <p className="text-[11px] font-black uppercase tracking-[0.18em]">{title}</p>
-      </div>
-      {action}
+    <details className={cn(quietPanelClass, "group overflow-hidden")}>
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-left [&::-webkit-details-marker]:hidden">
+        <span className="flex min-w-0 items-center gap-3 text-sm font-black text-white">
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white/[0.06] text-[var(--fc-accent-strong)]">
+            {icon}
+          </span>
+          <span className="truncate">{title}</span>
+        </span>
+        <ChevronDown className="h-4 w-4 shrink-0 text-white/45 transition group-open:rotate-180" />
+      </summary>
+      <div className="border-t border-white/[0.06] px-5 py-4">{children}</div>
+    </details>
+  );
+}
+
+function MetricPill({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <div className="rounded-xl bg-white/[0.04] px-3 py-2">
+      <p className="text-[11px] font-semibold capitalize text-white/45">{label}</p>
+      <p className="mt-0.5 text-sm font-black text-white">{value}</p>
     </div>
   );
 }
 
-function PrimaryStatCard({
-  icon,
-  label,
-  value,
-  helper,
-  accent = false,
+function TrackingOverlay({
+  exercise,
+  countLabel,
+  countValue,
+  confidence,
+  cue,
 }: {
-  icon: ReactNode;
-  label: string;
-  value: ReactNode;
-  helper: ReactNode;
-  accent?: boolean;
+  exercise: string;
+  countLabel: string;
+  countValue: ReactNode;
+  confidence: string;
+  cue: string;
 }) {
   return (
-    <div className={cn(compactCardClass, "min-h-28 p-4")}>
-      <div className="flex items-center gap-2 text-[var(--fc-accent-strong)]">
-        {icon}
-        <p className="text-[10px] font-black uppercase tracking-[0.16em]">{label}</p>
+    <div className="flex h-full flex-col justify-between p-4 sm:p-6">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0 rounded-2xl bg-black/45 px-4 py-3 backdrop-blur-md">
+          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/45">Current exercise</p>
+          <p className="mt-1 truncate text-xl font-black text-white sm:text-2xl">{exercise}</p>
+        </div>
+        <div className="shrink-0 rounded-2xl bg-black/45 px-4 py-3 text-right backdrop-blur-md">
+          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/45">Confidence</p>
+          <p className="mt-1 text-xl font-black text-[var(--fc-accent-strong)] sm:text-2xl">{confidence}</p>
+        </div>
       </div>
-      <p className={cn("mt-2 truncate text-2xl font-black", accent ? "text-[var(--fc-accent-strong)]" : "text-white")}>
-        {value}
-      </p>
-      <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-300">{helper}</p>
+
+      <div className="grid gap-3 sm:grid-cols-[220px_minmax(0,1fr)] sm:items-end">
+        <div className="rounded-2xl bg-black/50 px-5 py-4 backdrop-blur-md">
+          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/45">{countLabel}</p>
+          <p className="mt-1 text-6xl font-black leading-none text-white sm:text-7xl">{countValue}</p>
+        </div>
+        <div className="rounded-2xl bg-black/50 px-5 py-4 backdrop-blur-md">
+          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/45">Coach cue</p>
+          <p className="mt-2 text-lg font-black leading-7 text-white sm:text-2xl sm:leading-9">{cue}</p>
+        </div>
+      </div>
     </div>
   );
 }
@@ -230,8 +248,10 @@ export function PoseWorkoutScreen() {
   const totalReps = workoutState?.totalReps || 0;
   const averageScore = workoutState?.averageFormScore || workoutState?.score || 0;
   const detectedExercise = workoutState?.detectedExercise || "general";
-  const detectedLabel = workoutState?.detectedLabel || "Looking for movement";
+  const detectedLabel = workoutState?.detectedLabel || "Finding your movement";
   const confidence = workoutState?.confidence || 0;
+  const completedTotals = useMemo(() => completedExerciseTotals(totals), [totals]);
+  const activeExerciseTotal = detectedExercise !== "general" ? totals[detectedExercise] : undefined;
 
   const loadHistory = useCallback(async () => {
     try {
@@ -297,10 +317,12 @@ export function PoseWorkoutScreen() {
       );
       const exerciseTotals = workoutState?.totals || emptyTotals();
       const movementDurations = Object.fromEntries(
-        activeTotals(exerciseTotals).map((total) => [
-          total.exercise,
-          total.exercise === "plank" ? total.hold_seconds : total.duration_seconds,
-        ]),
+        allExerciseTotals(exerciseTotals)
+          .filter((total) => total.reps > 0 || total.hold_seconds > 0 || total.duration_seconds > 0)
+          .map((total) => [
+            total.exercise,
+            total.exercise === "plank" ? total.hold_seconds : total.duration_seconds,
+          ]),
       );
       const commonIssues = workoutState?.detectedIssues || [];
       const feedbackLines = liveFeedback.map((item) => item.text);
@@ -310,7 +332,7 @@ export function PoseWorkoutScreen() {
         body: JSON.stringify({
           exercise_name: "AI Gym Tracker",
           exercise_type: "auto",
-          detected_exercises: activeTotals(exerciseTotals)
+          detected_exercises: allExerciseTotals(exerciseTotals)
             .filter((total) => total.reps > 0 || total.hold_seconds > 0)
             .map((total) => total.exercise),
           exercise_totals: exerciseTotals,
@@ -358,7 +380,7 @@ export function PoseWorkoutScreen() {
         cues: feedbackLines,
       });
       await loadHistory();
-      setSavedNotice("AI Gym Tracker session saved.");
+      setSavedNotice("Session saved.");
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -374,262 +396,221 @@ export function PoseWorkoutScreen() {
     "hip_offset",
     "visible_keypoints",
   ];
-  const visibleTotals = activeTotals(totals);
+  const metricRows = topMetricKeys.flatMap((key) => {
+    const value = workoutState?.metrics?.[key];
+    return typeof value === "number" ? [{ key, value }] : [];
+  });
+  const countLabel = detectedExercise === "plank" ? "Hold" : "Reps";
+  const countValue = detectedExercise === "plank" ? formatDuration(activeExerciseTotal?.hold_seconds || 0) : totalReps;
+  const cueText =
+    cleanCueText(liveFeedback[0]) ||
+    workoutState?.headline ||
+    (cameraActive ? "Center your body and settle into the movement." : "Start when you are ready.");
+  const showSessionDetails = cameraActive || durationSeconds > 0 || completedTotals.length > 0;
 
   return (
-    <div className="mx-auto w-full max-w-[1440px] space-y-4 text-slate-100">
-      <div className="flex flex-col gap-4 border-b border-white/10 pb-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="min-w-0">
-          <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--fc-accent-strong)]">Pose lab</p>
-          <h1 className="mt-1 text-3xl font-black text-white sm:text-4xl">AI Gym Tracker</h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
-            Start the camera and move. The tracker detects exercises, counts clean reps, and saves structured workout metrics.
-          </p>
-        </div>
-        <div className="flex shrink-0 flex-wrap gap-2">
-          <Button type="button" variant="ghost" className="border border-white/10 bg-white/[0.03] px-4 py-2.5" onClick={resetSessionStats}>
-            <RefreshCw className="h-4 w-4" />
-            Reset session
-          </Button>
-          <Button type="button" className="px-4 py-2.5" onClick={saveSession} loading={saving} disabled={saving}>
-            <Save className="h-4 w-4" />
-            End and save
-          </Button>
-        </div>
-      </div>
-
-      {error ? (
-        <div className="rounded-xl border border-red-400/25 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-100">
-          {error}
-        </div>
-      ) : null}
-
-      {savedNotice ? (
-        <div className="rounded-xl border border-emerald-400/25 bg-emerald-400/10 px-4 py-3 text-sm font-semibold text-emerald-100">
-          {savedNotice}
-        </div>
-      ) : null}
-
-      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_390px] 2xl:grid-cols-[minmax(0,1fr)_420px]">
-        <div className="min-w-0 space-y-4">
-          <PoseCameraPreview
-            autoDetect
-            formFeedback
-            enablePoseDetection
-            sessionResetKey={resetKey}
-            onCameraActiveChange={handleCameraActiveChange}
-            onWorkoutAnalysis={handleWorkoutAnalysis}
-            className="rounded-2xl border-white/10 bg-[#080a08] shadow-[0_20px_56px_rgba(0,0,0,0.34)]"
-          />
-
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <PrimaryStatCard
-              icon={<ScanLine className="h-4 w-4" />}
-              label="Detected exercise"
-              value={detectedLabel}
-              helper={`${confidence}% confidence`}
-            />
-            <PrimaryStatCard
-              icon={<Activity className="h-4 w-4" />}
-              label="Phase"
-              value={phaseLabel(workoutState?.phase)}
-              helper={workoutState?.headline || "Waiting for movement"}
-            />
-            <PrimaryStatCard
-              icon={<Target className="h-4 w-4" />}
-              label="Total reps"
-              value={totalReps}
-              helper="Across all detected exercises"
-              accent
-            />
-            <PrimaryStatCard
-              icon={<Timer className="h-4 w-4" />}
-              label="Duration"
-              value={formatDuration(durationSeconds)}
-              helper={`Form score ${Math.round(averageScore) || "--"}`}
-            />
+    <div className="min-h-screen bg-[#070707] px-3 py-4 text-white sm:px-6 lg:px-8">
+      <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-5">
+        <header className="flex flex-col gap-4 pt-1 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--fc-accent-strong)]">
+              AI Form Coach
+            </p>
+            <h1 className="mt-2 text-4xl font-black leading-none text-white sm:text-5xl">Train in frame.</h1>
           </div>
+          <div className="flex shrink-0 gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              className="border border-white/10 bg-white/[0.03] px-4 py-2.5 shadow-none hover:bg-white/[0.06]"
+              onClick={resetSessionStats}
+            >
+              <RefreshCw className="h-4 w-4" />
+              <span className="hidden sm:inline">Reset</span>
+            </Button>
+            <Button
+              type="button"
+              className="px-4 py-2.5 shadow-none hover:shadow-none"
+              onClick={saveSession}
+              loading={saving}
+              disabled={saving}
+            >
+              <Save className="h-4 w-4" />
+              End
+            </Button>
+          </div>
+        </header>
 
-          <div className="grid gap-4 2xl:grid-cols-[1.05fr_0.95fr]">
-            <section className={cn(panelClass, "p-4")}>
-              <SectionHeading icon={<ListChecks className="h-4 w-4" />} title="Session totals" />
-              <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {visibleTotals.map((total) => (
-                  <div
-                    key={total.exercise}
-                    className={cn(
-                      compactCardClass,
-                      "p-3 transition",
-                      detectedExercise === total.exercise
-                        ? "border-[var(--fc-accent)]/45 bg-[var(--fc-accent)]/12"
-                        : "border-white/10",
-                    )}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="truncate text-sm font-black text-white">{total.label}</p>
-                      {detectedExercise === total.exercise ? (
-                        <span className="rounded-full bg-[var(--fc-accent)] px-2 py-0.5 text-[10px] font-black text-white">
-                          Live
-                        </span>
-                      ) : null}
+        {error ? (
+          <div className="rounded-2xl bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-100 ring-1 ring-red-400/20">
+            {error}
+          </div>
+        ) : null}
+
+        {savedNotice ? (
+          <div className="rounded-2xl bg-emerald-400/10 px-4 py-3 text-sm font-semibold text-emerald-100 ring-1 ring-emerald-400/20">
+            {savedNotice}
+          </div>
+        ) : null}
+
+        <PoseCameraPreview
+          autoDetect
+          formFeedback
+          enablePoseDetection
+          sessionResetKey={resetKey}
+          showHeader={false}
+          showTrackingStatus={false}
+          feedbackMode="hidden"
+          controlsMode="minimal"
+          cameraFrameClassName="aspect-[4/5] min-h-[420px] sm:aspect-video sm:min-h-[520px] lg:min-h-[620px]"
+          onCameraActiveChange={handleCameraActiveChange}
+          onWorkoutAnalysis={handleWorkoutAnalysis}
+          className="!rounded-[2rem] !border-white/10 !bg-[#090909] !p-0 !shadow-none"
+          cameraOverlay={
+            cameraActive ? (
+              <TrackingOverlay
+                exercise={detectedLabel}
+                countLabel={countLabel}
+                countValue={countValue}
+                confidence={`${confidence}%`}
+                cue={cueText}
+              />
+            ) : null
+          }
+        />
+
+        {aiSummary ? (
+          <section className={cn(quietPanelClass, "p-5")}>
+            <div className="flex items-center gap-3 text-[var(--fc-accent-strong)]">
+              <Sparkles className="h-4 w-4" />
+              <p className="text-[11px] font-black uppercase tracking-[0.18em]">Coach recap</p>
+            </div>
+            <h2 className="mt-3 text-2xl font-black text-white">{aiSummary.headline}</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-white/60">{aiSummary.summary}</p>
+            <p className="mt-4 text-sm font-bold text-white">Next focus: {aiSummary.focus_next}</p>
+          </section>
+        ) : null}
+
+        <div className="grid gap-3 lg:grid-cols-2">
+          {showSessionDetails ? (
+            <AdvancedSection icon={<Timer className="h-4 w-4" />} title="Session details">
+              <div className="grid gap-3 sm:grid-cols-3">
+                <MetricPill label="Duration" value={formatDuration(durationSeconds)} />
+                {totalReps > 0 ? <MetricPill label="Total reps" value={totalReps} /> : null}
+                {averageScore > 0 ? <MetricPill label="Form score" value={`${Math.round(averageScore)}/100`} /> : null}
+              </div>
+
+              {completedTotals.length ? (
+                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                  {completedTotals.map((total) => (
+                    <div key={total.exercise} className="rounded-xl bg-white/[0.04] px-3 py-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="truncate text-sm font-black text-white">{total.label}</p>
+                        {detectedExercise === total.exercise ? (
+                          <span className="rounded-full bg-[var(--fc-accent)]/15 px-2 py-0.5 text-[10px] font-black text-[var(--fc-accent-strong)]">
+                            Live
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="mt-2 text-2xl font-black text-white">
+                        {total.exercise === "plank" ? formatDuration(total.hold_seconds) : total.reps}
+                      </p>
                     </div>
-                    <p className="mt-2 text-2xl font-black text-[var(--fc-accent-strong)]">
-                      {total.exercise === "plank" ? formatDuration(total.hold_seconds) : total.reps}
+                  ))}
+                </div>
+              ) : null}
+            </AdvancedSection>
+          ) : null}
+
+          {workoutState ? (
+            <AdvancedSection icon={<TrendingUp className="h-4 w-4" />} title="Advanced tracking">
+              <div className="grid gap-4">
+                <div>
+                  <div className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-white/45">
+                    <Eye className="h-3.5 w-3.5" />
+                    Body visibility
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {(setup?.checklist || SETUP_DEFAULTS).map((item) => (
+                      <div key={item.label} className="flex items-center gap-2 rounded-xl bg-white/[0.04] px-3 py-2 text-xs font-bold text-white/70">
+                        {item.ok ? (
+                          <BadgeCheck className="h-4 w-4 shrink-0 text-[var(--fc-accent-strong)]" />
+                        ) : (
+                          <CircleAlert className="h-4 w-4 shrink-0 text-white/35" />
+                        )}
+                        <span className="truncate">{item.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {metricRows.length ? (
+                  <div>
+                    <div className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-white/45">
+                      <Target className="h-3.5 w-3.5" />
+                      Tracking metrics
+                    </div>
+                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                      {metricRows.map(({ key, value }) => (
+                        <MetricPill key={key} label={key.replace(/_/g, " ")} value={formatMetricValue(key, value)} />
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                {detectedIssues.length ? (
+                  <div>
+                    <div className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-white/45">
+                      <CircleAlert className="h-3.5 w-3.5" />
+                      Repeated cues
+                    </div>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {detectedIssues.slice(0, 4).map((issue) => (
+                        <div key={issue.issue} className="flex items-center justify-between gap-3 rounded-xl bg-white/[0.04] px-3 py-2 text-sm">
+                          <span className="min-w-0 truncate font-bold capitalize text-white/70">{issueLabel(issue.issue)}</span>
+                          <span className="rounded-full bg-white/[0.06] px-2 py-0.5 text-xs font-black text-white">
+                            {issue.count}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </AdvancedSection>
+          ) : null}
+
+          {history.length ? (
+            <AdvancedSection icon={<Clock className="h-4 w-4" />} title="Recent sessions">
+              <div className="grid gap-2">
+                {history.slice(0, 4).map((item) => (
+                  <div key={item.id} className="rounded-xl bg-white/[0.04] px-3 py-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="min-w-0 truncate text-sm font-black text-white">{item.exercise_name}</p>
+                      <span className="text-xs font-bold text-white/45">
+                        {new Date(item.completed_at || item.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs leading-5 text-white/50">
+                      {summarizeHistoryTotals(item)}
+                      {item.duration_seconds ? ` - ${formatDuration(item.duration_seconds)}` : ""}
                     </p>
-                    <p className="mt-0.5 text-xs text-slate-300">
-                      {total.exercise === "plank" ? "hold time" : "reps"}
-                      {total.average_form_score ? ` - ${total.average_form_score}/100` : ""}
-                    </p>
+                    {item.ai_coach_summary || item.feedback_summary || item.summary ? (
+                      <p className="mt-2 line-clamp-2 text-sm leading-6 text-white/62">
+                        {item.ai_coach_summary || item.feedback_summary || item.summary}
+                      </p>
+                    ) : null}
                   </div>
                 ))}
               </div>
-            </section>
-
-            <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-1">
-              <section className={cn(panelClass, "p-4")}>
-                <SectionHeading icon={<Eye className="h-4 w-4" />} title="Body visibility" />
-                <div className="mt-3 grid gap-2">
-                  {(setup?.checklist || SETUP_DEFAULTS).map((item) => (
-                    <div
-                      key={item.label}
-                      className={cn(
-                        "flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-bold",
-                        item.ok
-                          ? "border-emerald-400/25 bg-emerald-400/10 text-emerald-100"
-                          : "border-amber-400/25 bg-amber-400/10 text-amber-100",
-                      )}
-                    >
-                      {item.ok ? <BadgeCheck className="h-4 w-4 shrink-0" /> : <CircleAlert className="h-4 w-4 shrink-0" />}
-                      <span className="truncate">{item.label}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {(setup?.messages.length ? setup.messages : ["Start camera"]).map((message) => (
-                    <span
-                      key={message}
-                      className="rounded-full border border-white/10 bg-black/25 px-2.5 py-1 text-[11px] font-black text-slate-300"
-                    >
-                      {message}
-                    </span>
-                  ))}
-                </div>
-              </section>
-
-              <section className={cn(panelClass, "p-4")}>
-                <SectionHeading icon={<TrendingUp className="h-4 w-4" />} title="Live metrics" />
-                <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                  {topMetricKeys.map((key) => {
-                    const value = workoutState?.metrics?.[key];
-                    return (
-                      <div key={key} className={cn(compactCardClass, "px-3 py-2")}>
-                        <p className="text-[11px] font-bold capitalize text-slate-400">
-                          {key.replace(/_/g, " ")}
-                        </p>
-                        <p className="mt-0.5 text-sm font-black text-white">
-                          {typeof value === "number" ? formatMetricValue(key, value) : "--"}
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-            </div>
-          </div>
+            </AdvancedSection>
+          ) : null}
         </div>
 
-        <aside className="space-y-4 xl:sticky xl:top-24">
-          <section className={cn(panelClass, "p-4")}>
-            <SectionHeading
-              icon={<Camera className="h-4 w-4" />}
-              title="Live coaching"
-              action={<span className="rounded-full bg-[var(--fc-accent)]/12 px-2.5 py-1 text-[11px] font-black text-[var(--fc-accent-strong)]">{cameraActive ? "Active" : "Ready"}</span>}
-            />
-            <ul className="mt-3 space-y-2">
-              {liveFeedback.length ? liveFeedback.slice(0, 6).map((item) => (
-                <li key={item.id} className={cn(compactCardClass, "px-3 py-2.5 text-sm leading-6 text-slate-200")}>
-                  <span className="font-black text-white">{EXERCISE_LABELS[item.exercise]}: </span>
-                  {item.text.replace(`${EXERCISE_LABELS[item.exercise]}: `, "")}
-                </li>
-              )) : (
-                <li className="rounded-xl border border-dashed border-white/15 bg-black/20 px-3 py-3 text-sm leading-6 text-slate-300">
-                  Live cues appear here after the skeleton locks on.
-                </li>
-              )}
-            </ul>
-          </section>
-
-          <section className={cn(panelClass, "p-4")}>
-            <SectionHeading icon={<CircleAlert className="h-4 w-4" />} title="Common issues" />
-            <div className="mt-3 space-y-2">
-              {detectedIssues.length ? detectedIssues.slice(0, 5).map((issue) => (
-                <div key={issue.issue} className={cn(compactCardClass, "flex items-center justify-between gap-3 px-3 py-2.5 text-sm")}>
-                  <span className="min-w-0 truncate font-bold capitalize text-slate-200">{issueLabel(issue.issue)}</span>
-                  <span className="rounded-full bg-amber-400/12 px-2 py-0.5 text-xs font-black text-amber-100">
-                    {issue.count}
-                  </span>
-                </div>
-              )) : (
-                <p className="rounded-xl border border-dashed border-white/15 bg-black/20 px-3 py-3 text-sm text-slate-300">
-                  No repeated form issue has been detected yet.
-                </p>
-              )}
-            </div>
-          </section>
-
-          {aiSummary ? (
-            <section className={cn(panelClass, "p-4")}>
-              <SectionHeading icon={<Sparkles className="h-4 w-4" />} title="AI coach summary" />
-              <h2 className="mt-3 text-lg font-black text-white">{aiSummary.headline}</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-300">{aiSummary.summary}</p>
-              <p className={cn(compactCardClass, "mt-3 px-3 py-2.5 text-sm font-bold text-white")}>
-                Next focus: {aiSummary.focus_next}
-              </p>
-              <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-300">
-                {aiSummary.cues.slice(0, 4).map((cue) => (
-                  <li key={cue}>{cue}</li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
-
-          <div className="flex gap-3 rounded-xl border border-amber-400/25 bg-amber-500/10 p-3 text-sm leading-6 text-amber-100">
-            <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-300" />
-            <p>General movement cues only. Stop if you feel sharp pain, dizziness, or instability.</p>
-          </div>
-
-          <section className={cn(panelClass, "p-4")}>
-            <SectionHeading icon={<Clock className="h-4 w-4" />} title="Saved sessions" />
-            <div className="mt-3 max-h-[360px] space-y-2 overflow-y-auto pr-1 custom-scrollbar">
-              {history.slice(0, 5).map((item) => (
-                <div key={item.id} className={cn(compactCardClass, "px-3 py-2.5")}>
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="min-w-0 truncate font-semibold text-white">{item.exercise_name}</p>
-                    <span className="rounded-full bg-[var(--fc-accent)]/12 px-2.5 py-1 text-xs font-black text-[var(--fc-accent-strong)]">
-                      {Math.round(Number(item.form_score ?? item.score ?? 0))}/100
-                    </span>
-                  </div>
-                  <p className="mt-1 text-xs leading-5 text-slate-300">
-                    {summarizeHistoryTotals(item)}
-                    {item.duration_seconds ? ` - ${formatDuration(item.duration_seconds)}` : ""}
-                    {" - "}
-                    {new Date(item.completed_at || item.created_at).toLocaleDateString()}
-                  </p>
-                  {item.ai_coach_summary || item.feedback_summary || item.summary ? (
-                    <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-300">
-                      {item.ai_coach_summary || item.feedback_summary || item.summary}
-                    </p>
-                  ) : null}
-                </div>
-              ))}
-              {history.length === 0 ? (
-                <p className="rounded-xl border border-dashed border-white/15 bg-black/20 px-3 py-3 text-sm text-slate-300">
-                  No saved pose sessions yet.
-                </p>
-              ) : null}
-            </div>
-          </section>
-        </aside>
+        <div className="flex items-start gap-2 pb-4 text-xs leading-5 text-white/40">
+          <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
+          <p>General movement cues only. Stop if you feel sharp pain, dizziness, or instability.</p>
+        </div>
       </div>
     </div>
   );

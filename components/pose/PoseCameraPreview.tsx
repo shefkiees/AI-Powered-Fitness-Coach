@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { Camera, CameraOff, Loader2, ScanLine } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -21,8 +21,14 @@ import {
 export type PoseCameraPreviewProps = {
   embedded?: boolean;
   className?: string;
+  cameraFrameClassName?: string;
+  cameraOverlay?: ReactNode;
   enablePoseDetection?: boolean;
   formFeedback?: boolean;
+  feedbackMode?: "default" | "hidden";
+  controlsMode?: "default" | "minimal";
+  showHeader?: boolean;
+  showTrackingStatus?: boolean;
   targetExercise?: FormExercise;
   autoDetect?: boolean;
   sessionResetKey?: string | number;
@@ -94,8 +100,14 @@ function cameraErrorMessage(caught: unknown) {
 export function PoseCameraPreview({
   embedded = false,
   className,
+  cameraFrameClassName,
+  cameraOverlay,
   enablePoseDetection = true,
   formFeedback = false,
+  feedbackMode = "default",
+  controlsMode = "default",
+  showHeader,
+  showTrackingStatus = true,
   targetExercise = "general",
   autoDetect = false,
   sessionResetKey,
@@ -128,6 +140,9 @@ export function PoseCameraPreview({
   if (!trackerRef.current) {
     trackerRef.current = createAutoWorkoutTracker();
   }
+
+  const shouldShowHeader = showHeader ?? !embedded;
+  const useMinimalControls = controlsMode === "minimal";
 
   const stopCamera = useCallback(() => {
     activeRef.current = false;
@@ -361,10 +376,11 @@ export function PoseCameraPreview({
     <Card
       className={cn(
         "overflow-hidden border-white/8 bg-[linear-gradient(180deg,var(--fc-panel)_0%,var(--fc-panel-strong)_100%)] p-0 shadow-[0_20px_56px_rgba(0,0,0,0.26)]",
+        useMinimalControls ? "bg-[#090909] shadow-none" : "",
         className,
       )}
     >
-      {!embedded ? (
+      {shouldShowHeader ? (
         <div className="border-b border-white/8 px-4 py-4">
           <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">
             Form lab
@@ -378,7 +394,7 @@ export function PoseCameraPreview({
       <div
         className={cn(
           "relative bg-black",
-          embedded ? "aspect-video max-h-56" : "aspect-video",
+          cameraFrameClassName ?? (embedded ? "aspect-video max-h-56" : "aspect-video"),
         )}
       >
         <video
@@ -396,30 +412,40 @@ export function PoseCameraPreview({
           style={{ transform: "scaleX(-1)" }}
         />
 
+        {cameraOverlay ? <div className="pointer-events-none absolute inset-0 z-10">{cameraOverlay}</div> : null}
+
         {!active ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-slate-950/90 text-slate-400">
             {cameraStarting ? <Loader2 className="h-10 w-10 animate-spin opacity-60" /> : <CameraOff className="h-10 w-10 opacity-50" />}
-            <p className="text-sm">{cameraStarting ? "Requesting camera..." : "Camera off"}</p>
-            <p className="max-w-xs px-4 text-center text-xs leading-5 text-slate-500">
-              Video stays in this browser. Only session numbers and feedback are saved.
-            </p>
+            <p className="text-sm">{cameraStarting ? "Requesting camera..." : "Ready when you are"}</p>
+            {useMinimalControls ? (
+              <Button
+                type="button"
+                className="mt-4 shadow-none"
+                disabled={cameraStarting}
+                onClick={() => void startCamera()}
+              >
+                {cameraStarting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+                {cameraStarting ? "Starting..." : "Start camera"}
+              </Button>
+            ) : null}
           </div>
         ) : null}
 
-        {active && enablePoseDetection && modelLoading ? (
+        {showTrackingStatus && active && enablePoseDetection && modelLoading ? (
           <div className="absolute bottom-2 left-2 flex items-center gap-2 rounded-lg bg-black/60 px-2 py-1 text-[11px] text-[var(--fc-accent)]">
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
             Loading pose model...
           </div>
         ) : null}
 
-        {active && enablePoseDetection && modelReady ? (
+        {showTrackingStatus && active && enablePoseDetection && modelReady ? (
           <div className="absolute bottom-2 right-2 rounded-lg bg-[var(--fc-accent)]/20 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[var(--fc-accent)]">
             Tracking
           </div>
         ) : null}
 
-        {active && formFeedback && modelReady ? (
+        {feedbackMode !== "hidden" && active && formFeedback && modelReady ? (
           <div
             className={cn(
               "absolute left-2 right-2 top-2 rounded-xl border px-3 py-2 text-left shadow-lg backdrop-blur-md sm:left-auto sm:right-2 sm:max-w-sm",
@@ -489,25 +515,32 @@ export function PoseCameraPreview({
         </p>
       ) : null}
 
-      <div className="flex flex-wrap gap-2 p-3 sm:p-4">
+      <div
+        className={cn(
+          "flex flex-wrap gap-2 p-3 sm:p-4",
+          useMinimalControls ? "items-center justify-between border-t border-white/[0.06] bg-[#090909] px-4 py-3" : "",
+          useMinimalControls && !active ? "hidden" : "",
+        )}
+      >
         {!active ? (
           <Button
             type="button"
             className={cn(
               embedded ? "px-4 py-2 text-xs" : "",
+              useMinimalControls ? "shadow-none" : "",
               "focus-visible:ring-2 focus-visible:ring-[var(--fc-accent)]/40",
             )}
             disabled={cameraStarting}
             onClick={() => void startCamera()}
           >
             {cameraStarting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
-            {cameraStarting ? "Starting..." : embedded ? "Start camera" : "Start camera and tracking"}
+            {cameraStarting ? "Starting..." : "Start camera"}
           </Button>
         ) : (
           <Button
             type="button"
             variant="danger"
-            className={embedded ? "px-4 py-2 text-xs" : ""}
+            className={cn(embedded ? "px-4 py-2 text-xs" : "", useMinimalControls ? "border-white/10 bg-white/[0.06] text-white hover:bg-white/[0.1]" : "")}
             onClick={stopCamera}
           >
             <CameraOff className="h-4 w-4" />
