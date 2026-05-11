@@ -107,6 +107,14 @@ export type AutoWorkoutState = {
   missingJoints: string[];
   sessionReady: boolean;
   detectedExercises: AutoExercise[];
+  detection?: {
+    mode: "auto" | "manual";
+    movementPattern: string;
+    movementScore: number;
+    scanning: boolean;
+    enoughFrames: boolean;
+    lowConfidenceSeconds: number;
+  };
 };
 
 export type AutoWorkoutTracker = {

@@ -71,6 +71,31 @@ function jumpingJackPose(phase) {
   return pose;
 }
 
+function bicepsCurlPose(phase) {
+  const pose = blankPose();
+  pose[0] = point(320, 70);
+  pose[5] = point(270, 135);
+  pose[6] = point(370, 135);
+  pose[11] = point(285, 285);
+  pose[12] = point(355, 285);
+  pose[13] = point(285, 360);
+  pose[14] = point(355, 360);
+  pose[15] = point(285, 440);
+  pose[16] = point(355, 440);
+  pose[7] = point(270, 215);
+  pose[8] = point(370, 215);
+
+  if (phase === "top") {
+    pose[9] = point(298, 155);
+    pose[10] = point(342, 155);
+  } else {
+    pose[9] = point(270, 305);
+    pose[10] = point(370, 305);
+  }
+
+  return pose;
+}
+
 function feedPhase(tracker, pose, timestamp, frames = 3, stepMs = 220) {
   let state = null;
   let time = timestamp;
@@ -99,6 +124,26 @@ test("auto tracker detects squats and counts only completed stand-bottom-stand r
   assert.equal(result.state.detectedExercise, "squat");
   assert.equal(result.state.totals.squat.reps, 1);
   assert.equal(result.state.totalReps, 1);
+});
+
+test("auto tracker detects bicep curls from elbow motion without manual selection", () => {
+  const tracker = createAutoWorkoutTracker();
+  let timestamp = 5000;
+  let result;
+
+  result = feedPhase(tracker, bicepsCurlPose("down"), timestamp, 3, 180);
+  timestamp = result.timestamp;
+  result = feedPhase(tracker, bicepsCurlPose("top"), timestamp, 3, 180);
+  timestamp = result.timestamp;
+  result = feedPhase(tracker, bicepsCurlPose("down"), timestamp, 4, 180);
+  timestamp = result.timestamp;
+  result = feedPhase(tracker, bicepsCurlPose("top"), timestamp, 3, 180);
+  timestamp = result.timestamp;
+  result = feedPhase(tracker, bicepsCurlPose("down"), timestamp, 4, 180);
+
+  assert.equal(result.state.detectedExercise, "biceps_curl");
+  assert.equal(result.state.totals.biceps_curl.reps, 1);
+  assert.match(result.state.coachCues[0], /Bicep curl/i);
 });
 
 test("auto tracker does not count jitter when a squat never returns to standing", () => {

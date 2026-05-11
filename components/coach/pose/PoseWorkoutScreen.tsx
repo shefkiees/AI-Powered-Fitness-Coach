@@ -286,7 +286,13 @@ export function PoseWorkoutScreen() {
   const liveRepEvents = workoutState?.repTimeline || [];
   const activeExercise = workoutState?.activeExercise || selectedExercise;
   const activeTotal = liveTotals[activeExercise] || liveTotals.general;
-  const liveCue = cleanCueText(workoutState?.feedback?.[0]) || workoutState?.tips?.[0] || "Move into frame or select an exercise.";
+  const isScanning = !workoutState || activeExercise === "general";
+  const liveTitle = isScanning ? workoutState?.headline || (cameraActive ? "Scanning movement" : "Ready to scan") : EXERCISE_LABELS[activeExercise];
+  const detectedExerciseLabel =
+    workoutState?.detectedExercise && workoutState.detectedExercise !== "general"
+      ? workoutState.detectedLabel
+      : workoutState?.headline || (cameraActive ? "Scanning movement" : "Not started");
+  const liveCue = cleanCueText(workoutState?.feedback?.[0]) || workoutState?.tips?.[0] || (cameraActive ? "Keep moving for detection." : "Start camera to begin tracking.");
 
   const resetSession = useCallback(() => {
     sessionStartedAtRef.current = cameraActive ? Date.now() : null;
@@ -613,7 +619,7 @@ export function PoseWorkoutScreen() {
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--fc-accent-strong)]">Live stats</p>
-                  <h2 className="mt-2 text-2xl font-black">{activeExercise === "general" ? "Awaiting movement" : EXERCISE_LABELS[activeExercise]}</h2>
+                  <h2 className="mt-2 text-2xl font-black">{liveTitle}</h2>
                 </div>
                 <span className="rounded-full bg-white/[0.06] px-3 py-1 text-xs font-black uppercase tracking-[0.14em] text-white/72">
                   {workoutState?.currentRepPhase || "ready"}
@@ -622,7 +628,7 @@ export function PoseWorkoutScreen() {
 
               <div className="mt-4 grid gap-3">
                 {metricValue("Selected exercise", selectedExercise === "general" ? "Auto detect" : EXERCISE_LABELS[selectedExercise])}
-                {metricValue("Detected exercise", workoutState?.detectedExercise === "general" ? "Unknown" : workoutState?.detectedLabel || "Unknown")}
+                {metricValue("Detected exercise", detectedExerciseLabel)}
                 {metricValue("Reps", activeExercise === "plank" ? formatDuration(activeTotal.hold_seconds || 0) : workoutState?.totalReps || 0, true)}
                 {metricValue("Form score", `${Math.round(workoutState?.averageFormScore || workoutState?.score || 0)}/100`)}
                 {metricValue("Confidence", `${workoutState?.confidence || 0}%`)}
