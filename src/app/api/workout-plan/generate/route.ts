@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
-import OpenAI from "openai";
 import { createSupabaseRouteClient } from "@/lib/supabaseRoute";
+import {
+  createFitnessAiClient,
+  getCompletionTokenOptions,
+  getFitnessAiProvider,
+} from "@/lib/aiProvider";
+import { formatZodError, workoutPlanRequestSchema } from "@/lib/apiValidation";
+import { enforceAiRateLimit, strictBackendFallbackResponse } from "@/lib/aiRouteGuards";
 
 type ExercisePlan = {
   name: string;
@@ -657,13 +663,14 @@ async function insertWorkoutSteps(
   return { inserted: 0, error: first.error.message };
 }
 
-async function generateWithOpenAI(profile: Record<string, unknown>, history: unknown[]) {
-  if (!process.env.OPENAI_API_KEY) return null;
-  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+async function generateWithAi(profile: Record<string, unknown>, history: unknown[]) {
+  const provider = getFitnessAiProvider("workout");
+  if (!provider) return null;
+  const client = createFitnessAiClient(provider);
   const completion = await client.chat.completions.create({
-    model: process.env.OPENAI_WORKOUT_MODEL || "gpt-4o-mini",
+    model: provider.model,
+    ...getCompletionTokenOptions(provider, 1800),
     temperature: 0.35,
-    max_tokens: 1800,
     messages: [
       {
         role: "system",
@@ -700,7 +707,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = (await request.json().catch(() => ({}))) as { profile?: Record<string, unknown> };
+    const rateLimitResponse = await enforceAiRateLimit({
+      supabase,
+      routeKey: "api-workout-plan-generate",
+      userId: user.id,
+    });
+    if (rateLimitResponse) return rateLimitResponse;
+
+    const parsed = workoutPlanRequestSchema.safeParse(await request.json().catch(() => ({})));
+    if (!parsed.success) {
+      return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 });
+    }
+
+    const body = parsed.data as { profile?: Record<string, unknown> };
     const { data: profileRow } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
     const { data: fitnessRow } = await supabase
       .from("fitness_profiles")
@@ -717,8 +736,12 @@ export async function POST(request: Request) {
       .order("completed_at", { ascending: false })
       .limit(12);
 
-    let plan = await generateWithOpenAI(profile, history || []).catch(() => null);
+    let plan = await generateWithAi(profile, history || []).catch(() => null);
     if (!Array.isArray(plan) || plan.length === 0) {
+      const strictResponse = strictBackendFallbackResponse(
+        "STRICT_BACKEND_MODE is enabled, so workout plan generation requires a live AI response.",
+      );
+      if (strictResponse) return strictResponse;
       plan = fallbackPlan(profile);
     }
 

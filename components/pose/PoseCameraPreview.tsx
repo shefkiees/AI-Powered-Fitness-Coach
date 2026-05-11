@@ -8,6 +8,8 @@ import { cn } from "@/lib/cn";
 import { drawPoseOnCanvas, type PoseKeypoint } from "@/lib/pose/drawPose";
 import {
   analyzePoseForm,
+  type FormExercise,
+  type FormPhase,
   type FormStatus,
 } from "@/lib/pose/formHeuristics";
 
@@ -16,10 +18,15 @@ export type PoseCameraPreviewProps = {
   className?: string;
   enablePoseDetection?: boolean;
   formFeedback?: boolean;
+  targetExercise?: FormExercise;
+  onCameraActiveChange?: (active: boolean) => void;
   onFormAnalysis?: (analysis: {
     status: FormStatus;
     headline: string;
     tips: string[];
+    phase: FormPhase;
+    score: number;
+    metrics?: Record<string, number>;
   }) => void;
 };
 
@@ -31,11 +38,58 @@ type PoseDetectorLike = {
   dispose: () => void | Promise<void>;
 };
 
+const EXERCISE_LABELS: Record<FormExercise, string> = {
+  general: "Form check",
+  squat: "Squat coach",
+  lunge: "Lunge coach",
+  pushup: "Push-up coach",
+  plank: "Plank coach",
+  shoulder_press: "Shoulder press coach",
+  biceps_curl: "Curl coach",
+  jumping_jack: "Jumping jack coach",
+};
+
+function phaseLabel(phase: FormPhase) {
+  switch (phase) {
+    case "not_detected":
+      return "Not detected";
+    case "standing":
+    case "top":
+    case "open":
+      return "Up";
+    case "bottom":
+    case "down":
+    case "closed":
+      return "Down";
+    case "hold":
+      return "Hold";
+    default:
+      return "Tracking";
+  }
+}
+
+function cameraErrorMessage(caught: unknown) {
+  if (caught instanceof DOMException) {
+    if (caught.name === "NotAllowedError" || caught.name === "SecurityError") {
+      return "Camera permission denied. Allow camera access in the browser and try again.";
+    }
+    if (caught.name === "NotFoundError" || caught.name === "DevicesNotFoundError") {
+      return "No camera was found on this device.";
+    }
+    if (caught.name === "NotReadableError" || caught.name === "TrackStartError") {
+      return "Camera is already in use by another app or browser tab.";
+    }
+  }
+  return caught instanceof Error ? caught.message : "Could not access camera.";
+}
+
 export function PoseCameraPreview({
   embedded = false,
   className,
   enablePoseDetection = true,
   formFeedback = false,
+  targetExercise = "general",
+  onCameraActiveChange,
   onFormAnalysis,
 }: PoseCameraPreviewProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -54,6 +108,8 @@ export function PoseCameraPreview({
   const [formStatus, setFormStatus] = useState<FormStatus>("off_frame");
   const [formHeadline, setFormHeadline] = useState("Analyzing...");
   const [formTips, setFormTips] = useState<string[]>([]);
+  const [formPhase, setFormPhase] = useState<FormPhase>("unknown");
+  const [formScore, setFormScore] = useState(0);
 
   const stopCamera = useCallback(() => {
     activeRef.current = false;
@@ -76,7 +132,8 @@ export function PoseCameraPreview({
       context?.clearRect(0, 0, canvas.width, canvas.height);
     }
     setActive(false);
-  }, []);
+    onCameraActiveChange?.(false);
+  }, [onCameraActiveChange]);
 
   const runPoseLoop = useCallback(() => {
     const tick = () => {
@@ -111,15 +168,41 @@ export function PoseCameraPreview({
                 if (formFeedback) {
                   frameCountRef.current += 1;
                   if (frameCountRef.current % 10 === 0) {
-                    const { status, headline, tips } = analyzePoseForm(keypoints, {
-                      width: video.videoWidth || video.clientWidth,
-                      height: video.videoHeight || video.clientHeight,
-                    });
+                    const { status, headline, tips, phase, score, metrics } =
+                      analyzePoseForm(
+                        keypoints,
+                        {
+                          width: video.videoWidth || video.clientWidth,
+                          height: video.videoHeight || video.clientHeight,
+                        },
+                        targetExercise,
+                      );
                     setFormStatus(status);
                     setFormHeadline(headline);
                     setFormTips(tips);
-                    onFormAnalysis?.({ status, headline, tips });
+                    setFormPhase(phase);
+                    setFormScore(score);
+                    onFormAnalysis?.({ status, headline, tips, phase, score, metrics });
                   }
+                }
+              } else if (formFeedback) {
+                drawPoseOnCanvas(canvas, video, []);
+                frameCountRef.current += 1;
+                if (frameCountRef.current % 10 === 0) {
+                  const analysis = {
+                    status: "off_frame" as FormStatus,
+                    headline: "Body not detected",
+                    tips: ["Step back and keep your full body in frame."],
+                    phase: "not_detected" as FormPhase,
+                    score: 0,
+                    metrics: { visible_keypoints: 0 },
+                  };
+                  setFormStatus(analysis.status);
+                  setFormHeadline(analysis.headline);
+                  setFormTips(analysis.tips);
+                  setFormPhase(analysis.phase);
+                  setFormScore(analysis.score);
+                  onFormAnalysis?.(analysis);
                 }
               }
             }
@@ -135,7 +218,7 @@ export function PoseCameraPreview({
     };
 
     tick();
-  }, [formFeedback, onFormAnalysis]);
+  }, [formFeedback, onFormAnalysis, targetExercise]);
 
   const startPoseModel = useCallback(async () => {
     if (!enablePoseDetection) return;
@@ -144,26 +227,31 @@ export function PoseCameraPreview({
     setError(null);
 
     try {
-      const tf = await import("@tensorflow/tfjs");
+      const tf = await import("@tensorflow/tfjs-core");
       await import("@tensorflow/tfjs-backend-webgl");
-      await tf.setBackend("webgl");
+      await import("@tensorflow/tfjs-converter");
+
+      try {
+        await tf.setBackend("webgl");
+      } catch {
+        await import("@tensorflow/tfjs-backend-cpu");
+        await tf.setBackend("cpu");
+      }
       await tf.ready();
 
       const moveNetModule = (await import(
         "@tensorflow-models/pose-detection/dist/movenet/detector.js"
       )) as {
-        load: (config: {
-          modelType: string;
+        load: (config?: {
+          modelType?: string;
           enableSmoothing?: boolean;
         }) => Promise<PoseDetectorLike>;
       };
 
-      const detector = await moveNetModule.load(
-        {
-          modelType: "SinglePose.Lightning",
-          enableSmoothing: true,
-        },
-      );
+      const detector = await moveNetModule.load({
+        modelType: "SinglePose.Lightning",
+        enableSmoothing: true,
+      });
 
       if (!activeRef.current) {
         await detector.dispose();
@@ -171,7 +259,7 @@ export function PoseCameraPreview({
         return;
       }
 
-      detectorRef.current = detector as typeof detectorRef.current;
+      detectorRef.current = detector;
       setModelReady(true);
       runPoseLoop();
     } catch (caught) {
@@ -201,15 +289,20 @@ export function PoseCameraPreview({
         await videoRef.current.play();
       }
       setActive(true);
+      onCameraActiveChange?.(true);
       void startPoseModel();
     } catch (caught) {
-      const message =
-        caught instanceof Error ? caught.message : "Could not access camera.";
-      setError(message);
+      setError(cameraErrorMessage(caught));
       setActive(false);
       activeRef.current = false;
     }
-  }, [embedded, startPoseModel]);
+  }, [embedded, onCameraActiveChange, startPoseModel]);
+
+  useEffect(() => {
+    if (active && enablePoseDetection && !modelReady && !modelLoading && !error) {
+      void startPoseModel();
+    }
+  }, [active, enablePoseDetection, error, modelLoading, modelReady, startPoseModel]);
 
   useEffect(() => {
     return () => stopCamera();
@@ -284,9 +377,19 @@ export function PoseCameraPreview({
             )}
           >
             <p className="text-[10px] font-semibold uppercase tracking-wider opacity-80">
-              Form check
+              {EXERCISE_LABELS[targetExercise]}
             </p>
             <p className="mt-0.5 text-sm font-bold">{formHeadline}</p>
+            {targetExercise !== "general" ? (
+              <div className="mt-1 flex flex-wrap gap-1.5 text-[10px] font-bold uppercase tracking-wide opacity-90">
+                <span className="rounded-full bg-black/25 px-2 py-0.5">
+                  {phaseLabel(formPhase)}
+                </span>
+                <span className="rounded-full bg-black/25 px-2 py-0.5">
+                  Score {formScore || "--"}
+                </span>
+              </div>
+            ) : null}
             <ul className="mt-1 list-inside list-disc text-xs leading-snug opacity-95">
               {formTips.map((tip, index) => (
                 <li key={`${index}-${tip.slice(0, 24)}`}>{tip}</li>

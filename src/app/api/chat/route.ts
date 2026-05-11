@@ -1,44 +1,30 @@
 import { NextResponse } from "next/server";
-import OpenAI from "openai";
 import { createSupabaseRouteClient } from "@/lib/supabaseRoute";
 import { fetchFitnessProfile, type FitnessProfileRow } from "@/lib/fitnessProfiles";
 import { buildWorkoutPlan } from "@/lib/workoutPlan";
+import { chatRequestSchema, formatZodError } from "@/lib/apiValidation";
+import { enforceAiRateLimit, strictBackendFallbackResponse } from "@/lib/aiRouteGuards";
+import {
+  aiErrorMessage,
+  aiErrorStatus,
+  createFitnessAiClient,
+  getCompletionTokenOptions,
+  getFitnessAiProvider,
+  shouldUseLocalAiFallback,
+} from "@/lib/aiProvider";
 
-const CHAT_MODEL = process.env.OPENAI_CHAT_MODEL || "gpt-4o-mini";
 const LOCAL_COACH_MODEL = "local-coach-fallback";
+const MAX_HISTORY_MESSAGES = 4;
+const MAX_HISTORY_CONTENT_CHARS = 700;
+const MAX_CONTEXT_TEXT_CHARS = 160;
 
 type CoachContext = {
+  profile?: Record<string, unknown> | null;
   goals: Array<Record<string, unknown>>;
   recent_completed_workouts: Array<Record<string, unknown>>;
   recent_nutrition: Array<Record<string, unknown>>;
   recent_weight_logs: Array<Record<string, unknown>>;
 };
-
-function getOpenAIKey() {
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
-  if (!apiKey || apiKey.includes("your_") || apiKey === "sk-your-key") {
-    return null;
-  }
-  return apiKey;
-}
-
-function openAIStatus(error: unknown) {
-  const status = (error as { status?: unknown })?.status;
-  return typeof status === "number" ? status : 502;
-}
-
-function openAIMessage(error: unknown) {
-  const status = openAIStatus(error);
-  if (status === 401) return "OpenAI API key is invalid or not authorized.";
-  if (status === 403) return "OpenAI API key does not have access to this model.";
-  if (status === 429) return "OpenAI rate limit or quota was reached. Try again later.";
-  if (status >= 500) return "OpenAI service is temporarily unavailable. Try again later.";
-  return error instanceof Error ? error.message : "OpenAI request failed.";
-}
-
-function shouldUseLocalCoach(status: number) {
-  return status === 401 || status === 403 || status === 429 || status >= 500;
-}
 
 function cleanLabel(value: unknown, fallback: string) {
   const text = typeof value === "string" ? value.trim() : "";
@@ -48,6 +34,49 @@ function cleanLabel(value: unknown, fallback: string) {
 
 function includesAny(text: string, words: string[]) {
   return words.some((word) => text.includes(word));
+}
+
+function clipText(value: unknown, maxChars = MAX_CONTEXT_TEXT_CHARS) {
+  const text = typeof value === "string" ? value.trim() : "";
+  if (!text) return "";
+  return text.length > maxChars ? `${text.slice(0, maxChars).trim()}...` : text;
+}
+
+function compactRecord(
+  row: Record<string, unknown> | null | undefined,
+  keys: string[],
+  maxTextChars = MAX_CONTEXT_TEXT_CHARS,
+) {
+  if (!row) return null;
+  const compact: Record<string, unknown> = {};
+
+  for (const key of keys) {
+    const value = row[key];
+    if (value === null || value === undefined || value === "") continue;
+
+    if (typeof value === "string") {
+      compact[key] = clipText(value, maxTextChars);
+    } else if (Array.isArray(value)) {
+      compact[key] = value.slice(0, 6).map((item) =>
+        typeof item === "string" ? clipText(item, 80) : item,
+      );
+    } else if (typeof value === "number" || typeof value === "boolean") {
+      compact[key] = value;
+    }
+  }
+
+  return Object.keys(compact).length ? compact : null;
+}
+
+function compactRows(
+  rows: Array<Record<string, unknown>>,
+  keys: string[],
+  limit: number,
+) {
+  return rows
+    .slice(0, limit)
+    .map((row) => compactRecord(row, keys))
+    .filter((row): row is Record<string, unknown> => Boolean(row));
 }
 
 function formatExercises(
@@ -186,17 +215,23 @@ export async function POST(request: Request) {
       );
     }
 
-    const body = await request.json().catch(() => ({}));
-    const message = typeof body?.message === "string" ? body.message.trim() : "";
+    const rateLimitResponse = await enforceAiRateLimit({
+      supabase,
+      routeKey: "api-chat",
+      userId: user.id,
+    });
+    if (rateLimitResponse) return rateLimitResponse;
 
-    if (!message) {
-      return NextResponse.json(
-        { error: "Message cannot be empty." },
-        { status: 400 },
-      );
+    const body = await request.json().catch(() => ({}));
+    const parsed = chatRequestSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 });
     }
 
-    const apiKey = getOpenAIKey();
+    const { message } = parsed.data;
+
+    const provider = getFitnessAiProvider("chat");
 
     const { data: profile } = await fetchFitnessProfile(user.id, supabase);
     const [profileRes, goalsRes, completedRes, nutritionRes, weightRes, historyRes] =
@@ -231,19 +266,59 @@ export async function POST(request: Request) {
           .select("role,content,created_at")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false })
-          .limit(10),
+          .limit(MAX_HISTORY_MESSAGES),
       ]);
     const hint = profileHint(profile);
     const context = {
-      profile: profileRes.data,
-      goals: (goalsRes.data || []) as Array<Record<string, unknown>>,
-      recent_completed_workouts: (completedRes.data || []) as Array<Record<string, unknown>>,
-      recent_nutrition: (nutritionRes.data || []) as Array<Record<string, unknown>>,
-      recent_weight_logs: (weightRes.data || []) as Array<Record<string, unknown>>,
+      profile:
+        compactRecord((profile as Record<string, unknown> | null) || null, [
+          "goal",
+          "activity_level",
+          "workout_preference",
+          "fitness_level",
+          "workout_days_per_week",
+          "workout_duration_minutes",
+          "preferred_workout_days",
+          "age",
+          "weight",
+          "height",
+          "gender",
+        ]) ||
+        compactRecord(profileRes.data as Record<string, unknown> | null, [
+          "full_name",
+          "display_name",
+          "username",
+        ]),
+      goals: compactRows((goalsRes.data || []) as Array<Record<string, unknown>>, [
+        "title",
+        "current_value",
+        "target_value",
+        "unit",
+        "status",
+        "deadline",
+      ], 3),
+      recent_completed_workouts: compactRows(
+        (completedRes.data || []) as Array<Record<string, unknown>>,
+        ["workout_title", "duration_minutes", "calories_burned", "rating", "completed_at"],
+        4,
+      ),
+      recent_nutrition: compactRows((nutritionRes.data || []) as Array<Record<string, unknown>>, [
+        "log_date",
+        "target_calories",
+        "consumed_calories",
+        "target_protein_g",
+        "consumed_protein_g",
+      ], 2),
+      recent_weight_logs: compactRows((weightRes.data || []) as Array<Record<string, unknown>>, [
+        "weight_kg",
+        "steps",
+        "calories_burned",
+        "logged_at",
+      ], 3),
     };
     const history = [...(historyRes.data || [])].reverse().map((row) => ({
       role: row.role === "assistant" ? "assistant" : "user",
-      content: row.content,
+      content: clipText(row.content, MAX_HISTORY_CONTENT_CHARS),
     })) as Array<{ role: "user" | "assistant"; content: string }>;
 
     const system =
@@ -262,11 +337,16 @@ export async function POST(request: Request) {
     const responseWarnings: string[] = [];
     let reply = "";
     let assistantMetadata: Record<string, unknown> = {
-      model: CHAT_MODEL,
+      model: provider?.model ?? LOCAL_COACH_MODEL,
+      provider: provider?.name ?? "local",
       source: "coach_chat",
     };
 
-    if (!apiKey) {
+    if (!provider) {
+      const strictResponse = strictBackendFallbackResponse(
+        "STRICT_BACKEND_MODE is enabled, so coach chat requires a live AI provider.",
+      );
+      if (strictResponse) return strictResponse;
       responseWarnings.push("Live AI is not configured, so the built-in coach answered instead.");
       reply = buildLocalCoachReply(
         message,
@@ -276,14 +356,16 @@ export async function POST(request: Request) {
       );
       assistantMetadata = {
         model: LOCAL_COACH_MODEL,
+        provider: "local",
         source: "coach_chat",
         fallback_reason: "missing_api_key",
       };
     } else {
       try {
-        const client = new OpenAI({ apiKey });
+        const client = createFitnessAiClient(provider);
         const completion = await client.chat.completions.create({
-          model: CHAT_MODEL,
+          model: provider.model,
+          ...getCompletionTokenOptions(provider, 600),
           messages: [
             { role: "system", content: system },
             {
@@ -295,19 +377,23 @@ export async function POST(request: Request) {
             ...history,
             { role: "user", content: message },
           ],
-          max_tokens: 600,
         });
         reply = completion.choices[0]?.message?.content ?? "";
       } catch (error) {
-        const status = openAIStatus(error);
-        if (!shouldUseLocalCoach(status)) {
+        const status = aiErrorStatus(error);
+        if (!shouldUseLocalAiFallback(status)) {
           return NextResponse.json(
-            { error: openAIMessage(error) },
+            { error: aiErrorMessage(error, provider) },
             { status: status === 401 ? 503 : status },
           );
         }
 
-        responseWarnings.push(`${openAIMessage(error)} Showing a built-in coach response.`);
+        const strictResponse = strictBackendFallbackResponse(
+          "STRICT_BACKEND_MODE is enabled, so coach chat cannot fall back to local responses.",
+        );
+        if (strictResponse) return strictResponse;
+
+        responseWarnings.push(`${aiErrorMessage(error, provider)} Showing a built-in coach response.`);
         reply = buildLocalCoachReply(
           message,
           profile,
@@ -316,8 +402,9 @@ export async function POST(request: Request) {
         );
         assistantMetadata = {
           model: LOCAL_COACH_MODEL,
+          provider: "local",
           source: "coach_chat",
-          fallback_reason: `openai_${status}`,
+          fallback_reason: `${provider.name}_${status}`,
         };
       }
     }

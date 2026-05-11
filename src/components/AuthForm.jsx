@@ -23,7 +23,7 @@ import {
   ensureProfile,
   getProfile,
   isProfileComplete,
-} from "@/src/utils/supabaseData";
+} from "@/src/services/profileService";
 import EmptyState from "@/src/components/EmptyState";
 
 const authBenefits = [

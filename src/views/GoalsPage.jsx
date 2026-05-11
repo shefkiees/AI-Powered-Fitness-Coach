@@ -6,7 +6,7 @@ import DataTable from "@/src/components/DataTable";
 import EmptyState from "@/src/components/EmptyState";
 import LoadingSpinner from "@/src/components/LoadingSpinner";
 import ProtectedRoute from "@/src/components/ProtectedRoute";
-import { deleteGoal, getGoals, saveGoal, updateGoalStatus } from "@/src/utils/supabaseData";
+import { deleteGoal, getGoals, saveGoal, updateGoalStatus } from "@/src/services/goalsService";
 import { toDateInputValue } from "@/src/utils/formatters";
 
 const initialGoal = {

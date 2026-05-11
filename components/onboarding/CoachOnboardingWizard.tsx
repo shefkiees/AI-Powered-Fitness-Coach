@@ -10,6 +10,8 @@ import {
   Dumbbell,
   Heart,
   Home,
+  Loader2,
+  Sparkles,
   Trees,
   Building2,
 } from "lucide-react";
@@ -79,6 +81,14 @@ export function CoachOnboardingWizard() {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [draft, setDraft] = useState<CoachOnboardingPayload>(() => emptyCoachOnboarding());
+  const [aiSummary, setAiSummary] = useState<{
+    headline: string;
+    summary: string;
+    starting_strategy: string[];
+    first_week_focus: string;
+  } | null>(null);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiError, setAiError] = useState("");
 
   const progress = useMemo(() => ((step + 1) / STEPS.length) * 100, [step]);
 
@@ -97,6 +107,30 @@ export function CoachOnboardingWizard() {
       sessionStorage.setItem(COACH_ONBOARDING_STORAGE_KEY, JSON.stringify(draft));
     }
     router.push("/login?next=/dashboard");
+  };
+
+  const generateAiSummary = async () => {
+    setAiBusy(true);
+    setAiError("");
+    try {
+      const response = await fetch("/api/coach/onboarding-summary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(draft),
+      });
+      const data = (await response.json().catch(() => ({}))) as {
+        summary?: typeof aiSummary;
+        error?: string;
+      };
+      if (!response.ok || !data.summary) {
+        throw new Error(data.error || "Could not create your coach preview.");
+      }
+      setAiSummary(data.summary);
+    } catch (error) {
+      setAiError(error instanceof Error ? error.message : "Could not create your coach preview.");
+    } finally {
+      setAiBusy(false);
+    }
   };
 
   const canAdvance = () => {
@@ -400,6 +434,37 @@ export function CoachOnboardingWizard() {
                     value={draft.mainMotivation}
                     onChange={(e) => setDraft((d) => ({ ...d, mainMotivation: e.target.value }))}
                   />
+                  <button
+                    type="button"
+                    disabled={!canAdvance() || aiBusy}
+                    onClick={() => void generateAiSummary()}
+                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[var(--fc-border)] bg-white/[0.06] px-4 text-sm font-black text-white disabled:opacity-60"
+                  >
+                    {aiBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 text-[var(--fc-accent)]" />}
+                    Preview my coach plan
+                  </button>
+                  {aiError ? (
+                    <p className="rounded-2xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
+                      {aiError}
+                    </p>
+                  ) : null}
+                  {aiSummary ? (
+                    <div className="rounded-2xl border border-[var(--fc-accent)]/25 bg-[var(--fc-accent)]/10 p-4">
+                      <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--fc-accent)]">
+                        Coach preview
+                      </p>
+                      <h2 className="mt-2 text-lg font-black">{aiSummary.headline}</h2>
+                      <p className="mt-2 text-sm leading-6 text-[var(--fc-muted)]">{aiSummary.summary}</p>
+                      <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-[var(--fc-muted)]">
+                        {aiSummary.starting_strategy.slice(0, 3).map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                      <p className="mt-3 rounded-xl bg-black/20 px-3 py-2 text-sm font-bold text-white">
+                        First week: {aiSummary.first_week_focus}
+                      </p>
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
             </motion.div>

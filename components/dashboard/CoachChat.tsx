@@ -12,6 +12,8 @@ import { useCoachingSession } from "@/hooks/useCoachingSession";
 
 type Msg = { role: "user" | "assistant"; text: string };
 
+const MAX_COACH_MESSAGE_CHARS = 1600;
+
 const QUICK_PROMPTS = [
   {
     label: "Weekly plan",
@@ -55,6 +57,10 @@ export function CoachChat({ coachDisplayName, userId, onActivity }: Props) {
     async (text: string) => {
       const trimmed = text.trim();
       if (!trimmed || inFlightRef.current) return;
+      if (trimmed.length > MAX_COACH_MESSAGE_CHARS) {
+        setError(`Keep your coach message under ${MAX_COACH_MESSAGE_CHARS} characters.`);
+        return;
+      }
 
       inFlightRef.current = true;
       setError("");
@@ -239,6 +245,7 @@ export function CoachChat({ coachDisplayName, userId, onActivity }: Props) {
             type="text"
             value={input}
             onChange={(event) => setInput(event.target.value)}
+            maxLength={MAX_COACH_MESSAGE_CHARS}
             onKeyDown={(event) => {
               if (event.key === "Enter" && !event.shiftKey) {
                 event.preventDefault();

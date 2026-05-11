@@ -1,5 +1,6 @@
 import {
   Bot,
+  Camera,
   Dumbbell,
   HeartPulse,
   LayoutDashboard,
@@ -9,6 +10,7 @@ import {
 export const navItems = [
   { href: "/dashboard", label: "Home", icon: LayoutDashboard },
   { href: "/workout-plan", label: "Workouts", icon: Dumbbell },
+  { href: "/pose-estimation", label: "Form", icon: Camera },
   { href: "/progress-tracker", label: "Activity", icon: HeartPulse },
   { href: "/dashboard/chat", label: "AI Coach", icon: Bot },
   { href: "/profile", label: "Profile", icon: UserRound },
@@ -16,6 +18,7 @@ export const navItems = [
 
 export const quickActions = [
   { href: "/workout-plan", label: "Start workout", icon: Dumbbell },
+  { href: "/pose-estimation", label: "Open form lab", icon: Camera },
   { href: "/progress-tracker", label: "Log progress", icon: HeartPulse },
   { href: "/dashboard/chat", label: "Open AI coach", icon: Bot },
   { href: "/profile", label: "Edit profile", icon: UserRound },

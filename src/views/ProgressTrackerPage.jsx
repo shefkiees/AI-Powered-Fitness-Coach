@@ -18,12 +18,14 @@ import ProgressChart from "@/src/components/ProgressChart";
 import ProtectedRoute from "@/src/components/ProtectedRoute";
 import {
   addProgressLog,
-  getGoals,
   getProgressLogs,
   getProgressSnapshots,
+} from "@/src/services/progressService";
+import { getGoals } from "@/src/services/goalsService";
+import {
   getUpcomingWorkoutSessions,
   getUserCompletedWorkouts,
-} from "@/src/utils/supabaseData";
+} from "@/src/services/workoutService";
 import { formatNumber, toDateInputValue } from "@/src/utils/formatters";
 
 const emptyForm = {

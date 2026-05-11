@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseRouteClient } from "@/lib/supabaseRoute";
+import { fitnessProfileRequestSchema, formatZodError } from "@/lib/apiValidation";
 
 function toProfilePayload(body: Record<string, unknown>) {
   return {
@@ -27,7 +28,7 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { data, error } = await supabase.from("profiles").select("*").maybeSingle();
+    const { data, error } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
@@ -52,13 +53,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = (await request.json()) as Record<string, unknown>;
-    const payload = toProfilePayload(body);
-    const existing = await supabase.from("profiles").select("id").maybeSingle();
+    const rawBody = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+    const parsed = fitnessProfileRequestSchema.safeParse(rawBody);
+
+    if (!parsed.success) {
+      return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 });
+    }
+
+    const payload = toProfilePayload(parsed.data);
+    const existing = await supabase.from("profiles").select("id").eq("id", user.id).maybeSingle();
 
     const result = existing.data?.id
-      ? await supabase.from("profiles").update(payload).eq("id", existing.data.id)
-      : await supabase.from("profiles").insert(payload);
+      ? await supabase.from("profiles").update(payload).eq("id", user.id)
+      : await supabase.from("profiles").insert({ id: user.id, ...payload });
 
     if (result.error) {
       return NextResponse.json({ error: result.error.message }, { status: 500 });

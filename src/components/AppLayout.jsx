@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { LogOut } from "lucide-react";
 import MobileNav from "@/src/components/MobileNav";
 import { useAuth } from "@/context/AuthContext";
-import { getProfile } from "@/src/utils/supabaseData";
+import { getProfile } from "@/src/services/profileService";
 
 const COACH_EMBED_PREFIXES = [
   "/dashboard",

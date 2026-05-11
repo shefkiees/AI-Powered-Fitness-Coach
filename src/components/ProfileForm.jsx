@@ -3,11 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, Camera, ImagePlus, Save, Trash2 } from "lucide-react";
 import {
-  addProgressLog,
-  createNutritionPlan,
-  createWorkoutPlan,
   saveProfile,
-} from "@/src/utils/supabaseData";
+} from "@/src/services/profileService";
+import { addProgressLog } from "@/src/services/progressService";
+import { createNutritionPlan } from "@/src/services/nutritionService";
+import { createWorkoutPlan } from "@/src/services/workoutService";
 import {
   compressProfileImageToDataUrl,
   removeProfileImageFromStorage,

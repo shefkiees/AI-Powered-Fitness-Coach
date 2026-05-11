@@ -32,7 +32,7 @@ import {
   createWorkoutPlan,
   loadWorkoutModuleData,
   saveWorkoutPreference,
-} from "@/src/utils/supabaseData";
+} from "@/src/services/workoutService";
 import { formatGoal, formatLevel, toDateInputValue } from "@/src/utils/formatters";
 
 const allValue = "all";

@@ -376,11 +376,15 @@ create table public.pose_sessions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
   exercise_name text not null,
+  exercise_type text not null default 'general',
   started_at timestamptz not null default now(),
   completed_at timestamptz,
+  duration_seconds integer not null default 0 check (duration_seconds >= 0),
   reps integer not null default 0 check (reps >= 0),
   score numeric(5, 2) not null default 0 check (score between 0 and 100),
+  form_score numeric(5, 2) not null default 0 check (form_score between 0 and 100),
   summary text default '',
+  feedback_summary text default '',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

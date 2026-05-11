@@ -674,9 +674,52 @@ export function PulseDashboard() {
             <SectionTitle
               eyebrow="Coach"
               title="Insights"
-              action={<MessageCircle className="h-5 w-5 text-[#6b7280]" />}
+              action={
+                <button
+                  type="button"
+                  onClick={() => void d.refreshWeeklyReview()}
+                  disabled={d.actions.reviewingCoach}
+                  className="inline-flex min-h-9 items-center justify-center gap-2 rounded-full border border-[#e5e7eb] bg-white px-3 text-xs font-black text-[#111827] disabled:opacity-60"
+                >
+                  {d.actions.reviewingCoach ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-3.5 w-3.5 text-[#16a34a]" />
+                  )}
+                  AI review
+                </button>
+              }
             />
             <div className="mt-4 grid gap-3">
+              {d.weeklyReview ? (
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-900">
+                  <p className="text-[0.65rem] font-black uppercase tracking-[0.14em] text-emerald-700">
+                    Weekly AI review
+                  </p>
+                  <p className="mt-2 font-black">{d.weeklyReview.headline}</p>
+                  <p className="mt-2 font-semibold">
+                    <span className="font-black">Next best action:</span> {d.weeklyReview.next_best_action}
+                  </p>
+                  <div className="mt-3 grid gap-2">
+                    {[
+                      ["Went well", d.weeklyReview.wins],
+                      ["Watch", d.weeklyReview.blockers],
+                      ["Change", d.weeklyReview.changes],
+                    ].map(([label, items]) => (
+                      <div key={String(label)} className="rounded-xl bg-white/70 px-3 py-2">
+                        <p className="text-xs font-black uppercase tracking-[0.12em] text-emerald-700">
+                          {String(label)}
+                        </p>
+                        <ul className="mt-1 list-disc space-y-1 pl-4 font-semibold">
+                          {(items as string[]).slice(0, 2).map((item) => (
+                            <li key={item}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
               {d.insights.length ? (
                 d.insights.map((insight) => (
                   <div

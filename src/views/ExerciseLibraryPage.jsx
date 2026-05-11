@@ -7,7 +7,7 @@ import DataTable from "@/src/components/DataTable";
 import EmptyState from "@/src/components/EmptyState";
 import LoadingSpinner from "@/src/components/LoadingSpinner";
 import ProtectedRoute from "@/src/components/ProtectedRoute";
-import { getExerciseLibrary } from "@/src/utils/supabaseData";
+import { getExerciseLibrary } from "@/src/services/workoutService";
 
 function ExerciseLibraryContent() {
   const [items, setItems] = useState([]);

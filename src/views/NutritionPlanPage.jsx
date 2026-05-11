@@ -13,7 +13,7 @@ import {
   createNutritionPlan,
   estimateNutritionInput,
   getLatestNutritionPlan,
-} from "@/src/utils/supabaseData";
+} from "@/src/services/nutritionService";
 
 const emptyMeal = {
   title: "",
@@ -53,6 +53,8 @@ function NutritionContent({ user, profile }) {
   const [mealForm, setMealForm] = useState(emptyMeal);
   const [aiInput, setAiInput] = useState("");
   const [aiResult, setAiResult] = useState("");
+  const [coachQuestion, setCoachQuestion] = useState("What should I eat next?");
+  const [coachSuggestion, setCoachSuggestion] = useState(null);
   const [water, setWater] = useState(null);
   const [state, setState] = useState("loading");
   const [error, setError] = useState("");
@@ -193,6 +195,29 @@ function NutritionContent({ user, profile }) {
     }
   };
 
+  const askNutritionCoach = async (questionPreset = "") => {
+    const question = (questionPreset || coachQuestion || "What should I eat next?").trim();
+    setBusy("coach");
+    setError("");
+    try {
+      const response = await fetch("/api/coach/nutrition-suggest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.suggestion) {
+        throw new Error(data.error || "Could not create nutrition suggestion.");
+      }
+      setCoachSuggestion(data.suggestion);
+      setCoachQuestion(question);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy("");
+    }
+  };
+
   const waterAmount = Number(water?.amount_ml || plan?.water_ml || 0);
   const waterTarget = Number(water?.target_ml || plan?.water_target_ml || 2500);
 
@@ -275,6 +300,61 @@ function NutritionContent({ user, profile }) {
             </div>
 
             <aside className="pulse-card rounded-[1.5rem] p-5">
+              <section className="mb-5 rounded-[1.25rem] border border-[var(--fc-border)] bg-white/[0.04] p-3">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-[var(--fc-accent)]" />
+                  <p className="text-sm font-black text-white">AI nutrition coach</p>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {[
+                    "What should I eat for dinner?",
+                    "I need more protein today.",
+                    "Is my day on track?",
+                  ].map((question) => (
+                    <button
+                      key={question}
+                      type="button"
+                      disabled={busy === "coach"}
+                      onClick={() => askNutritionCoach(question)}
+                      className="rounded-full border border-[var(--fc-border)] bg-black/20 px-3 py-2 text-xs font-bold text-white disabled:opacity-60"
+                    >
+                      {question}
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-3 flex gap-2">
+                  <input
+                    value={coachQuestion}
+                    onChange={(event) => setCoachQuestion(event.target.value)}
+                    className="pulse-input min-h-10 min-w-0 flex-1 px-4"
+                    placeholder="Ask about your next meal"
+                    disabled={busy === "coach"}
+                  />
+                  <button
+                    type="button"
+                    disabled={busy === "coach" || !coachQuestion.trim()}
+                    onClick={() => askNutritionCoach()}
+                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full bg-[var(--fc-accent)] px-4 text-xs font-black text-[var(--fc-accent-ink)] disabled:opacity-70"
+                  >
+                    <Sparkles className={`h-4 w-4 ${busy === "coach" ? "animate-pulse" : ""}`} />
+                    Ask
+                  </button>
+                </div>
+                {coachSuggestion ? (
+                  <div className="mt-3 rounded-2xl bg-emerald-300/10 px-3 py-3 text-sm text-emerald-50">
+                    <p className="font-black">{coachSuggestion.headline}</p>
+                    <p className="mt-1 leading-6 text-emerald-50/85">{coachSuggestion.summary}</p>
+                    <ul className="mt-2 list-disc space-y-1 pl-5 text-emerald-50/85">
+                      {(coachSuggestion.suggestions || []).slice(0, 3).map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                    <p className="mt-2 rounded-xl bg-black/20 px-3 py-2 text-xs font-bold">
+                      Next meal: {coachSuggestion.next_best_meal}
+                    </p>
+                  </div>
+                ) : null}
+              </section>
               <div className="flex items-center gap-2">
                 <Utensils className="h-5 w-5 text-[var(--fc-accent)]" />
                 <h2 className="text-lg font-black text-white">Log food</h2>

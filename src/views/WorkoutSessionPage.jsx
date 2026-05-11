@@ -12,10 +12,12 @@ import {
   Clock3,
   Dumbbell,
   Flame,
+  Loader2,
   Pause,
   Play,
   RotateCcw,
   SkipForward,
+  Sparkles,
   Star,
 } from "lucide-react";
 import EmptyState from "@/src/components/EmptyState";
@@ -26,7 +28,7 @@ import {
   getUpcomingWorkoutSessions,
   getWorkoutById,
   startWorkoutSession,
-} from "@/src/utils/supabaseData";
+} from "@/src/services/workoutService";
 
 function formatTime(seconds) {
   const s = Math.max(0, Number(seconds || 0));
@@ -296,6 +298,7 @@ function SessionRunner({ user, profile, workout, initialSessionId }) {
   const [session, setSession] = useState(initialSessionId ? { id: initialSessionId } : null);
   const [startedAt, setStartedAt] = useState(null);
   const [index, setIndex] = useState(0);
+  const [exerciseOverrides, setExerciseOverrides] = useState({});
   const [setNo, setSetNo] = useState(1);
   const [phase, setPhase] = useState("idle");
   const [remaining, setRemaining] = useState(exerciseWorkSeconds(exercises[0]));
@@ -307,12 +310,20 @@ function SessionRunner({ user, profile, workout, initialSessionId }) {
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(null);
   const [error, setError] = useState("");
+  const [subReason, setSubReason] = useState("");
+  const [substitution, setSubstitution] = useState(null);
+  const [subBusy, setSubBusy] = useState(false);
 
-  const exercise = exercises[index];
+  const exercise = exerciseOverrides[index] || exercises[index];
   const totalSets = exerciseSets(exercise);
   const totalPossibleSets = exercises.reduce((sum, item) => sum + exerciseSets(item), 0);
   const progress = totalPossibleSets ? Math.round((completedSets.length / totalPossibleSets) * 100) : 0;
   const heartRate = 105 + Math.min(40, completedSets.length * 2);
+
+  useEffect(() => {
+    setSubstitution(null);
+    setSubReason("");
+  }, [index]);
 
   useEffect(() => {
     if (!running || phase === "idle" || phase === "complete") return undefined;
@@ -397,6 +408,50 @@ function SessionRunner({ user, profile, workout, initialSessionId }) {
     moveNextExercise();
   };
 
+  const suggestSubstitution = async (reasonPreset = "") => {
+    if (!exercise) return;
+    const reason = (reasonPreset || subReason || "I need a safer or easier alternative.").trim();
+    setSubBusy(true);
+    setError("");
+    try {
+      const response = await fetch("/api/coach/exercise-substitution", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ exercise, workout, reason }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.substitution) {
+        throw new Error(data.error || "Could not suggest an alternative.");
+      }
+      setSubstitution(data.substitution);
+      setSubReason(reason);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSubBusy(false);
+    }
+  };
+
+  const useSubstitution = () => {
+    if (!substitution) return;
+    setExerciseOverrides((current) => ({
+      ...current,
+      [index]: {
+        ...exercise,
+        name: substitution.name,
+        sets: substitution.sets,
+        reps: substitution.reps,
+        rest_seconds: substitution.rest_seconds,
+        notes: substitution.notes,
+        fallback: true,
+      },
+    }));
+    setSetNo(1);
+    setPhase("idle");
+    setRunning(false);
+    setRemaining(exerciseWorkSeconds(exercise));
+  };
+
   const finish = async () => {
     setSaving(true);
     setError("");
@@ -411,7 +466,19 @@ function SessionRunner({ user, profile, workout, initialSessionId }) {
         rating,
         notes,
       });
-      setDone(saved);
+      let adaptation = null;
+      try {
+        const response = await fetch("/api/coach/adaptive-plan", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ completed_workout_id: saved.id }),
+        });
+        const data = await response.json().catch(() => ({}));
+        adaptation = response.ok ? data.adaptation || null : null;
+      } catch {
+        adaptation = null;
+      }
+      setDone({ ...saved, adaptation });
       setPhase("complete");
       setRunning(false);
     } catch (err) {
@@ -441,6 +508,21 @@ function SessionRunner({ user, profile, workout, initialSessionId }) {
           <p className="mt-2 text-sm text-[var(--fc-muted)]">
             {done.workout_title} - {done.duration_minutes} min - {done.calories_burned} kcal estimated
           </p>
+          {done.adaptation ? (
+            <div className="mx-auto mt-5 max-w-xl rounded-2xl border border-[var(--fc-border)] bg-white/[0.05] p-4 text-left">
+              <div className="flex items-center gap-2 text-[var(--fc-accent)]">
+                <Sparkles className="h-4 w-4" />
+                <p className="text-xs font-black uppercase tracking-[0.16em]">Adaptive coach</p>
+              </div>
+              <p className="mt-2 font-black text-white">{done.adaptation.headline}</p>
+              <p className="mt-1 text-sm leading-6 text-[var(--fc-muted)]">{done.adaptation.reason}</p>
+              <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-[var(--fc-muted)]">
+                {(done.adaptation.changes || []).slice(0, 3).map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
           <div className="mt-6 flex flex-wrap justify-center gap-2">
             <Link href="/dashboard" className="rounded-full bg-[var(--fc-accent)] px-5 py-3 text-sm font-black text-[var(--fc-accent-ink)]">
               Dashboard
@@ -536,6 +618,68 @@ function SessionRunner({ user, profile, workout, initialSessionId }) {
                 <RotateCcw className="h-4 w-4" />
                 Reset timer
               </button>
+            </div>
+
+            <div className="mt-5 rounded-[1.2rem] border border-emerald-200 bg-white p-4">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-[#16a34a]" />
+                <p className="text-sm font-black text-[#111827]">Need an exercise swap?</p>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {[
+                  "No equipment",
+                  "Knee friendly",
+                  "Make it easier",
+                ].map((reason) => (
+                  <button
+                    key={reason}
+                    type="button"
+                    disabled={subBusy}
+                    onClick={() => void suggestSubstitution(reason)}
+                    className="rounded-full border border-[#e5e7eb] bg-[#f8fafc] px-3 py-2 text-xs font-black text-[#111827] disabled:opacity-60"
+                  >
+                    {reason}
+                  </button>
+                ))}
+              </div>
+              <div className="mt-3 flex gap-2">
+                <input
+                  value={subReason}
+                  onChange={(event) => setSubReason(event.target.value)}
+                  className="min-h-10 min-w-0 flex-1 rounded-xl border border-[#e5e7eb] bg-[#f9fafb] px-3 text-sm font-semibold outline-none focus:border-[#22c55e] focus:ring-4 focus:ring-emerald-100"
+                  placeholder="Example: shoulder discomfort or no dumbbells"
+                />
+                <button
+                  type="button"
+                  disabled={subBusy}
+                  onClick={() => void suggestSubstitution()}
+                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-[#111827] px-3 text-xs font-black text-white disabled:opacity-60"
+                >
+                  {subBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                  Ask
+                </button>
+              </div>
+              {substitution ? (
+                <div className="mt-3 rounded-2xl bg-[#f0fdf4] p-3 text-sm text-emerald-900">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-black">{substitution.name}</p>
+                      <p className="mt-1 font-semibold">
+                        {substitution.sets} sets x {substitution.reps} - rest {substitution.rest_seconds}s
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={useSubstitution}
+                      className="shrink-0 rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-black text-white"
+                    >
+                      Use
+                    </button>
+                  </div>
+                  <p className="mt-2 leading-6">{substitution.why}</p>
+                  <p className="mt-1 text-xs font-bold opacity-80">{substitution.safety_note}</p>
+                </div>
+              ) : null}
             </div>
           </div>
         </section>

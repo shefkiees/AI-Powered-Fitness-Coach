@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
-import OpenAI from "openai";
 import { createSupabaseRouteClient } from "@/lib/supabaseRoute";
+import {
+  createFitnessAiClient,
+  getCompletionTokenOptions,
+  getFitnessAiProvider,
+  type FitnessAiProvider,
+} from "@/lib/aiProvider";
+import { formatZodError, nutritionEstimateRequestSchema } from "@/lib/apiValidation";
+import { enforceAiRateLimit, strictBackendFallbackResponse } from "@/lib/aiRouteGuards";
 
 type MealType = "breakfast" | "lunch" | "dinner" | "snack" | "meal";
 
@@ -15,17 +22,6 @@ type NutritionEstimate = {
   confidence: "low" | "medium" | "high";
   notes: string;
 };
-
-type AiProvider = {
-  name: "groq" | "openai";
-  apiKey: string;
-  baseURL?: string;
-  model: string;
-};
-
-const GROQ_BASE_URL = "https://api.groq.com/openai/v1";
-const DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile";
-const DEFAULT_OPENAI_MODEL = "gpt-4o-mini";
 
 const FOOD_ESTIMATES = [
   {
@@ -133,41 +129,6 @@ const FOOD_ESTIMATES = [
     fat_g: 22,
   },
 ];
-
-function cleanApiKey(value: string | undefined) {
-  const apiKey = value?.trim();
-  if (!apiKey || apiKey.includes("your_") || apiKey === "sk-your-key") return null;
-  return apiKey;
-}
-
-function getProvider(): AiProvider | null {
-  const groqKey = cleanApiKey(process.env.GROQ_API_KEY);
-  if (groqKey) {
-    return {
-      name: "groq",
-      apiKey: groqKey,
-      baseURL: GROQ_BASE_URL,
-      model:
-        process.env.GROQ_NUTRITION_MODEL ||
-        process.env.GROQ_MODEL ||
-        DEFAULT_GROQ_MODEL,
-    };
-  }
-
-  const openAiKey = cleanApiKey(process.env.OPENAI_API_KEY);
-  if (openAiKey) {
-    return {
-      name: "openai",
-      apiKey: openAiKey,
-      model:
-        process.env.OPENAI_NUTRITION_MODEL ||
-        process.env.OPENAI_CHAT_MODEL ||
-        DEFAULT_OPENAI_MODEL,
-    };
-  }
-
-  return null;
-}
 
 function clampNumber(value: unknown, max: number) {
   const n = Math.round(Number(value || 0));
@@ -282,14 +243,12 @@ function parseJsonObject(content: string) {
   }
 }
 
-async function estimateWithAi(input: string, provider: AiProvider) {
-  const client = new OpenAI({
-    apiKey: provider.apiKey,
-    baseURL: provider.baseURL,
-  });
+async function estimateWithAi(input: string, provider: FitnessAiProvider) {
+  const client = createFitnessAiClient(provider);
 
   const completion = await client.chat.completions.create({
     model: provider.model,
+    ...getCompletionTokenOptions(provider, 450),
     messages: [
       {
         role: "system",
@@ -303,7 +262,6 @@ async function estimateWithAi(input: string, provider: AiProvider) {
     ],
     response_format: { type: "json_object" },
     temperature: 0.1,
-    max_tokens: 450,
   });
 
   const content = completion.choices[0]?.message?.content || "{}";
@@ -325,25 +283,26 @@ export async function POST(request: Request) {
       );
     }
 
-    const body = await request.json().catch(() => ({}));
-    const input = typeof body?.input === "string" ? body.input.trim() : "";
+    const rateLimitResponse = await enforceAiRateLimit({
+      supabase,
+      routeKey: "api-nutrition-estimate",
+      userId: user.id,
+    });
+    if (rateLimitResponse) return rateLimitResponse;
 
-    if (!input) {
-      return NextResponse.json(
-        { error: "Food or drink text is required." },
-        { status: 400 },
-      );
+    const parsed = nutritionEstimateRequestSchema.safeParse(await request.json().catch(() => ({})));
+    if (!parsed.success) {
+      return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 });
     }
 
-    if (input.length > 500) {
-      return NextResponse.json(
-        { error: "Keep the food log under 500 characters." },
-        { status: 400 },
-      );
-    }
+    const { input } = parsed.data;
 
-    const provider = getProvider();
+    const provider = getFitnessAiProvider("nutrition");
     if (!provider) {
+      const strictResponse = strictBackendFallbackResponse(
+        "STRICT_BACKEND_MODE is enabled, so nutrition estimation requires a live AI provider.",
+      );
+      if (strictResponse) return strictResponse;
       return NextResponse.json({
         estimate: estimateLocally(input),
         source: "local",
@@ -358,6 +317,10 @@ export async function POST(request: Request) {
         model: provider.model,
       });
     } catch (error) {
+      const strictResponse = strictBackendFallbackResponse(
+        "STRICT_BACKEND_MODE is enabled, so nutrition estimation cannot fall back to local data.",
+      );
+      if (strictResponse) return strictResponse;
       const message = error instanceof Error ? error.message : "AI estimate failed.";
       return NextResponse.json({
         estimate: estimateLocally(input),

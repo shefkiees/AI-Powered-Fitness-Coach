@@ -1,15 +1,15 @@
 import { requireSupabase } from "@/src/lib/supabaseClient";
+import { getProfile } from "@/src/services/profileService";
+import { getLatestNutritionPlan } from "@/src/services/nutritionService";
+import { getProgressLogs } from "@/src/services/progressService";
 import {
   getExerciseLibrary,
-  getGoals,
-  getLatestNutritionPlan,
-  getProfile,
-  getProgressLogs,
   getUserCompletedWorkouts,
   getUserWorkoutPreferences,
   getWorkoutLibrary,
   getWorkoutLogs,
-} from "@/src/utils/supabaseData";
+} from "@/src/services/workoutService";
+import { getGoals } from "@/src/services/goalsService";
 
 function textFromError(error) {
   return [error?.message, error?.details, error?.hint].filter(Boolean).join(" ");

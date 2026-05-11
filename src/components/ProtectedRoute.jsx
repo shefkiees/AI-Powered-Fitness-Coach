@@ -5,7 +5,7 @@ import LoadingSpinner from "@/src/components/LoadingSpinner";
 import EmptyState from "@/src/components/EmptyState";
 import { useAuth } from "@/context/AuthContext";
 import { supabaseConfigError } from "@/src/lib/supabaseClient";
-import { ensureProfile, isProfileComplete } from "@/src/utils/supabaseData";
+import { ensureProfile, isProfileComplete } from "@/src/services/profileService";
 
 export default function ProtectedRoute({
   children,
