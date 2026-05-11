@@ -6,6 +6,7 @@ import {
   isMissingRelationError,
   nullableNumber,
   requireSupabase,
+  textFromError,
   workoutSchemaError,
 } from "@/src/services/serviceShared";
 import {
@@ -268,13 +269,65 @@ export async function startWorkoutSession(workout, values = {}) {
   return data;
 }
 
+async function currentUserId(client) {
+  try {
+    const { data } = await client.auth.getUser();
+    return data?.user?.id || null;
+  } catch {
+    return null;
+  }
+}
+
+function poseFeedbackSchemaFallbackNeeded(error) {
+  if (isMissingColumnError(error)) return true;
+  const message = textFromError(error).toLowerCase();
+  return (
+    message.includes("pose_session_id") ||
+    message.includes("cue") ||
+    message.includes("exercise_name") ||
+    message.includes("severity")
+  );
+}
+
+function normalizePoseHistoryRow(row, feedback = []) {
+  const completedAt = row.completed_at || row.ended_at || row.created_at || null;
+  const startedAt = row.started_at || completedAt;
+  const deviceInfo = row.device_info && typeof row.device_info === "object" ? row.device_info : {};
+  const durationSeconds =
+    Number(row.duration_seconds || deviceInfo.duration_seconds || 0) ||
+    (startedAt && completedAt
+      ? Math.max(0, Math.round((new Date(completedAt).getTime() - new Date(startedAt).getTime()) / 1000))
+      : 0);
+  const formScore = Number(row.form_score ?? row.score ?? row.avg_form_score ?? 0);
+  const exerciseType = row.exercise_type || row.exercise_key || "general";
+  const exerciseName = row.exercise_name || deviceInfo.exercise_name || String(exerciseType).replace(/_/g, " ") || "Movement check";
+  const summary = row.feedback_summary || row.summary || deviceInfo.feedback_summary || feedback[0]?.cue || feedback[0]?.message || "";
+
+  return {
+    ...row,
+    exercise_name: exerciseName,
+    exercise_type: exerciseType,
+    completed_at: completedAt,
+    duration_seconds: durationSeconds,
+    reps: Number(row.reps ?? row.total_reps ?? 0),
+    score: formScore,
+    form_score: formScore,
+    summary,
+    feedback_summary: summary,
+    pose_feedback: feedback,
+  };
+}
+
 export async function savePoseSession(values = {}) {
   const client = requireSupabase();
+  const userId = await currentUserId(client);
   const completedAt = values.completed_at || new Date().toISOString();
   const startedAt = values.started_at || completedAt;
   const score = Number(values.form_score ?? values.score ?? 0);
   const summary = values.feedback_summary || values.summary || "Pose session saved.";
+  const ownedPayload = userId ? { user_id: userId } : {};
   const basePayload = {
+    ...ownedPayload,
     exercise_name: values.exercise_name || "Movement check",
     started_at: startedAt,
     completed_at: completedAt,
@@ -289,10 +342,23 @@ export async function savePoseSession(values = {}) {
     form_score: score,
     feedback_summary: summary,
   };
+  const legacyPayload = {
+    ...ownedPayload,
+    exercise_key: values.exercise_type || values.movement || "general",
+    started_at: startedAt,
+    ended_at: completedAt,
+    total_reps: Number(values.reps || 0),
+    avg_form_score: score,
+    device_info: {
+      exercise_name: values.exercise_name || "Movement check",
+      duration_seconds: Number(values.duration_seconds || 0),
+      feedback_summary: summary,
+    },
+  };
 
   let insertResult = await client.from("pose_sessions").insert(poseLabPayload).select().single();
   if (insertResult.error && isMissingColumnError(insertResult.error)) {
-    insertResult = await client.from("pose_sessions").insert(basePayload).select().single();
+    insertResult = await client.from("pose_sessions").insert(legacyPayload).select().single();
   }
 
   const { data: session, error } = insertResult;
@@ -300,16 +366,30 @@ export async function savePoseSession(values = {}) {
 
   const cues = Array.isArray(values.cues) ? values.cues : [];
   if (cues.length) {
-    await client.from("pose_feedback").insert(
-      cues.map((cue, index) => ({
-        pose_session_id: session.id,
-        exercise_name: values.exercise_name || "Movement check",
-        rep_index: index + 1,
-        score: Number(values.score || 0),
-        cue: String(cue),
-        severity: String(cue).toLowerCase().includes("great") ? "positive" : "info",
-      })),
-    );
+    const modernRows = cues.map((cue, index) => ({
+      ...ownedPayload,
+      pose_session_id: session.id,
+      exercise_name: values.exercise_name || "Movement check",
+      rep_index: index + 1,
+      score,
+      cue: String(cue),
+      severity: String(cue).toLowerCase().includes("good") ? "positive" : "info",
+    }));
+    const feedbackResult = await client.from("pose_feedback").insert(modernRows);
+
+    if (feedbackResult.error && poseFeedbackSchemaFallbackNeeded(feedbackResult.error)) {
+      await client.from("pose_feedback").insert(
+        cues.map((cue, index) => ({
+          ...ownedPayload,
+          session_id: session.id,
+          message: String(cue),
+          severity: String(cue).toLowerCase().includes("good") ? "success" : "info",
+          rep_index: index + 1,
+          form_score: score,
+          metadata: { exercise_name: values.exercise_name || "Movement check" },
+        })),
+      );
+    }
   }
 
   return session;
@@ -317,9 +397,35 @@ export async function savePoseSession(values = {}) {
 
 export async function getPoseHistory() {
   const client = requireSupabase();
-  const { data, error } = await client.from("pose_sessions").select("*, pose_feedback(*)").order("completed_at", { ascending: false }).limit(10);
+  const { data: sessions, error } = await client.from("pose_sessions").select("*").order("created_at", { ascending: false }).limit(10);
   if (error) throw error;
-  return data || [];
+  const rows = sessions || [];
+  const ids = rows.map((row) => row.id).filter(Boolean);
+  if (!ids.length) return [];
+
+  let feedbackBySession = new Map();
+  let feedbackResult = await client.from("pose_feedback").select("*").in("pose_session_id", ids).order("created_at", { ascending: true });
+
+  if (feedbackResult.error && poseFeedbackSchemaFallbackNeeded(feedbackResult.error)) {
+    feedbackResult = await client.from("pose_feedback").select("*").in("session_id", ids).order("created_at", { ascending: true });
+  }
+
+  if (!feedbackResult.error) {
+    feedbackBySession = (feedbackResult.data || []).reduce((map, row) => {
+      const sessionId = row.pose_session_id || row.session_id;
+      if (!sessionId) return map;
+      const next = {
+        ...row,
+        pose_session_id: sessionId,
+        cue: row.cue || row.message || "",
+        score: row.score ?? row.form_score ?? null,
+      };
+      map.set(sessionId, [...(map.get(sessionId) || []), next]);
+      return map;
+    }, new Map());
+  }
+
+  return rows.map((row) => normalizePoseHistoryRow(row, feedbackBySession.get(row.id) || []));
 }
 
 export { emptyUuid };

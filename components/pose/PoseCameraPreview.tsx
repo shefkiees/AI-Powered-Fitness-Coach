@@ -102,6 +102,7 @@ export function PoseCameraPreview({
   const frameCountRef = useRef(0);
 
   const [active, setActive] = useState(false);
+  const [cameraStarting, setCameraStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [modelLoading, setModelLoading] = useState(false);
   const [modelReady, setModelReady] = useState(false);
@@ -126,6 +127,7 @@ export function PoseCameraPreview({
     detectorRef.current = null;
     setModelReady(false);
     setModelLoading(false);
+    setCameraStarting(false);
     const canvas = canvasRef.current;
     if (canvas) {
       const context = canvas.getContext("2d");
@@ -227,31 +229,24 @@ export function PoseCameraPreview({
     setError(null);
 
     try {
-      const tf = await import("@tensorflow/tfjs-core");
+      const tf = await import("@tensorflow/tfjs");
       await import("@tensorflow/tfjs-backend-webgl");
-      await import("@tensorflow/tfjs-converter");
 
       try {
         await tf.setBackend("webgl");
       } catch {
-        await import("@tensorflow/tfjs-backend-cpu");
         await tf.setBackend("cpu");
       }
       await tf.ready();
 
-      const moveNetModule = (await import(
-        "@tensorflow-models/pose-detection/dist/movenet/detector.js"
-      )) as {
-        load: (config?: {
-          modelType?: string;
-          enableSmoothing?: boolean;
-        }) => Promise<PoseDetectorLike>;
-      };
-
-      const detector = await moveNetModule.load({
-        modelType: "SinglePose.Lightning",
-        enableSmoothing: true,
-      });
+      const poseDetection = await import("@tensorflow-models/pose-detection");
+      const detector = (await poseDetection.createDetector(
+        poseDetection.SupportedModels.MoveNet,
+        {
+          modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
+          enableSmoothing: true,
+        },
+      )) as PoseDetectorLike;
 
       if (!activeRef.current) {
         await detector.dispose();
@@ -272,8 +267,14 @@ export function PoseCameraPreview({
   }, [enablePoseDetection, runPoseLoop]);
 
   const startCamera = useCallback(async () => {
+    if (activeRef.current || cameraStarting) return;
+    setCameraStarting(true);
     setError(null);
     try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error("Camera access is not available in this browser.");
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: "user",
@@ -295,8 +296,12 @@ export function PoseCameraPreview({
       setError(cameraErrorMessage(caught));
       setActive(false);
       activeRef.current = false;
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    } finally {
+      setCameraStarting(false);
     }
-  }, [embedded, onCameraActiveChange, startPoseModel]);
+  }, [cameraStarting, embedded, onCameraActiveChange, startPoseModel]);
 
   useEffect(() => {
     if (active && enablePoseDetection && !modelReady && !modelLoading && !error) {
@@ -338,17 +343,22 @@ export function PoseCameraPreview({
           playsInline
           muted
           autoPlay
+          style={{ transform: "scaleX(-1)" }}
         />
         <canvas
           ref={canvasRef}
           className="pointer-events-none absolute inset-0 h-full w-full object-cover"
           aria-hidden
+          style={{ transform: "scaleX(-1)" }}
         />
 
         {!active ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-slate-950/90 text-slate-400">
-            <CameraOff className="h-10 w-10 opacity-50" />
-            <p className="text-sm">Camera off</p>
+            {cameraStarting ? <Loader2 className="h-10 w-10 animate-spin opacity-60" /> : <CameraOff className="h-10 w-10 opacity-50" />}
+            <p className="text-sm">{cameraStarting ? "Requesting camera..." : "Camera off"}</p>
+            <p className="max-w-xs px-4 text-center text-xs leading-5 text-slate-500">
+              Video stays in this browser. Only session numbers and feedback are saved.
+            </p>
           </div>
         ) : null}
 
@@ -413,10 +423,11 @@ export function PoseCameraPreview({
               embedded ? "px-4 py-2 text-xs" : "",
               "focus-visible:ring-2 focus-visible:ring-[var(--fc-accent)]/40",
             )}
+            disabled={cameraStarting}
             onClick={() => void startCamera()}
           >
-            <Camera className="h-4 w-4" />
-            {embedded ? "Start camera" : "Start camera and tracking"}
+            {cameraStarting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+            {cameraStarting ? "Starting..." : embedded ? "Start camera" : "Start camera and tracking"}
           </Button>
         ) : (
           <Button

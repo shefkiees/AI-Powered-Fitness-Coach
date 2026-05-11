@@ -59,6 +59,8 @@ function clampScore(score: number) {
 }
 
 function angle(a: PoseKeypoint, b: PoseKeypoint, c: PoseKeypoint) {
+  // Joint angle at point b. MoveNet gives pixel coordinates, so vector math is
+  // enough here; no calibration or camera intrinsics are needed for simple cues.
   const ab = { x: a.x - b.x, y: a.y - b.y };
   const cb = { x: c.x - b.x, y: c.y - b.y };
   const dot = ab.x * cb.x + ab.y * cb.y;
@@ -157,6 +159,8 @@ function jointAnglesToMetrics(angles: JointAngles): Record<string, number> {
 }
 
 function poseQuality(keypoints: PoseKeypoint[], frame: { width: number; height: number }) {
+  // Before judging form, confirm that enough confident keypoints are inside the
+  // frame. This prevents bad reps caused by half-visible bodies or low light.
   const w = Math.max(frame.width, 1);
   const h = Math.max(frame.height, 1);
   const visible = keypoints.filter(
@@ -260,6 +264,8 @@ function analyzeSquatForm(
   const ankle = midpoint(la!, ra!);
   const shoulder = midpoint(ls!, rs!);
   const kneeAngle = (angle(lh!, lk!, la!) + angle(rh!, rk!, ra!)) / 2;
+  // Squat depth is estimated from hip height relative to knee height. Lower
+  // hips move this value toward zero/positive because browser y grows downward.
   const hipToKnee = Math.max(1, knee.y - hip.y);
   const shoulderToHip = Math.max(1, hip.y - shoulder.y);
   const depth = (hip.y - knee.y) / h;
@@ -384,6 +390,8 @@ function analyzePushupForm(
   const hip = midpoint(lh!, rh!);
   const ankle = strong(la) && strong(ra) ? midpoint(la!, ra!) : null;
   const elbowAngle = (angle(ls!, le!, lw!) + angle(rs!, re!, rw!)) / 2;
+  // Push-ups are counted from a bent-elbow bottom back to an extended top.
+  // Body line uses shoulder-hip-ankle angle so sagging hips reduce the score.
   const phase: FormPhase = elbowAngle > 150 ? "top" : elbowAngle < 112 ? "bottom" : "unknown";
   const wristUnderShoulder = Math.abs(shoulder.x - midpoint(lw!, rw!).x) / w;
   const bodyAngle = ankle ? angle(shoulder, hip, ankle) : 175;
@@ -435,6 +443,8 @@ function analyzePlankForm(
   const hip = midpoint(lh!, rh!);
   const ankle = strong(la) && strong(ra) ? midpoint(la!, ra!) : strong(la) ? la! : ra!;
   const bodyAngle = angle(shoulder, hip, ankle);
+  // Plank does not count reps. The score is mostly body-line angle plus whether
+  // the hips sit above or below the shoulder-ankle line.
   const hipOffset = (hip.y - (shoulder.y + ankle.y) / 2) / h;
   const tips: string[] = [];
   let score = 92;
