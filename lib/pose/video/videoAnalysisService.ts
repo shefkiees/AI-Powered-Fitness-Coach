@@ -1,11 +1,12 @@
 import type { VideoUploadAsset } from "@/lib/pose/video/videoUploadService";
 import {
   analyzeVideoWithPoseTracking,
+  type VideoAnalysisStage,
   type PoseVideoAnalysisResult,
   type VideoAnalysisProgress,
 } from "@/lib/pose/video/poseVideoTrackingService";
 
-export type VideoAnalysisStatus = "idle" | "uploading" | "processing" | "analyzing" | "completed" | "failed";
+export type VideoAnalysisStatus = "idle" | VideoAnalysisStage | "error";
 
 export type UploadedVideoAnalysisOptions = {
   signal?: AbortSignal;
@@ -17,17 +18,18 @@ export async function analyzeUploadedWorkoutVideo(
   options: UploadedVideoAnalysisOptions = {},
 ): Promise<PoseVideoAnalysisResult> {
   options.onProgress?.({
-    stage: "processing",
+    stage: "loading_model",
     percentage: 0,
     processedFrames: 0,
-    totalFrames: 0,
+    totalFrames: asset.totalFramesEstimate,
     currentTimeSeconds: 0,
     durationSeconds: asset.durationSeconds,
     detectedExercise: "general",
-    detectedLabel: "Preparing analysis",
+    detectedLabel: "Loading pose model",
     totalReps: 0,
     confidence: 0,
-    statusText: "Preparing video frames",
+    modelProgress: 0,
+    statusText: "Loading AI model",
     estimatedRemainingSeconds: null,
   });
 
@@ -36,15 +38,23 @@ export async function analyzeUploadedWorkoutVideo(
 
 export function labelForVideoAnalysisStatus(status: VideoAnalysisStatus) {
   switch (status) {
-    case "uploading":
-      return "Uploading";
-    case "processing":
-      return "Processing";
-    case "analyzing":
-      return "AI analyzing";
-    case "completed":
+    case "loading_video":
+      return "Loading video";
+    case "metadata_ready":
+      return "Metadata ready";
+    case "loading_model":
+      return "Loading model";
+    case "model_ready":
+      return "Model ready";
+    case "extracting_frames":
+      return "Extracting frames";
+    case "tracking_pose":
+      return "Tracking pose";
+    case "analyzing_reps":
+      return "Analyzing reps";
+    case "complete":
       return "Completed";
-    case "failed":
+    case "error":
       return "Failed";
     default:
       return "Ready";

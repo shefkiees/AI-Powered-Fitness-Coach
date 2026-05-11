@@ -1,6 +1,7 @@
 export const SUPPORTED_VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
 export const SUPPORTED_VIDEO_EXTENSIONS = [".mp4", ".webm", ".mov"];
 export const MAX_VIDEO_FILE_SIZE_BYTES = 500 * 1024 * 1024;
+export const DEFAULT_VIDEO_FPS = 30;
 
 export type VideoUploadAsset = {
   file: File;
@@ -9,6 +10,11 @@ export type VideoUploadAsset = {
   durationSeconds: number;
   width: number;
   height: number;
+  fpsEstimate: number;
+  totalFramesEstimate: number;
+  fileSizeBytes: number;
+  format: string;
+  mimeType: string;
 };
 
 export type VideoUploadValidation = {
@@ -48,11 +54,13 @@ export function validateWorkoutVideo(file: File): VideoUploadValidation {
   return { ok: true };
 }
 
-function waitForVideoEvent(video: HTMLVideoElement, eventName: string) {
+function waitForVideoEvent(video: HTMLVideoElement, eventName: string, timeoutMs = 12000) {
   return new Promise<void>((resolve, reject) => {
+    let timeoutId = 0;
     const cleanup = () => {
       video.removeEventListener(eventName, handleEvent);
       video.removeEventListener("error", handleError);
+      if (timeoutId) window.clearTimeout(timeoutId);
     };
     const handleEvent = () => {
       cleanup();
@@ -60,10 +68,14 @@ function waitForVideoEvent(video: HTMLVideoElement, eventName: string) {
     };
     const handleError = () => {
       cleanup();
-      reject(new Error("Could not read video metadata."));
+      reject(new Error("Could not decode video"));
     };
     video.addEventListener(eventName, handleEvent, { once: true });
     video.addEventListener("error", handleError, { once: true });
+    timeoutId = window.setTimeout(() => {
+      cleanup();
+      reject(new Error("Could not decode video"));
+    }, timeoutMs);
   });
 }
 
@@ -108,17 +120,39 @@ export async function prepareWorkoutVideo(
   try {
     onProgress?.(28);
     const video = await loadPreviewVideo(objectUrl);
+    const durationSeconds = Number.isFinite(video.duration) ? video.duration : 0;
+    const fpsEstimate = DEFAULT_VIDEO_FPS;
+    const totalFramesEstimate = Math.max(1, Math.ceil(durationSeconds * fpsEstimate));
     onProgress?.(58);
     const thumbnailUrl = await createVideoThumbnail(video);
     onProgress?.(86);
 
-    return {
+    const asset = {
       file,
       objectUrl,
       thumbnailUrl,
-      durationSeconds: Number.isFinite(video.duration) ? video.duration : 0,
+      durationSeconds,
       width: video.videoWidth || 0,
       height: video.videoHeight || 0,
+      fpsEstimate,
+      totalFramesEstimate,
+      fileSizeBytes: file.size,
+      format: extensionFor(file) || file.type || "unknown",
+      mimeType: file.type || "unknown",
+    };
+    console.log("[video-analysis] video metadata", {
+      durationSeconds: asset.durationSeconds,
+      width: asset.width,
+      height: asset.height,
+      fpsEstimate: asset.fpsEstimate,
+      totalFramesEstimate: asset.totalFramesEstimate,
+      fileSizeBytes: asset.fileSizeBytes,
+      format: asset.format,
+      mimeType: asset.mimeType,
+    });
+
+    return {
+      ...asset,
     };
   } catch (error) {
     URL.revokeObjectURL(objectUrl);

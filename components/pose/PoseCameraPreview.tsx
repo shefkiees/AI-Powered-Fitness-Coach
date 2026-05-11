@@ -17,6 +17,10 @@ import {
   type FormPhase,
   type FormStatus,
 } from "@/lib/pose/formHeuristics";
+import {
+  loadSharedPoseDetector,
+  type PoseDetectorLike,
+} from "@/lib/pose/poseDetectorService";
 
 export type PoseCameraPreviewProps = {
   embedded?: boolean;
@@ -42,14 +46,6 @@ export type PoseCameraPreviewProps = {
     score: number;
     metrics?: Record<string, number>;
   }) => void;
-};
-
-type PoseDetectorLike = {
-  estimatePoses: (
-    video: HTMLVideoElement,
-    config?: object,
-  ) => Promise<{ keypoints?: { x: number; y: number; score?: number }[] }[]>;
-  dispose: () => void | Promise<void>;
 };
 
 const MANUAL_EXERCISE_LABELS: Record<FormExercise, string> = {
@@ -151,11 +147,6 @@ export function PoseCameraPreview({
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
     if (videoRef.current) videoRef.current.srcObject = null;
-    try {
-      void detectorRef.current?.dispose();
-    } catch {
-      /* ignore */
-    }
     detectorRef.current = null;
     setModelReady(false);
     setModelLoading(false);
@@ -288,27 +279,9 @@ export function PoseCameraPreview({
     setError(null);
 
     try {
-      const tf = await import("@tensorflow/tfjs");
-      await import("@tensorflow/tfjs-backend-webgl");
-
-      try {
-        await tf.setBackend("webgl");
-      } catch {
-        await tf.setBackend("cpu");
-      }
-      await tf.ready();
-
-      const poseDetection = await import("@tensorflow-models/pose-detection");
-      const detector = (await poseDetection.createDetector(
-        poseDetection.SupportedModels.MoveNet,
-        {
-          modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
-          enableSmoothing: true,
-        },
-      )) as PoseDetectorLike;
+      const { detector } = await loadSharedPoseDetector();
 
       if (!activeRef.current) {
-        await detector.dispose();
         setModelLoading(false);
         return;
       }

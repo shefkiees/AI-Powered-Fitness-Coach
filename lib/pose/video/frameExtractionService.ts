@@ -63,7 +63,7 @@ export async function loadVideoElementForAnalysis(src: string, signal?: AbortSig
     };
     const handleError = () => {
       cleanup();
-      reject(new Error("Could not load the uploaded video for analysis."));
+      reject(new Error("Could not decode video"));
     };
     const handleAbort = () => {
       cleanup();
@@ -100,7 +100,7 @@ export async function seekVideoToTime(video: HTMLVideoElement, timeSeconds: numb
     };
     const handleError = () => {
       cleanup();
-      reject(new Error("Could not extract a video frame."));
+      reject(new Error("Could not decode video"));
     };
     const handleAbort = () => {
       cleanup();

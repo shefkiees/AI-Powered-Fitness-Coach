@@ -270,8 +270,8 @@ function ProgressBar({ value }: { value: number }) {
 }
 
 function StatusPill({ status }: { status: VideoAnalysisStatus }) {
-  const failed = status === "failed";
-  const done = status === "completed";
+  const failed = status === "error";
+  const done = status === "complete";
   return (
     <span
       className={cn(
@@ -332,6 +332,7 @@ export function PoseWorkoutScreen() {
   const [videoResult, setVideoResult] = useState<PoseVideoAnalysisResult | null>(null);
   const [videoSummary, setVideoSummary] = useState<AiSummary | null>(null);
   const [videoError, setVideoError] = useState("");
+  const [videoLiveSample, setVideoLiveSample] = useState<VideoPlaybackSample | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [showSkeletonOverlay, setShowSkeletonOverlay] = useState(false);
   const [videoPlaybackTime, setVideoPlaybackTime] = useState(0);
@@ -376,7 +377,7 @@ export function PoseWorkoutScreen() {
     const video = replayVideoRef.current;
     if (!video || !videoAsset) return;
 
-    if (videoStatus === "completed") {
+    if (videoStatus === "complete") {
       video.pause();
       video.currentTime = 0;
       return;
@@ -389,7 +390,7 @@ export function PoseWorkoutScreen() {
   useEffect(() => {
     const video = replayVideoRef.current;
     const canvas = skeletonCanvasRef.current;
-    if (!showSkeletonOverlay || !videoResult || !video || !canvas) {
+    if (!showSkeletonOverlay || (!videoResult && !videoLiveSample) || !video || !canvas) {
       const context = canvas?.getContext("2d");
       if (canvas && context) context.clearRect(0, 0, canvas.width, canvas.height);
       return undefined;
@@ -400,15 +401,17 @@ export function PoseWorkoutScreen() {
       if (!replayVideoRef.current || !skeletonCanvasRef.current) return;
       const time = replayVideoRef.current.currentTime;
       const sample =
-        nearestPlaybackSample(videoResult.playbackSamples, time) ||
-        nearestKeypointSample(videoResult.keypointSamples, time);
+        (videoResult
+          ? nearestPlaybackSample(videoResult.playbackSamples, time) ||
+            nearestKeypointSample(videoResult.keypointSamples, time)
+          : videoLiveSample);
       if (sample) drawPoseOnCanvas(skeletonCanvasRef.current, replayVideoRef.current, sample.keypoints);
       frameId = requestAnimationFrame(draw);
     };
 
     draw();
     return () => cancelAnimationFrame(frameId);
-  }, [showSkeletonOverlay, videoResult]);
+  }, [showSkeletonOverlay, videoResult, videoLiveSample]);
 
   useEffect(() => {
     const video = replayVideoRef.current;
@@ -445,6 +448,7 @@ export function PoseWorkoutScreen() {
     setVideoResult(null);
     setVideoSummary(null);
     setVideoError("");
+    setVideoLiveSample(null);
     setShowSkeletonOverlay(false);
     setVideoPlaybackTime(0);
   };
@@ -455,13 +459,14 @@ export function PoseWorkoutScreen() {
     videoAbortRef.current = controller;
 
     replaceVideoAsset(null);
-    setVideoStatus("uploading");
+    setVideoStatus("loading_video");
     setVideoUploadProgress(0);
     setVideoAnalysisProgress(null);
     setVideoResult(null);
     setVideoSummary(null);
     setVideoError("");
-    setShowSkeletonOverlay(false);
+    setVideoLiveSample(null);
+    setShowSkeletonOverlay(true);
     setVideoPlaybackTime(0);
 
     try {
@@ -475,17 +480,50 @@ export function PoseWorkoutScreen() {
 
       videoAssetRef.current = asset;
       setVideoAsset(asset);
-      setVideoStatus("processing");
+      setVideoAnalysisProgress({
+        stage: "metadata_ready",
+        percentage: 0,
+        processedFrames: 0,
+        totalFrames: asset.totalFramesEstimate,
+        currentTimeSeconds: 0,
+        durationSeconds: asset.durationSeconds,
+        detectedExercise: "general",
+        detectedLabel: "Metadata ready",
+        totalReps: 0,
+        confidence: 0,
+        modelProgress: 0,
+        statusText: "Video metadata loaded",
+        estimatedRemainingSeconds: null,
+      });
+      setVideoStatus("metadata_ready");
 
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-      setVideoStatus("analyzing");
+      setVideoStatus("loading_model");
 
       const result = await analyzeUploadedWorkoutVideo(asset, {
         signal: controller.signal,
         onProgress: (progress) => {
           if (controller.signal.aborted) return;
           setVideoAnalysisProgress(progress);
-          setVideoStatus(progress.stage === "processing" ? "processing" : "analyzing");
+          setVideoStatus(progress.stage);
+          if (progress.keypoints?.length) {
+            setVideoLiveSample({
+              timeSeconds: progress.currentTimeSeconds,
+              keypoints: progress.keypoints,
+              detectedExercise: progress.detectedExercise,
+              detectedLabel: progress.detectedLabel,
+              totalReps: progress.totalReps,
+              confidence: progress.confidence,
+              formScore: progress.formScore || 0,
+              phase: progress.phase || "unknown",
+              cue: progress.cue || progress.statusText,
+              metrics: {},
+              trackingStable: Boolean(progress.trackingStable),
+              repJustCompleted: false,
+              invalidRep: false,
+              interpolated: progress.interpolated,
+            });
+          }
         },
       });
       if (controller.signal.aborted) return;
@@ -497,12 +535,12 @@ export function PoseWorkoutScreen() {
       setVideoSummary(summary);
       setAiSummary(summary);
       setSavedNotice("Video analysis saved.");
-      setVideoStatus("completed");
+      setVideoStatus("complete");
       await loadHistory();
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
       setVideoError(err instanceof Error ? err.message : String(err));
-      setVideoStatus("failed");
+      setVideoStatus("error");
     } finally {
       if (videoAbortRef.current === controller) videoAbortRef.current = null;
     }
@@ -656,18 +694,20 @@ export function PoseWorkoutScreen() {
     (cameraActive ? "Center your body and settle into the movement." : "Start when you are ready.");
   const showSessionDetails = cameraActive || durationSeconds > 0 || completedTotals.length > 0;
   const videoProgressValue =
-    videoStatus === "uploading"
+    videoStatus === "loading_video"
       ? videoUploadProgress
-      : videoAnalysisProgress?.percentage || (videoStatus === "completed" ? 100 : 0);
+      : videoAnalysisProgress?.percentage || (videoStatus === "complete" ? 100 : 0);
   const videoDetectedLabel = videoAnalysisProgress?.detectedLabel || videoResult?.finalState.detectedLabel || "Waiting for video";
   const videoRepCount = videoAnalysisProgress?.totalReps ?? videoResult?.finalState.totalReps ?? 0;
   const videoConfidence = videoAnalysisProgress?.confidence ?? videoResult?.confidence ?? 0;
   const videoStatusText =
     videoAnalysisProgress?.statusText ||
-    (videoStatus === "uploading" ? "Reading video file" : "Drop a workout video to start");
+    (videoStatus === "loading_video" ? "Reading video file" : "Drop a workout video to start");
   const videoCompletedTotals = videoResult?.completedTotals || [];
   const videoDuration = videoResult?.durationSeconds || videoAsset?.durationSeconds || 0;
-  const activePlaybackSample = videoResult ? nearestPlaybackSample(videoResult.playbackSamples, videoPlaybackTime) : null;
+  const activePlaybackSample = videoResult
+    ? nearestPlaybackSample(videoResult.playbackSamples, videoPlaybackTime)
+    : videoLiveSample;
   const activeSkeletonSample = videoResult
     ? nearestKeypointSample(videoResult.keypointSamples, videoPlaybackTime)
     : null;
@@ -682,7 +722,9 @@ export function PoseWorkoutScreen() {
     videoConfidence;
   const playbackFormScore = activePlaybackSample?.formScore ?? videoResult?.formScore ?? 0;
   const playbackCue = activePlaybackSample?.cue || videoStatusText;
-  const invalidRepCount = videoResult?.repMarkers.filter((marker) => marker.squatDepthValid === false || marker.squatLockoutValid === false).length || 0;
+  const invalidRepCount =
+    (videoResult?.repMarkers.filter((marker) => marker.squatDepthValid === false || marker.squatLockoutValid === false).length || 0) +
+    (videoResult?.partialRepMarkers.length || 0);
 
   return (
     <div className="min-h-screen bg-[#070707] px-3 py-4 text-white sm:px-6 lg:px-8">
@@ -813,8 +855,8 @@ export function PoseWorkoutScreen() {
                     ref={replayVideoRef}
                     src={videoAsset.objectUrl}
                     poster={videoAsset.thumbnailUrl}
-                    muted={videoStatus !== "completed"}
-                    autoPlay={videoStatus !== "completed"}
+                    muted={videoStatus !== "complete"}
+                    autoPlay={videoStatus !== "complete"}
                     controls
                     playsInline
                     className="h-full min-h-[300px] w-full object-cover"
@@ -828,7 +870,7 @@ export function PoseWorkoutScreen() {
                     aria-hidden
                   />
 
-                  {videoStatus !== "completed" ? (
+                  {videoStatus !== "complete" ? (
                     <div className="absolute inset-0 flex flex-col justify-between bg-black/50 p-4 backdrop-blur-[2px] sm:p-5">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0 rounded-2xl bg-black/45 px-4 py-3 backdrop-blur-md">
@@ -862,7 +904,7 @@ export function PoseWorkoutScreen() {
                     </div>
                   ) : null}
 
-                  {videoResult?.repMarkers.length ? (
+                  {videoResult && (videoResult.repMarkers.length || videoResult.partialRepMarkers.length) ? (
                     <div className="absolute bottom-3 left-4 right-4">
                       <div className="relative h-2 rounded-full bg-white/15">
                         {videoResult.repMarkers.map((marker) => (
@@ -877,6 +919,18 @@ export function PoseWorkoutScreen() {
                             )}
                             style={{ left: `${Math.min(100, (marker.timeSeconds / Math.max(1, videoDuration)) * 100)}%` }}
                             aria-label={`Jump to rep ${marker.rep}`}
+                            onClick={() => {
+                              if (replayVideoRef.current) replayVideoRef.current.currentTime = marker.timeSeconds;
+                            }}
+                          />
+                        ))}
+                        {videoResult.partialRepMarkers.map((marker) => (
+                          <button
+                            key={marker.id}
+                            type="button"
+                            className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-amber-400 ring-4 ring-black/55"
+                            style={{ left: `${Math.min(100, (marker.timeSeconds / Math.max(1, videoDuration)) * 100)}%` }}
+                            aria-label={`Jump to partial ${marker.label}`}
                             onClick={() => {
                               if (replayVideoRef.current) replayVideoRef.current.currentTime = marker.timeSeconds;
                             }}
@@ -910,6 +964,20 @@ export function PoseWorkoutScreen() {
                 <p className="mt-1 text-xs leading-5 text-white/45">Max size {formatVideoFileSize(MAX_VIDEO_FILE_SIZE_BYTES)}</p>
               </div>
 
+              {videoAsset ? (
+                <div className="rounded-2xl bg-white/[0.035] p-4">
+                  <p className="text-[11px] font-black uppercase tracking-[0.16em] text-white/35">Video metadata</p>
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <MetricPill label="Duration" value={formatDuration(videoAsset.durationSeconds)} />
+                    <MetricPill label="Frames" value={videoAsset.totalFramesEstimate} />
+                    <MetricPill label="FPS" value={videoAsset.fpsEstimate} />
+                    <MetricPill label="Size" value={formatVideoFileSize(videoAsset.fileSizeBytes)} />
+                    <MetricPill label="Width" value={videoAsset.width || "Unknown"} />
+                    <MetricPill label="Height" value={videoAsset.height || "Unknown"} />
+                  </div>
+                </div>
+              ) : null}
+
               {videoStatus !== "idle" ? (
                 <div className="rounded-2xl bg-white/[0.035] p-4">
                   <div className="flex items-center justify-between gap-3">
@@ -923,6 +991,8 @@ export function PoseWorkoutScreen() {
                     <div className="mt-3 grid grid-cols-2 gap-2">
                       <MetricPill label="Frames" value={`${videoAnalysisProgress.processedFrames}/${videoAnalysisProgress.totalFrames}`} />
                       <MetricPill label="ETA" value={formatEta(videoAnalysisProgress.estimatedRemainingSeconds)} />
+                      <MetricPill label="Model" value={`${videoAnalysisProgress.modelProgress}%`} />
+                      <MetricPill label="Stage" value={labelForVideoAnalysisStatus(videoAnalysisProgress.stage)} />
                     </div>
                   ) : null}
                 </div>
@@ -939,9 +1009,9 @@ export function PoseWorkoutScreen() {
                   type="button"
                   className="px-4 py-2.5 shadow-none"
                   onClick={() => fileInputRef.current?.click()}
-                  disabled={videoStatus === "uploading" || videoStatus === "processing" || videoStatus === "analyzing"}
+                  disabled={videoStatus !== "idle" && videoStatus !== "complete" && videoStatus !== "error"}
                 >
-                  {videoStatus === "uploading" || videoStatus === "processing" || videoStatus === "analyzing" ? (
+                  {videoStatus !== "idle" && videoStatus !== "complete" && videoStatus !== "error" ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <FileVideo className="h-4 w-4" />
@@ -958,7 +1028,7 @@ export function PoseWorkoutScreen() {
             </div>
           </div>
 
-          {videoStatus === "completed" && videoResult ? (
+          {videoStatus === "complete" && videoResult ? (
             <div className="border-t border-white/[0.06] p-4">
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {videoCompletedTotals.length ? (
@@ -1044,7 +1114,7 @@ export function PoseWorkoutScreen() {
                 ) : null}
               </div>
 
-              {videoResult.repMarkers.length ? (
+              {videoResult.repMarkers.length || videoResult.partialRepMarkers.length ? (
                 <div className="mt-4 rounded-2xl bg-white/[0.035] p-4">
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-[11px] font-black uppercase tracking-[0.16em] text-white/45">Rep timestamps</p>
@@ -1074,6 +1144,22 @@ export function PoseWorkoutScreen() {
                         </button>
                       );
                     })}
+                    {videoResult.partialRepMarkers.slice(0, 12).map((marker) => (
+                      <button
+                        key={`${marker.id}-partial-summary`}
+                        type="button"
+                        className="flex items-center justify-between gap-3 rounded-xl bg-amber-400/10 px-3 py-2 text-left ring-1 ring-amber-300/20 transition hover:bg-amber-400/15"
+                        onClick={() => {
+                          if (replayVideoRef.current) replayVideoRef.current.currentTime = marker.timeSeconds;
+                        }}
+                      >
+                        <span className="min-w-0">
+                          <span className="block text-sm font-black text-white">{marker.label}</span>
+                          <span className="block text-xs text-amber-300">{marker.reason}</span>
+                        </span>
+                        <span className="shrink-0 text-xs font-bold text-white/60">{formatDuration(marker.timeSeconds)}</span>
+                      </button>
+                    ))}
                   </div>
                 </div>
               ) : null}
