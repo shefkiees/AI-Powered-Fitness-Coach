@@ -129,53 +129,39 @@ export function LandingPage() {
       </header>
 
       {/* Hero */}
-      <section className="relative isolate overflow-hidden border-b border-white/[0.08] bg-[#061008] text-white">
-        <div className="absolute inset-0 -z-30 bg-[radial-gradient(circle_at_72%_18%,rgba(34,197,94,0.30),transparent_31%),radial-gradient(circle_at_22%_84%,rgba(134,239,172,0.14),transparent_32%),linear-gradient(135deg,#061008_0%,#0b1b10_48%,#020604_100%)]" />
-        <div className="absolute inset-0 -z-30 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:72px_72px] opacity-38 [mask-image:radial-gradient(circle_at_60%_35%,black,transparent_76%)]" />
-        <div className="absolute inset-0 -z-30 opacity-[0.07] [background-image:radial-gradient(circle_at_1px_1px,white_1px,transparent_0)] [background-size:18px_18px]" />
-        <div className="absolute right-[-8%] top-8 -z-20 hidden h-[680px] w-[54%] overflow-hidden opacity-28 mix-blend-screen md:block">
-          <Image
-            src="/pulse-assets/hero-athlete.jpg"
-            alt=""
-            fill
-            sizes="52vw"
-            className="object-cover object-center grayscale-[18%] saturate-125"
-            priority
-          />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_45%_42%,transparent_0%,rgba(6,16,8,0.22)_35%,#061008_82%),linear-gradient(90deg,#061008_0%,rgba(6,16,8,0.62)_44%,rgba(6,16,8,0.18)_100%)]" />
-        </div>
-        <div className="absolute left-[7%] top-36 -z-20 h-72 w-72 rounded-full bg-[var(--fc-accent)]/10 blur-3xl" />
-        <div className="absolute right-[13%] top-28 -z-20 h-96 w-96 rounded-full bg-[var(--fc-accent)]/12 blur-3xl" />
-        <div className="absolute right-[-120px] top-20 -z-10 hidden opacity-[0.13] lg:block">
-          <Image
-            src="/brand/ai-fitness-coach-logo.svg"
-            alt=""
-            width={640}
-            height={196}
-            className="h-auto w-[640px] drop-shadow-[0_0_45px_rgba(34,197,94,0.22)]"
-            priority
-          />
-        </div>
-        <div className="absolute inset-x-0 bottom-0 -z-10 h-40 bg-gradient-to-t from-[#080907] via-[#080907]/70 to-transparent" />
+      <section className="relative isolate overflow-hidden border-b border-white/[0.08] bg-[#020403] text-white">
+        <div className="absolute inset-0 -z-50 bg-[radial-gradient(circle_at_74%_22%,rgba(34,197,94,0.20),transparent_31%),radial-gradient(circle_at_18%_76%,rgba(74,222,128,0.10),transparent_34%),linear-gradient(135deg,#020403_0%,#06100a_42%,#010201_100%)]" />
+        <div className="absolute inset-0 -z-50 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:72px_72px] opacity-35 [mask-image:radial-gradient(circle_at_54%_42%,black,transparent_74%)]" />
+        <div className="absolute inset-0 -z-50 opacity-[0.065] [background-image:radial-gradient(circle_at_1px_1px,white_1px,transparent_0)] [background-size:18px_18px]" />
+        <div className="absolute left-[-14rem] top-20 -z-40 h-[32rem] w-[32rem] rounded-full bg-[var(--fc-accent)]/8 blur-3xl" />
+        <div className="absolute right-[-12rem] top-0 -z-40 h-[42rem] w-[46rem] rounded-full bg-[radial-gradient(circle,rgba(34,197,94,0.20),transparent_66%)] blur-3xl motion-safe:animate-pulse" />
+        <div className="absolute bottom-0 left-1/2 -z-40 h-72 w-[80rem] -translate-x-1/2 rounded-full bg-[radial-gradient(ellipse,rgba(34,197,94,0.11),transparent_62%)] blur-2xl" />
+        <div className="absolute inset-x-0 bottom-0 -z-10 h-44 bg-gradient-to-t from-[#070807] via-[#070807]/78 to-transparent" />
 
-        <div className="mx-auto grid min-h-[720px] max-w-6xl items-center gap-10 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[minmax(0,1fr)_minmax(340px,0.72fr)] lg:px-8">
-          <div className="relative min-w-0 max-w-2xl">
-            <div className="absolute -left-5 top-2 hidden h-16 w-16 rounded-full border border-[var(--fc-accent)]/20 bg-[var(--fc-accent)]/5 blur-[1px] lg:block" />
-            <div className="absolute left-[58%] top-16 hidden h-3 w-3 rounded-full bg-[var(--fc-accent)] shadow-[0_0_28px_rgba(34,197,94,0.9)] motion-safe:animate-pulse sm:block" />
-            <h1 className="relative mt-5 max-w-[22rem] text-[2.75rem] font-black leading-[0.98] text-white drop-shadow-[0_18px_50px_rgba(0,0,0,0.30)] sm:max-w-3xl sm:text-6xl lg:text-7xl">
+        <div className="mx-auto grid min-h-[760px] max-w-6xl items-center gap-8 px-4 py-16 sm:px-6 sm:py-20 md:grid-cols-[minmax(0,0.96fr)_minmax(280px,0.72fr)] lg:grid-cols-[minmax(0,1.02fr)_minmax(360px,0.98fr)] lg:gap-10 lg:px-8">
+          <div className="relative z-10 max-w-3xl">
+            <div className="absolute -left-8 top-6 hidden h-24 w-24 rounded-full border border-[var(--fc-accent)]/14 bg-[var(--fc-accent)]/5 blur-[1px] lg:block" />
+            <div className="absolute left-[59%] top-14 hidden h-2.5 w-2.5 rounded-full bg-[var(--fc-accent)] shadow-[0_0_28px_rgba(34,197,94,0.95)] motion-safe:animate-pulse sm:block" />
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/[0.10] bg-white/[0.06] px-3.5 py-2 text-[0.7rem] font-black uppercase text-white/72 shadow-[0_16px_44px_rgba(0,0,0,0.30),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-2xl">
+              <span className="h-2 w-2 rounded-full bg-[var(--fc-accent)] shadow-[0_0_18px_rgba(34,197,94,0.85)]" />
+              AI-powered personal training
+            </div>
+            <h1 className="relative mt-6 max-w-[23rem] text-[3.4rem] font-black leading-[0.88] tracking-normal text-white drop-shadow-[0_26px_78px_rgba(0,0,0,0.42)] sm:max-w-[46rem] sm:text-[4.6rem] lg:text-[6.7rem]">
               Train smarter with your AI fitness coach.
             </h1>
-            <p className="mt-6 max-w-[22rem] text-lg leading-8 text-white/70 sm:max-w-xl sm:text-xl">
+            <p className="mt-7 max-w-[22rem] text-lg leading-8 text-white/70 sm:max-w-xl sm:text-xl">
               Custom workouts, practical nutrition guidance, and progress tracking in one calm coaching workspace.
             </p>
 
-            <div className="mt-8 grid gap-3 sm:max-w-2xl sm:grid-cols-3">
+            <div className="mt-9 grid gap-3 sm:max-w-2xl sm:grid-cols-3">
               {heroHighlights.map((item) => (
                 <div
                   key={item}
-                  className="flex items-center gap-2 rounded-full border border-white/[0.10] bg-white/[0.055] px-3 py-2 text-sm font-bold text-white/84 shadow-[0_12px_34px_rgba(0,0,0,0.16)] backdrop-blur-xl"
+                  className="group flex min-h-[58px] items-center gap-2 rounded-lg border border-white/[0.11] bg-white/[0.065] px-3.5 py-3 text-sm font-bold text-white/84 shadow-[0_18px_48px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-2xl transition duration-300 hover:-translate-y-1 hover:border-[var(--fc-accent)]/38 hover:bg-white/[0.09] hover:shadow-[0_24px_60px_rgba(0,0,0,0.30),0_0_34px_rgba(34,197,94,0.10)]"
                 >
-                  <CheckCircle2 className="h-4 w-4 shrink-0 text-[var(--fc-accent)] drop-shadow-[0_0_12px_rgba(34,197,94,0.7)]" />
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[var(--fc-accent)]/24 bg-[var(--fc-accent)]/12 shadow-[0_0_18px_rgba(34,197,94,0.18)] transition group-hover:scale-105">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-[var(--fc-accent)] drop-shadow-[0_0_12px_rgba(34,197,94,0.7)]" />
+                  </span>
                   <span>{item}</span>
                 </div>
               ))}
@@ -184,14 +170,14 @@ export function LandingPage() {
             <div className="mt-10 flex max-w-[22rem] flex-col gap-3 sm:max-w-none sm:flex-row sm:flex-wrap">
               <Link
                 href="/onboarding"
-                className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--fc-accent)] px-7 py-3.5 text-sm font-black text-white shadow-[0_18px_45px_rgba(34,197,94,0.30),inset_0_1px_0_rgba(255,255,255,0.20)] transition hover:-translate-y-0.5 hover:brightness-110 sm:w-auto"
+                className="group inline-flex h-[58px] w-full items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#16a34a_0%,#4ade80_46%,#22c55e_100%)] px-7 text-sm font-black text-white shadow-[0_22px_56px_rgba(34,197,94,0.34),0_0_26px_rgba(34,197,94,0.18),inset_0_1px_0_rgba(255,255,255,0.30)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_28px_68px_rgba(34,197,94,0.42),0_0_34px_rgba(34,197,94,0.24),inset_0_1px_0_rgba(255,255,255,0.34)] sm:w-auto"
               >
                 Start training free
                 <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
               </Link>
               <Link
                 href="/login"
-                className="group inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/[0.16] bg-white/[0.10] px-6 py-3.5 text-sm font-black text-white shadow-[0_14px_35px_rgba(0,0,0,0.20),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-[var(--fc-accent)]/45 hover:bg-white/[0.16] sm:w-auto"
+                className="group inline-flex h-[58px] w-full items-center justify-center gap-2 rounded-full border border-white/[0.15] bg-white/[0.075] px-6 text-sm font-black text-white shadow-[0_18px_44px_rgba(0,0,0,0.30),inset_0_1px_0_rgba(255,255,255,0.10)] backdrop-blur-2xl transition duration-300 hover:-translate-y-0.5 hover:border-[var(--fc-accent)]/42 hover:bg-white/[0.12] sm:w-auto"
               >
                 <Play className="h-4 w-4 fill-current text-[var(--fc-accent)] drop-shadow-[0_0_12px_rgba(34,197,94,0.7)] transition group-hover:scale-110" />
                 Live demo
@@ -199,28 +185,58 @@ export function LandingPage() {
             </div>
           </div>
 
-          <aside className="relative mt-12 hidden justify-self-end lg:block">
-            <div className="absolute -left-12 top-12 h-24 w-24 rounded-full border border-[var(--fc-accent)]/20 bg-[conic-gradient(from_140deg,rgba(34,197,94,0.8),rgba(255,255,255,0.08),rgba(34,197,94,0.18))] p-[1px] opacity-70 blur-[0.2px]">
-              <div className="h-full w-full rounded-full bg-[#071008]/88 backdrop-blur-xl" />
-            </div>
-            <div className="absolute -right-5 top-[-22px] flex h-16 w-16 items-center justify-center rounded-full border border-white/[0.12] bg-white/[0.07] text-[var(--fc-accent)] shadow-[0_18px_55px_rgba(34,197,94,0.18)] backdrop-blur-xl motion-safe:animate-pulse">
-              <Bot className="h-6 w-6" />
-            </div>
-            <div className="absolute -bottom-8 right-10 h-28 w-28 rounded-full bg-[var(--fc-accent)]/14 blur-3xl" />
+          <div className="relative z-0 mt-4 min-h-[420px] sm:min-h-[520px] md:mt-0 md:min-h-[620px] lg:min-h-[640px]">
+            <div className="absolute left-1/2 top-1/2 h-[24rem] w-[24rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[var(--fc-accent)]/16 bg-[radial-gradient(circle,rgba(34,197,94,0.12),transparent_65%)] shadow-[0_0_95px_rgba(34,197,94,0.12)] sm:h-[34rem] sm:w-[34rem]" />
+            <div className="absolute left-[2%] top-[22%] h-32 w-32 rounded-full border border-[var(--fc-accent)]/16 bg-white/[0.025] backdrop-blur-xl" />
+            <div className="absolute right-[4%] top-[18%] h-14 w-14 rounded-full border border-white/[0.14] bg-white/[0.07] shadow-[0_20px_52px_rgba(34,197,94,0.16)] backdrop-blur-2xl" />
+            <div className="absolute bottom-[13%] left-[14%] h-px w-44 rotate-[-16deg] bg-gradient-to-r from-transparent via-[var(--fc-accent)]/42 to-transparent shadow-[0_0_18px_rgba(34,197,94,0.55)]" />
+            <div className="absolute right-[7%] top-[37%] h-px w-56 rotate-[18deg] bg-gradient-to-r from-transparent via-[var(--fc-accent)]/36 to-transparent shadow-[0_0_20px_rgba(34,197,94,0.46)]" />
+            <div className="absolute bottom-[25%] right-[10%] h-px w-48 rotate-[-8deg] bg-gradient-to-r from-transparent via-white/22 to-transparent" />
 
-            <div className="group relative w-[350px] overflow-hidden rounded-lg border border-white/[0.14] bg-white/[0.075] p-5 text-white shadow-[0_34px_100px_rgba(0,0,0,0.42),0_0_80px_rgba(34,197,94,0.10)] backdrop-blur-2xl transition duration-300 hover:-translate-y-1 hover:border-[var(--fc-accent)]/34 hover:bg-white/[0.095]">
-              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.13),transparent_38%,rgba(34,197,94,0.12))] opacity-80" />
-              <div className="pointer-events-none absolute right-[-38px] top-[-38px] h-32 w-32 rounded-full bg-[var(--fc-accent)]/16 blur-2xl" />
+            <div className="absolute inset-x-0 bottom-0 top-0 overflow-hidden [mask-image:radial-gradient(ellipse_at_58%_46%,black_0%,black_58%,transparent_84%)]">
+              <Image
+                src="/pulse-assets/hero-athlete.jpg"
+                alt="Female fitness athlete training with neon light trails"
+                fill
+                sizes="(min-width: 1024px) 48vw, 100vw"
+                className="object-cover object-[56%_18%] saturate-125 brightness-110 contrast-110 drop-shadow-[0_34px_90px_rgba(0,0,0,0.66)]"
+                priority
+              />
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_57%_38%,transparent_0%,rgba(2,4,3,0.10)_32%,rgba(2,4,3,0.78)_78%),linear-gradient(90deg,#020403_0%,rgba(2,4,3,0.32)_30%,rgba(2,4,3,0.04)_55%,rgba(2,4,3,0.44)_100%)]" />
+            </div>
+
+            <div className="absolute bottom-[9%] left-[10%] right-[8%] h-24 rounded-full bg-[radial-gradient(ellipse,rgba(34,197,94,0.22),transparent_64%)] blur-2xl" />
+            <div className="absolute right-[10%] top-[20%] h-40 w-40 rounded-full bg-[var(--fc-accent)]/13 blur-3xl motion-safe:animate-pulse" />
+          </div>
+
+          <aside className="hidden">
+            <div className="absolute -left-16 top-16 h-28 w-28 rounded-full border border-[var(--fc-accent)]/18 bg-[conic-gradient(from_140deg,rgba(34,197,94,0.75),rgba(255,255,255,0.08),rgba(34,197,94,0.14))] p-[1px] opacity-70 blur-[0.2px]">
+              <div className="h-full w-full rounded-full bg-[#071008]/90 backdrop-blur-xl" />
+            </div>
+            <div className="absolute -right-4 top-8 flex h-14 w-14 items-center justify-center rounded-full border border-white/[0.14] bg-white/[0.08] text-[var(--fc-accent)] shadow-[0_20px_55px_rgba(34,197,94,0.18)] backdrop-blur-2xl motion-safe:animate-pulse">
+              <Bot className="h-5 w-5" />
+            </div>
+            <div className="absolute -bottom-6 right-12 h-32 w-32 rounded-full bg-[var(--fc-accent)]/14 blur-3xl" />
+
+            <div className="group relative mt-20 w-[390px] overflow-hidden rounded-lg border border-white/[0.16] bg-[rgba(8,24,14,0.62)] p-5 text-white shadow-[0_36px_110px_rgba(0,0,0,0.48),0_0_90px_rgba(34,197,94,0.12),inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-2xl transition duration-300 hover:-translate-y-1 hover:border-[var(--fc-accent)]/38 hover:bg-[rgba(11,31,18,0.68)]">
+              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.14),transparent_34%,rgba(34,197,94,0.12))] opacity-80" />
+              <div className="pointer-events-none absolute right-[-44px] top-[-52px] h-40 w-40 rounded-full bg-[var(--fc-accent)]/18 blur-2xl" />
               <div className="relative flex items-center justify-between">
-                <p className="text-xs font-black uppercase text-[var(--fc-accent)]">Today&apos;s plan</p>
-                <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--fc-accent)]/20 bg-[var(--fc-accent)]/10 shadow-[0_0_30px_rgba(34,197,94,0.16)]">
+                <div>
+                  <p className="text-[0.68rem] font-black uppercase text-[var(--fc-accent)]">Today&apos;s plan</p>
+                  <p className="mt-1 text-xs font-bold text-white/46">AI adjusted for recovery</p>
+                </div>
+                <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--fc-accent)]/24 bg-[var(--fc-accent)]/10 shadow-[0_0_30px_rgba(34,197,94,0.18)]">
                   <Gauge className="h-5 w-5 text-[var(--fc-accent)]" />
                 </span>
               </div>
-              <div className="relative mt-5 grid grid-cols-[1fr_auto] items-start gap-4">
-                <p className="text-2xl font-black leading-tight">Balanced strength</p>
-                <div className="relative h-16 w-16 rounded-full bg-[conic-gradient(var(--fc-accent)_74%,rgba(255,255,255,0.12)_0)] p-[3px] shadow-[0_0_34px_rgba(34,197,94,0.18)]">
-                  <div className="flex h-full w-full items-center justify-center rounded-full bg-[#071008]/92">
+              <div className="relative mt-6 grid grid-cols-[1fr_auto] items-start gap-4">
+                <div>
+                  <p className="text-3xl font-black leading-tight">Balanced strength</p>
+                  <p className="mt-2 text-sm font-semibold text-white/54">45 min · 3 blocks · low joint load</p>
+                </div>
+                <div className="relative h-16 w-16 rounded-full bg-[conic-gradient(var(--fc-accent)_78%,rgba(255,255,255,0.12)_0)] p-[3px] shadow-[0_0_36px_rgba(34,197,94,0.22)]">
+                  <div className="flex h-full w-full items-center justify-center rounded-full bg-[#071008]/94">
                     <LineChart className="h-5 w-5 text-[var(--fc-accent)]" />
                   </div>
                 </div>
@@ -229,28 +245,36 @@ export function LandingPage() {
                 {["Warm up - 6 min", "Strength block - 32 min", "Cooldown - 7 min"].map((step, index) => (
                   <div
                     key={step}
-                    className="group/step rounded-md border border-white/[0.08] bg-black/[0.16] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition group-hover:bg-white/[0.075]"
+                    className="group/step rounded-md border border-white/[0.09] bg-white/[0.055] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition group-hover:bg-white/[0.085]"
                   >
                     <div className="flex items-center gap-3">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--fc-accent)]/15 text-xs font-black text-[var(--fc-accent)]">
-                      {index + 1}
-                    </span>
-                    <span className="text-sm font-bold text-white/88">{step}</span>
+                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--fc-accent)]/16 text-xs font-black text-[var(--fc-accent)]">
+                        {index + 1}
+                      </span>
+                      <span className="text-sm font-bold text-white/88">{step}</span>
                     </div>
-                    <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/[0.08]">
+                    <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/[0.09]">
                       <div
-                        className="h-full rounded-full bg-[var(--fc-accent)] shadow-[0_0_18px_rgba(34,197,94,0.52)]"
+                        className="h-full rounded-full bg-[linear-gradient(90deg,#22c55e,#4ade80)] shadow-[0_0_18px_rgba(34,197,94,0.54)]"
                         style={{ width: `${[68, 86, 52][index]}%` }}
                       />
                     </div>
                   </div>
                 ))}
               </div>
-              <div className="relative mt-5 flex items-center gap-2 border-t border-white/[0.10] pt-5 text-[var(--fc-accent)]">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Star key={i} className="h-4 w-4 fill-current" />
-                ))}
-                <span className="ml-2 text-sm font-bold text-white/80">4.9 coach rating</span>
+              <div className="relative mt-5 grid grid-cols-2 gap-3 border-t border-white/[0.10] pt-5">
+                <div>
+                  <p className="text-xs font-bold text-white/44">Intensity</p>
+                  <p className="mt-1 text-lg font-black text-white">74%</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs font-bold text-white/44">Rating</p>
+                  <div className="mt-1 flex justify-end gap-1 text-[var(--fc-accent)]">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star key={i} className="h-4 w-4 fill-current" />
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </aside>
