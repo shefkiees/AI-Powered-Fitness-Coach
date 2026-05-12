@@ -301,6 +301,7 @@ export default function AuthForm({ mode }) {
                 </form>
 
                 <p className="mt-6 text-center text-sm text-white/[0.58]">
+                  {isSignup ? "Already have an account? " : "No account yet? "}
                   <Link
                     href={isSignup ? "/login" : "/signup"}
                     className="font-black text-white transition hover:text-emerald-300"
