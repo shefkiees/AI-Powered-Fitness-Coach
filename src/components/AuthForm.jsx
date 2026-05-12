@@ -181,15 +181,15 @@ export default function AuthForm({ mode }) {
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_34%,rgba(52,211,153,0.09),transparent_35%),linear-gradient(180deg,rgba(255,255,255,0.035),transparent_28%,rgba(0,0,0,0.22))]" />
               <div
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-0 opacity-[0.11] mix-blend-screen blur-[0.45px] [mask-image:linear-gradient(to_bottom,transparent,black_10%,black_84%,transparent)]"
+                className="pointer-events-none absolute inset-0 opacity-[0.24] mix-blend-screen [filter:contrast(1.15)] [mask-image:linear-gradient(to_bottom,transparent,black_8%,black_88%,transparent)]"
                 style={{
                   backgroundImage: "url('/images/login-athlete.png')",
-                  backgroundPosition: "right 38% bottom -18px",
+                  backgroundPosition: "right bottom",
                   backgroundRepeat: "no-repeat",
-                  backgroundSize: "74% auto",
+                  backgroundSize: "70%",
                 }}
               />
-              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(3,15,10,0.88)_0%,rgba(3,15,10,0.72)_48%,rgba(3,15,10,0.58)_100%),radial-gradient(circle_at_76%_38%,rgba(52,211,153,0.13),transparent_34%)]" />
+              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(3,15,10,0.96)_0%,rgba(3,15,10,0.74)_45%,rgba(3,15,10,0.46)_100%),radial-gradient(circle_at_75%_55%,rgba(16,185,129,0.18),transparent_45%)]" />
               <div className="pointer-events-none absolute left-8 right-8 top-32 h-px bg-gradient-to-r from-transparent via-emerald-200/24 to-transparent motion-safe:animate-pulse" />
               <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-36 bg-gradient-to-t from-[rgba(3,15,10,0.92)] via-[rgba(3,15,10,0.58)] to-transparent" />
 

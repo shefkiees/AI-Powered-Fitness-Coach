@@ -130,33 +130,52 @@ export function LandingPage() {
 
       {/* Hero */}
       <section className="relative isolate overflow-hidden border-b border-white/[0.08] bg-[#061008] text-white">
-        <div className="absolute inset-0 -z-20 bg-[radial-gradient(circle_at_70%_18%,rgba(34,197,94,0.28),transparent_34%),radial-gradient(circle_at_18%_80%,rgba(134,239,172,0.16),transparent_30%),linear-gradient(135deg,#061008_0%,#0b1b10_52%,#020604_100%)]" />
-        <div className="absolute inset-0 -z-20 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:72px_72px] opacity-45" />
-        <div className="absolute right-[-120px] top-20 -z-10 hidden opacity-20 lg:block">
+        <div className="absolute inset-0 -z-30 bg-[radial-gradient(circle_at_72%_18%,rgba(34,197,94,0.30),transparent_31%),radial-gradient(circle_at_22%_84%,rgba(134,239,172,0.14),transparent_32%),linear-gradient(135deg,#061008_0%,#0b1b10_48%,#020604_100%)]" />
+        <div className="absolute inset-0 -z-30 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:72px_72px] opacity-38 [mask-image:radial-gradient(circle_at_60%_35%,black,transparent_76%)]" />
+        <div className="absolute inset-0 -z-30 opacity-[0.07] [background-image:radial-gradient(circle_at_1px_1px,white_1px,transparent_0)] [background-size:18px_18px]" />
+        <div className="absolute right-[-8%] top-8 -z-20 hidden h-[680px] w-[54%] overflow-hidden opacity-28 mix-blend-screen md:block">
+          <Image
+            src="/pulse-assets/hero-athlete.jpg"
+            alt=""
+            fill
+            sizes="52vw"
+            className="object-cover object-center grayscale-[18%] saturate-125"
+            priority
+          />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_45%_42%,transparent_0%,rgba(6,16,8,0.22)_35%,#061008_82%),linear-gradient(90deg,#061008_0%,rgba(6,16,8,0.62)_44%,rgba(6,16,8,0.18)_100%)]" />
+        </div>
+        <div className="absolute left-[7%] top-36 -z-20 h-72 w-72 rounded-full bg-[var(--fc-accent)]/10 blur-3xl" />
+        <div className="absolute right-[13%] top-28 -z-20 h-96 w-96 rounded-full bg-[var(--fc-accent)]/12 blur-3xl" />
+        <div className="absolute right-[-120px] top-20 -z-10 hidden opacity-[0.13] lg:block">
           <Image
             src="/brand/ai-fitness-coach-logo.svg"
             alt=""
             width={640}
             height={196}
-            className="h-auto w-[640px]"
+            className="h-auto w-[640px] drop-shadow-[0_0_45px_rgba(34,197,94,0.22)]"
             priority
           />
         </div>
-        <div className="absolute inset-x-0 bottom-0 -z-10 h-32 bg-gradient-to-t from-[#080907] to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 -z-10 h-40 bg-gradient-to-t from-[#080907] via-[#080907]/70 to-transparent" />
 
-        <div className="mx-auto grid min-h-[680px] max-w-6xl items-center px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[minmax(0,0.98fr)_minmax(320px,0.72fr)] lg:px-8">
-          <div className="min-w-0 max-w-2xl">
-            <h1 className="mt-7 max-w-[22rem] text-[2.65rem] font-black leading-[1.02] text-white sm:max-w-3xl sm:text-6xl lg:text-7xl">
+        <div className="mx-auto grid min-h-[720px] max-w-6xl items-center gap-10 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[minmax(0,1fr)_minmax(340px,0.72fr)] lg:px-8">
+          <div className="relative min-w-0 max-w-2xl">
+            <div className="absolute -left-5 top-2 hidden h-16 w-16 rounded-full border border-[var(--fc-accent)]/20 bg-[var(--fc-accent)]/5 blur-[1px] lg:block" />
+            <div className="absolute left-[58%] top-16 hidden h-3 w-3 rounded-full bg-[var(--fc-accent)] shadow-[0_0_28px_rgba(34,197,94,0.9)] motion-safe:animate-pulse sm:block" />
+            <h1 className="relative mt-5 max-w-[22rem] text-[2.75rem] font-black leading-[0.98] text-white drop-shadow-[0_18px_50px_rgba(0,0,0,0.30)] sm:max-w-3xl sm:text-6xl lg:text-7xl">
               Train smarter with your AI fitness coach.
             </h1>
             <p className="mt-6 max-w-[22rem] text-lg leading-8 text-white/70 sm:max-w-xl sm:text-xl">
               Custom workouts, practical nutrition guidance, and progress tracking in one calm coaching workspace.
             </p>
 
-            <div className="mt-8 grid gap-3 sm:max-w-xl sm:grid-cols-3">
+            <div className="mt-8 grid gap-3 sm:max-w-2xl sm:grid-cols-3">
               {heroHighlights.map((item) => (
-                <div key={item} className="flex items-center gap-2 text-sm font-bold text-white/84">
-                  <CheckCircle2 className="h-4 w-4 shrink-0 text-[var(--fc-accent)]" />
+                <div
+                  key={item}
+                  className="flex items-center gap-2 rounded-full border border-white/[0.10] bg-white/[0.055] px-3 py-2 text-sm font-bold text-white/84 shadow-[0_12px_34px_rgba(0,0,0,0.16)] backdrop-blur-xl"
+                >
+                  <CheckCircle2 className="h-4 w-4 shrink-0 text-[var(--fc-accent)] drop-shadow-[0_0_12px_rgba(34,197,94,0.7)]" />
                   <span>{item}</span>
                 </div>
               ))}
@@ -165,39 +184,69 @@ export function LandingPage() {
             <div className="mt-10 flex max-w-[22rem] flex-col gap-3 sm:max-w-none sm:flex-row sm:flex-wrap">
               <Link
                 href="/onboarding"
-                className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--fc-accent)] px-7 py-3.5 text-sm font-black text-white shadow-[0_18px_45px_rgba(34,197,94,0.28)] transition hover:-translate-y-0.5 hover:brightness-105 sm:w-auto"
+                className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--fc-accent)] px-7 py-3.5 text-sm font-black text-white shadow-[0_18px_45px_rgba(34,197,94,0.30),inset_0_1px_0_rgba(255,255,255,0.20)] transition hover:-translate-y-0.5 hover:brightness-110 sm:w-auto"
               >
                 Start training free
-                <ArrowRight className="h-4 w-4" />
+                <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
               </Link>
               <Link
                 href="/login"
-                className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/[0.16] bg-white/[0.10] px-6 py-3.5 text-sm font-black text-white shadow-[0_14px_35px_rgba(0,0,0,0.16)] transition hover:-translate-y-0.5 hover:border-[var(--fc-accent)]/45 hover:bg-white/[0.16] sm:w-auto"
+                className="group inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/[0.16] bg-white/[0.10] px-6 py-3.5 text-sm font-black text-white shadow-[0_14px_35px_rgba(0,0,0,0.20),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-[var(--fc-accent)]/45 hover:bg-white/[0.16] sm:w-auto"
               >
-                <Play className="h-4 w-4 fill-current text-[var(--fc-accent)]" />
+                <Play className="h-4 w-4 fill-current text-[var(--fc-accent)] drop-shadow-[0_0_12px_rgba(34,197,94,0.7)] transition group-hover:scale-110" />
                 Live demo
               </Link>
             </div>
           </div>
 
-          <aside className="mt-12 hidden justify-self-end lg:block">
-            <div className="w-[330px] rounded-lg border border-white/14 bg-[#071008]/82 p-5 text-white shadow-[0_30px_90px_rgba(0,0,0,0.34)] backdrop-blur-xl">
-              <div className="flex items-center justify-between">
+          <aside className="relative mt-12 hidden justify-self-end lg:block">
+            <div className="absolute -left-12 top-12 h-24 w-24 rounded-full border border-[var(--fc-accent)]/20 bg-[conic-gradient(from_140deg,rgba(34,197,94,0.8),rgba(255,255,255,0.08),rgba(34,197,94,0.18))] p-[1px] opacity-70 blur-[0.2px]">
+              <div className="h-full w-full rounded-full bg-[#071008]/88 backdrop-blur-xl" />
+            </div>
+            <div className="absolute -right-5 top-[-22px] flex h-16 w-16 items-center justify-center rounded-full border border-white/[0.12] bg-white/[0.07] text-[var(--fc-accent)] shadow-[0_18px_55px_rgba(34,197,94,0.18)] backdrop-blur-xl motion-safe:animate-pulse">
+              <Bot className="h-6 w-6" />
+            </div>
+            <div className="absolute -bottom-8 right-10 h-28 w-28 rounded-full bg-[var(--fc-accent)]/14 blur-3xl" />
+
+            <div className="group relative w-[350px] overflow-hidden rounded-lg border border-white/[0.14] bg-white/[0.075] p-5 text-white shadow-[0_34px_100px_rgba(0,0,0,0.42),0_0_80px_rgba(34,197,94,0.10)] backdrop-blur-2xl transition duration-300 hover:-translate-y-1 hover:border-[var(--fc-accent)]/34 hover:bg-white/[0.095]">
+              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.13),transparent_38%,rgba(34,197,94,0.12))] opacity-80" />
+              <div className="pointer-events-none absolute right-[-38px] top-[-38px] h-32 w-32 rounded-full bg-[var(--fc-accent)]/16 blur-2xl" />
+              <div className="relative flex items-center justify-between">
                 <p className="text-xs font-black uppercase text-[var(--fc-accent)]">Today&apos;s plan</p>
-                <Gauge className="h-5 w-5 text-[var(--fc-accent)]" />
+                <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--fc-accent)]/20 bg-[var(--fc-accent)]/10 shadow-[0_0_30px_rgba(34,197,94,0.16)]">
+                  <Gauge className="h-5 w-5 text-[var(--fc-accent)]" />
+                </span>
               </div>
-              <p className="mt-3 text-2xl font-black">Balanced strength</p>
-              <div className="mt-5 space-y-3">
+              <div className="relative mt-5 grid grid-cols-[1fr_auto] items-start gap-4">
+                <p className="text-2xl font-black leading-tight">Balanced strength</p>
+                <div className="relative h-16 w-16 rounded-full bg-[conic-gradient(var(--fc-accent)_74%,rgba(255,255,255,0.12)_0)] p-[3px] shadow-[0_0_34px_rgba(34,197,94,0.18)]">
+                  <div className="flex h-full w-full items-center justify-center rounded-full bg-[#071008]/92">
+                    <LineChart className="h-5 w-5 text-[var(--fc-accent)]" />
+                  </div>
+                </div>
+              </div>
+              <div className="relative mt-6 space-y-3">
                 {["Warm up - 6 min", "Strength block - 32 min", "Cooldown - 7 min"].map((step, index) => (
-                  <div key={step} className="flex items-center gap-3 rounded-md bg-white/[0.07] px-3 py-2">
+                  <div
+                    key={step}
+                    className="group/step rounded-md border border-white/[0.08] bg-black/[0.16] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition group-hover:bg-white/[0.075]"
+                  >
+                    <div className="flex items-center gap-3">
                     <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--fc-accent)]/15 text-xs font-black text-[var(--fc-accent)]">
                       {index + 1}
                     </span>
                     <span className="text-sm font-bold text-white/88">{step}</span>
+                    </div>
+                    <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/[0.08]">
+                      <div
+                        className="h-full rounded-full bg-[var(--fc-accent)] shadow-[0_0_18px_rgba(34,197,94,0.52)]"
+                        style={{ width: `${[68, 86, 52][index]}%` }}
+                      />
+                    </div>
                   </div>
                 ))}
               </div>
-              <div className="mt-5 flex items-center gap-2 text-[var(--fc-accent)]">
+              <div className="relative mt-5 flex items-center gap-2 border-t border-white/[0.10] pt-5 text-[var(--fc-accent)]">
                 {Array.from({ length: 5 }).map((_, i) => (
                   <Star key={i} className="h-4 w-4 fill-current" />
                 ))}
