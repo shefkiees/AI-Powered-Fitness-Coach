@@ -1,24 +1,19 @@
 "use client";
 
-/* eslint-disable @next/next/no-img-element -- Workout media can be user/Supabase-hosted arbitrary URLs. */
-
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle,
   BarChart3,
   CheckCircle2,
-  Clock3,
   DatabaseZap,
-  Dumbbell,
-  Filter,
   Heart,
   Library,
   Loader2,
   PlayCircle,
   RefreshCw,
   Search,
-  SlidersHorizontal,
   Sparkles,
   X,
   Zap,
@@ -27,6 +22,15 @@ import AppLayout from "@/src/components/AppLayout";
 import EmptyState from "@/src/components/EmptyState";
 import LoadingSpinner from "@/src/components/LoadingSpinner";
 import ProtectedRoute from "@/src/components/ProtectedRoute";
+import ExerciseVideoCard from "@/src/components/workouts/ExerciseVideoCard";
+import WorkoutCard from "@/src/components/workouts/WorkoutCard";
+import WorkoutFilters, { allValue, durationFilters } from "@/src/components/workouts/WorkoutFilters";
+import WorkoutMediaHero from "@/src/components/workouts/WorkoutMediaHero";
+import {
+  estimateWorkoutCalories,
+  getDisplayTitle,
+  splitMuscles,
+} from "@/src/components/workouts/mediaUtils";
 import {
   completeLibraryWorkout,
   createWorkoutPlan,
@@ -35,43 +39,20 @@ import {
 } from "@/src/services/workoutService";
 import { formatGoal, formatLevel, toDateInputValue } from "@/src/utils/formatters";
 
-const allValue = "all";
-
-const durationFilters = [
-  { value: allValue, label: "Any duration", test: () => true },
-  { value: "short", label: "Under 20 min", test: (minutes) => Number(minutes || 0) <= 20 },
-  {
-    value: "medium",
-    label: "20-40 min",
-    test: (minutes) => Number(minutes || 0) > 20 && Number(minutes || 0) <= 40,
-  },
-  { value: "long", label: "40+ min", test: (minutes) => Number(minutes || 0) > 40 },
-];
-
-const viewFilters = [
-  ["recommended", "Recommended"],
-  ["all", "All workouts"],
-  ["favorites", "Favorites"],
-  ["completed", "Completed"],
-];
-
 const primaryButtonClass =
-  "inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[var(--fc-accent)] px-4 py-2.5 text-sm font-black text-[var(--fc-accent-ink)] shadow-[0_16px_36px_rgba(184,245,61,0.13)] transition hover:bg-[var(--fc-accent-strong)] disabled:cursor-not-allowed disabled:opacity-70";
+  "inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#111827] px-4 py-2.5 text-sm font-black text-white shadow-[0_16px_36px_rgba(17,24,39,0.16)] transition hover:-translate-y-0.5 hover:bg-[#030712] disabled:cursor-not-allowed disabled:opacity-70";
 
-const secondaryButtonClass =
-  "inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-white/[0.1] bg-white/[0.045] px-4 py-2.5 text-sm font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:border-white/[0.18] hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-60";
+const accentButtonClass =
+  "inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[var(--fc-accent)] px-4 py-2.5 text-sm font-black text-white shadow-[0_16px_36px_rgba(34,197,94,0.18)] transition hover:-translate-y-0.5 hover:bg-[var(--fc-accent-strong)] disabled:cursor-not-allowed disabled:opacity-70";
 
 const lightButtonClass =
   "inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[#e5e7eb] bg-white px-4 py-2.5 text-sm font-black text-[#111827] shadow-sm transition hover:bg-[#f3f4f6] disabled:cursor-not-allowed disabled:opacity-60";
 
+const secondaryDarkButtonClass =
+  "inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-white/[0.1] bg-white/[0.075] px-4 py-2.5 text-sm font-black text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:bg-white/[0.12] disabled:cursor-not-allowed disabled:opacity-60";
+
 function normalize(value) {
   return String(value || "").trim().toLowerCase();
-}
-
-function labelFromValue(value) {
-  return String(value || "")
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function optionValues(workouts, key) {
@@ -130,14 +111,14 @@ function isRecommended(workout, profile, preference) {
 
 function searchableText(workout) {
   return [
-    workout.title,
+    getDisplayTitle(workout.title),
     workout.description,
     workout.category,
     workout.muscle_group,
     workout.difficulty,
     workout.equipment,
     ...(workout.goal_tags || []),
-    ...(workout.workout_steps || []).map((step) => `${step.title} ${step.description}`),
+    ...(workout.exercises || []).map((exercise) => `${exercise.name} ${exercise.muscle_group} ${exercise.instructions || exercise.notes}`),
   ]
     .join(" ")
     .toLowerCase();
@@ -148,13 +129,13 @@ function friendlyWorkoutErrorMessage(error) {
 
   const friendly = (() => {
     if (
-    message.includes("schema") ||
-    message.includes("migration") ||
-    message.includes("workout_steps") ||
-    message.includes("workout_media") ||
-    message.includes("favorite_workouts") ||
-    message.includes("completed_workouts") ||
-    message.includes("supabase")
+      message.includes("schema") ||
+      message.includes("migration") ||
+      message.includes("workout_steps") ||
+      message.includes("workout_media") ||
+      message.includes("favorite_workouts") ||
+      message.includes("completed_workouts") ||
+      message.includes("supabase")
     ) {
       return "Your workout catalog schema may not be ready yet. Apply the latest Supabase migration, then refresh this page.";
     }
@@ -166,58 +147,37 @@ function friendlyWorkoutErrorMessage(error) {
   return raw && raw !== friendly ? `${friendly} Detail: ${raw}` : friendly;
 }
 
-function MediaFrame({ workout, compact = false }) {
-  const media =
-    workout.workout_media?.find((item) => item.is_primary) ||
-    workout.workout_media?.[0] ||
-    null;
-  const thumbnail = workout.thumbnail_url;
-
-  if (media?.media_url && media.media_type === "video") {
-    return (
-      <video
-        className="h-full w-full object-cover"
-        controls={!compact}
-        muted={compact}
-        loop={compact}
-        playsInline
-        poster={media.thumbnail_url || thumbnail || undefined}
-      >
-        <source src={media.media_url} />
-      </video>
-    );
-  }
-
-  if (media?.media_url) {
-    return (
-      <img
-        src={media.media_url}
-        alt={media.alt_text || workout.title}
-        className="h-full w-full object-cover"
-        loading="lazy"
-      />
-    );
-  }
-
-  if (thumbnail) {
-    return (
-      <img
-        src={thumbnail}
-        alt={workout.title}
-        className="h-full w-full object-cover"
-        loading="lazy"
-      />
-    );
-  }
-
-  return (
-    <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(145deg,rgba(184,245,61,0.1),rgba(255,255,255,0.025))] text-[var(--fc-accent)]">
-      <Dumbbell className="h-10 w-10" />
-    </div>
-  );
+function difficultyRank(value) {
+  const text = normalize(value);
+  if (text.includes("beginner")) return 1;
+  if (text.includes("intermediate")) return 2;
+  if (text.includes("advanced")) return 3;
+  return 4;
 }
 
-function StatCard({ icon: Icon, label, value, helper, tone = "lime" }) {
+function sortWorkoutEntries(entries, sortBy) {
+  const list = [...entries];
+  return list.sort((a, b) => {
+    if (sortBy === "duration") {
+      return Number(a.workout.duration_minutes || 999) - Number(b.workout.duration_minutes || 999);
+    }
+    if (sortBy === "difficulty") {
+      return difficultyRank(a.workout.difficulty) - difficultyRank(b.workout.difficulty);
+    }
+    if (sortBy === "popularity") {
+      const aScore = a.completedRows.length * 3 + (a.preference?.is_favorite ? 2 : 0) + a.score;
+      const bScore = b.completedRows.length * 3 + (b.preference?.is_favorite ? 2 : 0) + b.score;
+      return bScore - aScore;
+    }
+
+    const aTime = new Date(a.workout.created_at || a.workout.updated_at || 0).getTime();
+    const bTime = new Date(b.workout.created_at || b.workout.updated_at || 0).getTime();
+    if (aTime !== bTime) return bTime - aTime;
+    return String(getDisplayTitle(a.workout.title)).localeCompare(String(getDisplayTitle(b.workout.title)));
+  });
+}
+
+function StatCard({ icon: Icon, label, value, helper, tone = "emerald" }) {
   const toneClass =
     tone === "rose"
       ? "bg-rose-50 text-rose-600"
@@ -226,216 +186,69 @@ function StatCard({ icon: Icon, label, value, helper, tone = "lime" }) {
         : "bg-emerald-50 text-emerald-600";
 
   return (
-    <article className="rounded-[1.35rem] border border-[#e5e7eb] bg-white p-5 shadow-[0_10px_28px_rgba(17,24,39,0.06)]">
+    <motion.article
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="rounded-[1.35rem] border border-white bg-white p-5 shadow-[0_14px_36px_rgba(17,24,39,0.07)]"
+    >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.16em] text-[#9ca3af]">
-            {label}
-          </p>
-          <p className="mt-3 text-4xl font-black tracking-[-0.04em] text-[#111827]">{value}</p>
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-[#9ca3af]">{label}</p>
+          <p className="mt-3 text-4xl font-black tracking-normal text-[#111827]">{value}</p>
           <p className="mt-2 text-sm leading-6 text-[#6b7280]">{helper}</p>
         </div>
         <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${toneClass}`}>
           <Icon className="h-5 w-5" />
         </div>
       </div>
-    </article>
+    </motion.article>
   );
 }
 
-function FilterSelect({
-  label,
-  value,
-  onChange,
-  options,
-  labelFor = labelFromValue,
-  includeAll = true,
-}) {
-  const finalOptions = includeAll ? [allValue, ...options] : options;
-
+function InlineError({ message, onRetry }) {
   return (
-    <label className="grid gap-2 text-[0.68rem] font-black uppercase tracking-[0.16em] text-[#9ca3af]">
-      {label}
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-12 w-full rounded-2xl border border-[#e5e7eb] bg-white px-4 text-sm font-semibold normal-case tracking-normal text-[#111827] outline-none transition focus:border-[#22c55e] focus:ring-4 focus:ring-emerald-100"
-      >
-        {finalOptions.map((option) => (
-          <option key={option} value={option}>
-            {option === allValue && includeAll ? `All ${label.toLowerCase()}` : labelFor(option)}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
-
-function FilterBar({
-  filters,
-  categories,
-  difficulties,
-  muscleGroups,
-  resultCount,
-  totalCount,
-  setFilter,
-  resetFilters,
-}) {
-  return (
-    <section className="mb-7 overflow-hidden rounded-[1.45rem] border border-[#e5e7eb] bg-white p-4 shadow-[0_12px_32px_rgba(17,24,39,0.06)] sm:p-5">
-      <div className="flex flex-col gap-3 border-b border-[#eef0f4] pb-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
-            <SlidersHorizontal className="h-5 w-5" />
-          </div>
-          <div>
-            <h2 className="text-base font-black text-[#111827]">Find the right session</h2>
-            <p className="mt-1 text-sm text-[#6b7280]">
-              Showing {resultCount} of {totalCount} workouts
-            </p>
-          </div>
-        </div>
-        <button type="button" onClick={resetFilters} className={lightButtonClass}>
-          <Filter className="h-4 w-4" />
-          Reset filters
-        </button>
-      </div>
-
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_0.85fr_0.95fr_1fr]">
-        <label className="grid gap-2 text-[0.68rem] font-black uppercase tracking-[0.16em] text-[#9ca3af]">
-          Search
-          <span className="relative">
-            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9ca3af]" />
-            <input
-              value={filters.search}
-              onChange={(event) => setFilter("search", event.target.value)}
-              className="h-12 w-full rounded-2xl border border-[#e5e7eb] bg-white px-11 text-sm font-semibold text-[#111827] outline-none transition placeholder:text-[#9ca3af] focus:border-[#22c55e] focus:ring-4 focus:ring-emerald-100"
-              placeholder="Search by name, muscle, or goal"
-            />
-          </span>
-        </label>
-
-        <FilterSelect
-          label="Category"
-          value={filters.category}
-          onChange={(value) => setFilter("category", value)}
-          options={categories}
-        />
-        <FilterSelect
-          label="Level"
-          value={filters.difficulty}
-          onChange={(value) => setFilter("difficulty", value)}
-          options={difficulties}
-        />
-        <FilterSelect
-          label="Duration"
-          value={filters.duration}
-          onChange={(value) => setFilter("duration", value)}
-          options={durationFilters.map((item) => item.value)}
-          labelFor={(value) => durationFilters.find((item) => item.value === value)?.label || value}
-          includeAll={false}
-        />
-        <FilterSelect
-          label="Muscle"
-          value={filters.muscle}
-          onChange={(value) => setFilter("muscle", value)}
-          options={muscleGroups}
-        />
-      </div>
-
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        {viewFilters.map(([value, label]) => (
-          <button
-            key={value}
-            type="button"
-            onClick={() => setFilter("view", value)}
-            className={`inline-flex min-h-10 items-center justify-center rounded-full px-4 py-2 text-sm font-black transition ${
-              filters.view === value
-                ? "bg-[#111827] text-white"
-                : "border border-[#e5e7eb] bg-white text-[#6b7280] hover:bg-[#f3f4f6] hover:text-[#111827]"
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function MetaPill({ icon: Icon, label }) {
-  return (
-    <span className="inline-flex min-h-10 items-center justify-center gap-2 rounded-2xl border border-white/[0.08] bg-white/[0.045] px-3 py-2 text-sm font-semibold text-[var(--fc-muted)]">
-      <Icon className="h-4 w-4 text-[rgba(184,245,61,0.82)]" />
-      <span className="truncate">{label}</span>
-    </span>
-  );
-}
-
-function WorkoutCard({
-  workout,
-  preference,
-  completedRows,
-  recommended,
-  busy,
-  onOpen,
-  onToggleFavorite,
-  onComplete,
-}) {
-  return (
-    <article className="group overflow-hidden rounded-[1.4rem] border border-[#e5e7eb] bg-white shadow-[0_10px_28px_rgba(17,24,39,0.06)] transition hover:translate-y-[-1px] hover:shadow-[0_16px_36px_rgba(17,24,39,0.09)]">
-      <button
-        type="button"
-        onClick={() => onOpen(workout)}
-        className="relative block aspect-[16/10] w-full overflow-hidden bg-[#e5e7eb]"
-        aria-label={`Open ${workout.title}`}
-      >
-        <MediaFrame workout={workout} compact />
-        <span className={`absolute left-3 top-3 rounded-full px-2.5 py-1 text-xs font-black ${recommended ? "bg-[#dcfce7] text-[#15803d]" : "bg-white/90 text-[#111827]"}`}>
-          {workout.category || "Workout"}
+    <div className="mb-5 flex flex-col gap-3 rounded-[1.25rem] border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex gap-3">
+        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-rose-100 text-rose-700">
+          <AlertTriangle className="h-4 w-4" />
         </span>
-      </button>
-      <div className="p-4">
-        <button type="button" onClick={() => onOpen(workout)} className="block min-w-0 text-left">
-          <p className="line-clamp-2 text-lg font-black leading-tight text-[#111827]">{workout.title}</p>
-          <p className="mt-2 flex flex-wrap items-center gap-2 text-sm font-semibold text-[#6b7280]">
-            <span>{workout.duration_minutes || "--"} min</span>
-            <span className="h-1 w-1 rounded-full bg-[#d1d5db]" />
-            <span>{workout.difficulty || "Beginner"}</span>
-          </p>
-        </button>
-        <div className="mt-4 flex gap-2">
-          <Link
-            href={`/workout/session?workout=${workout.id}`}
-            className="inline-flex min-h-10 flex-1 items-center justify-center gap-1 rounded-full bg-[#111827] px-3 text-sm font-bold text-white"
-          >
-            <PlayCircle className="h-4 w-4" />
-            Start
-          </Link>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => onToggleFavorite(workout)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#f3f4f6] text-[#6b7280] disabled:opacity-60"
-            aria-label={preference?.is_favorite ? "Remove favorite" : "Save favorite"}
-          >
-            <Heart className={`h-4 w-4 ${preference?.is_favorite ? "fill-current text-rose-500" : ""}`} />
-          </button>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => onComplete(workout)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#dcfce7] text-[#15803d] disabled:opacity-60"
-            aria-label="Mark workout completed"
-          >
-            <CheckCircle2 className="h-4 w-4" />
-          </button>
+        <div>
+          <p className="font-black text-rose-950">Workout update paused</p>
+          <p className="mt-1 leading-6 text-rose-800">{friendlyWorkoutErrorMessage(message)}</p>
         </div>
-        {completedRows.length > 0 ? (
-          <p className="mt-3 text-xs font-semibold text-[#6b7280]">Completed {completedRows.length} times</p>
+      </div>
+      <button type="button" onClick={onRetry} className={lightButtonClass}>
+        Retry
+      </button>
+    </div>
+  );
+}
+
+function PremiumEmptyState({ icon: Icon = Search, title, description, actionLabel, onAction, secondaryLabel, onSecondaryAction }) {
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="overflow-hidden rounded-[1.6rem] border border-white bg-white p-6 text-center shadow-[0_20px_50px_rgba(17,24,39,0.08)]"
+    >
+      <div className="mx-auto grid h-28 w-28 place-items-center rounded-[2rem] bg-[radial-gradient(circle_at_30%_20%,rgba(34,197,94,0.28),transparent_42%),linear-gradient(145deg,#111827,#020617)] text-emerald-300 shadow-[0_22px_46px_rgba(17,24,39,0.18)]">
+        <Icon className="h-11 w-11" />
+      </div>
+      <h2 className="mt-5 text-2xl font-black tracking-normal text-[#111827]">{title}</h2>
+      <p className="mx-auto mt-2 max-w-xl text-sm leading-7 text-[#6b7280]">{description}</p>
+      <div className="mt-5 flex flex-wrap justify-center gap-2">
+        {actionLabel ? (
+          <button type="button" onClick={onAction} className={primaryButtonClass}>
+            {actionLabel}
+          </button>
+        ) : null}
+        {secondaryLabel ? (
+          <button type="button" onClick={onSecondaryAction} className={lightButtonClass}>
+            {secondaryLabel}
+          </button>
         ) : null}
       </div>
-    </article>
+    </motion.section>
   );
 }
 
@@ -459,139 +272,131 @@ function WorkoutDetailModal({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onClose, workout]);
 
-  if (!workout) return null;
-
+  const exercises = workout?.exercises || [];
+  const muscles = workout ? splitMuscles(workout.muscle_group, exercises) : [];
   const latestCompletion = completedRows?.[0];
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/76 px-4 py-6 backdrop-blur-md">
-      <div className="mx-auto max-w-6xl overflow-hidden rounded-[1.7rem] border border-white/[0.1] bg-[rgba(9,12,9,0.96)] shadow-[0_30px_110px_rgba(0,0,0,0.5)]">
-        <div className="relative border-b border-white/[0.08] bg-[linear-gradient(135deg,rgba(184,245,61,0.08),rgba(255,255,255,0.025))] p-4 sm:p-6">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-[0.68rem] font-black uppercase tracking-[0.28em] text-[rgba(184,245,61,0.82)]">
-                {workout.category || "Workout details"}
-              </p>
-              <h2 className="mt-2 break-words text-2xl font-black tracking-[-0.02em] text-white sm:text-4xl">
-                {workout.title}
-              </h2>
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/[0.1] bg-white/[0.045] text-[var(--fc-muted)] transition hover:border-white/[0.18] hover:bg-white/[0.08] hover:text-white"
-              aria-label="Close workout details"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-        </div>
-
-        <div className="grid gap-6 p-4 sm:p-6 lg:grid-cols-[1.08fr_0.92fr]">
-          <div>
-            <div className="aspect-video overflow-hidden rounded-[1.35rem] border border-white/[0.09] bg-black/35 shadow-[0_20px_60px_rgba(0,0,0,0.32)]">
-              <MediaFrame workout={workout} />
-            </div>
-
-            <div className="mt-4 grid gap-2 sm:grid-cols-3">
-              <MetaPill icon={Dumbbell} label={workout.muscle_group || "Full body"} />
-              <MetaPill icon={Sparkles} label={workout.difficulty || "Beginner"} />
-              <MetaPill icon={Clock3} label={`${workout.duration_minutes || "--"} min`} />
-            </div>
-
-            <p className="mt-5 text-sm leading-7 text-[var(--fc-muted)]">
-              {workout.description || "No description available yet."}
-            </p>
-          </div>
-
-          <div className="grid content-start gap-4">
-            <div className="flex flex-wrap gap-2">
+    <AnimatePresence>
+      {workout ? (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 overflow-y-auto bg-black/78 px-3 py-5 backdrop-blur-md sm:px-5"
+        >
+          <motion.div
+            initial={{ opacity: 0, y: 22, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 14, scale: 0.98 }}
+            transition={{ duration: 0.26 }}
+            className="mx-auto max-w-6xl overflow-hidden rounded-[1.8rem] border border-white/10 bg-[#f5f6f8] shadow-[0_34px_120px_rgba(0,0,0,0.55)]"
+          >
+            <div className="relative bg-[#050806] p-3 sm:p-4">
               <button
                 type="button"
-                disabled={busy}
-                onClick={() => onToggleFavorite(workout)}
-                className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-black transition disabled:opacity-60 ${
-                  preference?.is_favorite
-                    ? "bg-rose-300/14 text-rose-100 ring-1 ring-rose-300/18"
-                    : secondaryButtonClass
-                }`}
+                onClick={onClose}
+                className="absolute right-6 top-6 z-20 inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-black/40 text-white backdrop-blur-xl transition hover:bg-white hover:text-[#111827]"
+                aria-label="Close workout details"
               >
-                <Heart className={`h-4 w-4 ${preference?.is_favorite ? "fill-current" : ""}`} />
-                {preference?.is_favorite ? "Saved favorite" : "Save favorite"}
+                <X className="h-5 w-5" />
               </button>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => onComplete(workout)}
-                className={primaryButtonClass}
-              >
-                <CheckCircle2 className="h-4 w-4" />
-                Mark completed
-              </button>
-              <Link
-                href={`/workout/session?workout=${workout.id}`}
-                className={secondaryButtonClass}
-              >
-                <PlayCircle className="h-4 w-4" />
-                Start session
-              </Link>
+              <WorkoutMediaHero workout={workout} completedCount={completedRows.length} />
             </div>
 
-            {latestCompletion ? (
-              <div className="rounded-[1.2rem] border border-emerald-300/16 bg-emerald-300/10 p-4 text-sm leading-6 text-emerald-100">
-                Completed {completedRows.length} time{completedRows.length === 1 ? "" : "s"}.
-                Last session: {toDateInputValue(latestCompletion.completed_at)}
-              </div>
-            ) : null}
-
-            <section className="rounded-[1.3rem] border border-white/[0.08] bg-white/[0.035] p-4">
-              <h3 className="text-sm font-black uppercase tracking-[0.22em] text-white">
-                Step-by-step coaching
-              </h3>
-              <ol className="mt-4 grid gap-3">
-                {(workout.workout_steps || []).map((step, index) => (
-                  <li
-                    key={step.id || `${workout.id}-${index}`}
-                    className="grid grid-cols-[auto_1fr] gap-3 rounded-[1.1rem] border border-white/[0.08] bg-black/20 p-4"
-                  >
-                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--fc-accent)]/14 text-sm font-black text-[var(--fc-accent)] ring-1 ring-[rgba(184,245,61,0.22)]">
-                      {index + 1}
-                    </span>
-                    <div>
-                      <p className="font-semibold text-white">{step.title}</p>
-                      {step.description ? (
-                        <p className="mt-1 text-sm leading-6 text-[var(--fc-muted)]">
-                          {step.description}
-                        </p>
-                      ) : null}
+            <div className="grid gap-5 p-4 sm:p-5 lg:grid-cols-[0.74fr_1.26fr]">
+              <aside className="space-y-4 lg:sticky lg:top-5 lg:self-start">
+                <section className="rounded-[1.45rem] border border-[#e5e7eb] bg-white p-5 shadow-[0_14px_36px_rgba(17,24,39,0.07)]">
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-[#9ca3af]">Workout summary</p>
+                  <div className="mt-4 grid grid-cols-2 gap-3">
+                    <div className="rounded-2xl bg-[#f3f4f6] p-3">
+                      <p className="text-xs font-bold text-[#6b7280]">Exercises</p>
+                      <p className="mt-1 text-2xl font-black text-[#111827]">{exercises.length || "--"}</p>
                     </div>
-                  </li>
-                ))}
-              </ol>
-            </section>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+                    <div className="rounded-2xl bg-[#f3f4f6] p-3">
+                      <p className="text-xs font-bold text-[#6b7280]">Calories</p>
+                      <p className="mt-1 text-2xl font-black text-[#111827]">{estimateWorkoutCalories(workout)}</p>
+                    </div>
+                  </div>
 
-function InlineError({ message, onRetry }) {
-  return (
-    <div className="mb-5 flex flex-col gap-3 rounded-[1.25rem] border border-rose-300/14 bg-rose-300/8 p-4 text-sm text-rose-50 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex gap-3">
-        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-rose-300/12 text-rose-100">
-          <AlertTriangle className="h-4 w-4" />
-        </span>
-        <div>
-          <p className="font-bold text-white">Workout update paused</p>
-          <p className="mt-1 leading-6 text-rose-100/78">{friendlyWorkoutErrorMessage(message)}</p>
-        </div>
-      </div>
-      <button type="button" onClick={onRetry} className={secondaryButtonClass}>
-        Retry
-      </button>
-    </div>
+                  <div className="mt-4">
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-[#9ca3af]">Target muscles</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {muscles.map((muscle) => (
+                        <span key={muscle} className="rounded-full bg-[#ecfdf5] px-3 py-1.5 text-xs font-black text-emerald-700">
+                          {muscle}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {latestCompletion ? (
+                    <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm leading-6 text-emerald-900">
+                      Completed {completedRows.length} time{completedRows.length === 1 ? "" : "s"}.
+                      Last session: {toDateInputValue(latestCompletion.completed_at)}
+                    </div>
+                  ) : null}
+                </section>
+
+                <section className="rounded-[1.45rem] border border-[#111827] bg-[#111827] p-5 text-white shadow-[0_18px_42px_rgba(17,24,39,0.18)]">
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-white/48">Actions</p>
+                  <div className="mt-4 grid gap-2">
+                    <Link href={`/workout/session?workout=${workout.id}`} className={accentButtonClass}>
+                      <PlayCircle className="h-4 w-4" />
+                      Start Workout
+                    </Link>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => onToggleFavorite(workout)}
+                      className={preference?.is_favorite ? secondaryDarkButtonClass : "inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-black text-[#111827] transition hover:-translate-y-0.5 disabled:opacity-60"}
+                    >
+                      <Heart className={`h-4 w-4 ${preference?.is_favorite ? "fill-current text-rose-300" : ""}`} />
+                      {preference?.is_favorite ? "Saved favorite" : "Save favorite"}
+                    </button>
+                    <button type="button" disabled={busy} onClick={() => onComplete(workout)} className={secondaryDarkButtonClass}>
+                      <CheckCircle2 className="h-4 w-4 text-emerald-300" />
+                      Mark completed
+                    </button>
+                  </div>
+                </section>
+              </aside>
+
+              <section>
+                <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">Exercise demos</p>
+                    <h3 className="mt-1 text-2xl font-black tracking-normal text-[#111827]">Movement preview</h3>
+                  </div>
+                  <p className="max-w-md text-sm leading-6 text-[#6b7280]">
+                    Each block includes media, sets, reps, rest timing, and clear coaching cues.
+                  </p>
+                </div>
+
+                {exercises.length ? (
+                  <div className="grid gap-4">
+                    {exercises.map((exercise, index) => (
+                      <ExerciseVideoCard
+                        key={exercise.id || `${workout.id}-${exercise.name}-${index}`}
+                        exercise={exercise}
+                        workout={workout}
+                        index={index}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <PremiumEmptyState
+                    icon={Zap}
+                    title="Exercise previews are coming soon"
+                    description="This workout has a cover and summary, but no exercise-level media yet."
+                  />
+                )}
+              </section>
+            </div>
+          </motion.div>
+        </motion.div>
+      ) : null}
+    </AnimatePresence>
   );
 }
 
@@ -611,6 +416,7 @@ function WorkoutContent({ profile }) {
     difficulty: allValue,
     duration: allValue,
     muscle: allValue,
+    sortBy: "newest",
   });
 
   const load = useCallback(async () => {
@@ -642,28 +448,23 @@ function WorkoutContent({ profile }) {
   const muscleGroups = useMemo(() => optionValues(workouts, "muscle_group"), [workouts]);
 
   const enrichedWorkouts = useMemo(() => {
-    return workouts
-      .map((workout) => {
-        const preference = preferencesByWorkout.get(workout.id);
-        return {
-          workout,
-          preference,
-          completedRows: completedByWorkout.get(workout.id) || [],
-          score: recommendationScore(workout, profile, preference),
-          recommended: isRecommended(workout, profile, preference),
-        };
-      })
-      .sort((a, b) => {
-        if (filters.view === "recommended") return b.score - a.score;
-        return String(a.workout.title).localeCompare(String(b.workout.title));
-      });
-  }, [completedByWorkout, filters.view, preferencesByWorkout, profile, workouts]);
+    return workouts.map((workout) => {
+      const preference = preferencesByWorkout.get(workout.id);
+      return {
+        workout,
+        preference,
+        completedRows: completedByWorkout.get(workout.id) || [],
+        score: recommendationScore(workout, profile, preference),
+        recommended: isRecommended(workout, profile, preference),
+      };
+    });
+  }, [completedByWorkout, preferencesByWorkout, profile, workouts]);
 
   const filteredWorkouts = useMemo(() => {
     const query = normalize(filters.search);
     const durationFilter = durationFilters.find((item) => item.value === filters.duration) || durationFilters[0];
 
-    return enrichedWorkouts.filter(({ workout, preference, completedRows, recommended }) => {
+    const filtered = enrichedWorkouts.filter(({ workout, preference, completedRows, recommended }) => {
       if (filters.view === "recommended" && !recommended) return false;
       if (filters.view === "favorites" && !preference?.is_favorite) return false;
       if (filters.view === "completed" && completedRows.length === 0) return false;
@@ -674,6 +475,8 @@ function WorkoutContent({ profile }) {
       if (query && !searchableText(workout).includes(query)) return false;
       return true;
     });
+
+    return sortWorkoutEntries(filtered, filters.sortBy);
   }, [enrichedWorkouts, filters]);
 
   const setFilter = (key, value) => {
@@ -688,6 +491,7 @@ function WorkoutContent({ profile }) {
       difficulty: allValue,
       duration: allValue,
       muscle: allValue,
+      sortBy: "newest",
     });
   };
 
@@ -763,25 +567,15 @@ function WorkoutContent({ profile }) {
 
   return (
     <AppLayout
-      title="Workouts"
-      subtitle={`A curated training library tuned for ${formatGoal(profile?.goal)} and ${formatLevel(profile?.fitness_level)}.`}
+      title="Workout Library"
+      subtitle={`Premium training sessions tuned for ${formatGoal(profile?.goal)} and ${formatLevel(profile?.fitness_level)}.`}
       actions={
         <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={generatePlan}
-            disabled={generating}
-            className={primaryButtonClass}
-          >
+          <button type="button" onClick={generatePlan} disabled={generating} className={accentButtonClass}>
             {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
             Generate AI plan
           </button>
-          <button
-            type="button"
-            onClick={load}
-            disabled={state === "loading"}
-            className={lightButtonClass}
-          >
+          <button type="button" onClick={load} disabled={state === "loading"} className={lightButtonClass}>
             <RefreshCw className={`h-4 w-4 ${state === "loading" ? "animate-spin" : ""}`} />
             Refresh
           </button>
@@ -791,29 +585,12 @@ function WorkoutContent({ profile }) {
       {error && state !== "error" ? <InlineError message={error} onRetry={load} /> : null}
 
       <section className="mb-7 grid gap-4 sm:grid-cols-3">
-        <StatCard
-          icon={Library}
-          label="Library"
-          value={workouts.length}
-          helper="Workouts available to browse"
-        />
-        <StatCard
-          icon={Heart}
-          label="Saved"
-          value={favoriteCount}
-          helper="Favorites linked to your profile"
-          tone="rose"
-        />
-        <StatCard
-          icon={BarChart3}
-          label="Completed"
-          value={completedWorkouts.length}
-          helper="Sessions logged by your account"
-          tone="sky"
-        />
+        <StatCard icon={Library} label="Library" value={workouts.length} helper="Visual workouts ready to browse" />
+        <StatCard icon={Heart} label="Saved" value={favoriteCount} helper="Favorites linked to your profile" tone="rose" />
+        <StatCard icon={BarChart3} label="Completed" value={completedWorkouts.length} helper="Sessions logged by your account" tone="sky" />
       </section>
 
-      <FilterBar
+      <WorkoutFilters
         filters={filters}
         categories={categories}
         difficulties={difficulties}
@@ -829,7 +606,7 @@ function WorkoutContent({ profile }) {
       {state === "error" ? (
         <EmptyState
           icon={DatabaseZap}
-          title="We couldn’t load your workout library"
+          title="We couldn't load your workout library"
           description={friendlyWorkoutErrorMessage(error)}
           actionLabel="Refresh library"
           onAction={load}
@@ -840,45 +617,46 @@ function WorkoutContent({ profile }) {
       ) : null}
 
       {state === "ready" && workouts.length === 0 ? (
-        <EmptyState
+        <PremiumEmptyState
           icon={Zap}
           title="Your workout library is waiting for content"
           description="Apply the workout catalog migration or add workouts in Supabase, then refresh this page to start browsing."
           actionLabel="Refresh library"
           onAction={load}
-          secondaryActionLabel="Go to dashboard"
-          secondaryActionHref="/dashboard"
+          secondaryLabel="Go to dashboard"
+          onSecondaryAction={() => window.location.assign("/dashboard")}
         />
       ) : null}
 
       {state === "ready" && workouts.length > 0 && filteredWorkouts.length === 0 ? (
-        <EmptyState
+        <PremiumEmptyState
           icon={Search}
-          title="No workouts match these filters"
-          description="Try a broader category, a different duration, or clear filters to see more training options."
-          actionLabel="Clear filters"
+          title="No workouts match your filters"
+          description="Try a broader category, a different duration, or reset filters to bring more sessions back."
+          actionLabel="Reset filters"
           onAction={resetFilters}
-          secondaryActionLabel="Show recommended"
+          secondaryLabel="Show recommended"
           onSecondaryAction={() => setFilter("view", "recommended")}
         />
       ) : null}
 
       {state === "ready" && filteredWorkouts.length > 0 ? (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredWorkouts.map(({ workout, preference, completedRows, recommended }) => (
-            <WorkoutCard
-              key={workout.id}
-              workout={workout}
-              preference={preference}
-              completedRows={completedRows}
-              recommended={recommended}
-              busy={Boolean(busyAction)}
-              onOpen={setSelectedWorkout}
-              onToggleFavorite={toggleFavorite}
-              onComplete={completeWorkout}
-            />
-          ))}
-        </div>
+        <motion.div layout className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          <AnimatePresence initial={false}>
+            {filteredWorkouts.map(({ workout, preference, completedRows, recommended }) => (
+              <WorkoutCard
+                key={workout.id}
+                workout={workout}
+                preference={preference}
+                completedRows={completedRows}
+                recommended={recommended}
+                busy={Boolean(busyAction)}
+                onOpen={setSelectedWorkout}
+                onToggleFavorite={toggleFavorite}
+              />
+            ))}
+          </AnimatePresence>
+        </motion.div>
       ) : null}
 
       <WorkoutDetailModal

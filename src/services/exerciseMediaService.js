@@ -86,6 +86,23 @@ const workoutThumbnailRules = [
   { match: ["boxing"], url: "https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?auto=format&fit=crop&w=1200&q=80" },
 ];
 
+const localWorkoutMediaBySlug = {
+  "full-body-starter-strength": "/workouts/strength-foundation/cover.jpg",
+  "upper-body-strength-builder": "/workouts/upper-body-push/cover.jpg",
+  "upper-body-push-basics": "/workouts/upper-body-push/cover.jpg",
+  "back-and-biceps-foundation": "/workouts/strength-foundation/cover.jpg",
+  "lower-body-leg-day": "/workouts/lower-body-leg-day/cover.jpg",
+  "shoulder-shape-and-posture": "/workouts/shoulder-posture/cover.jpg",
+  "hiit-fat-burn-starter": "/workouts/hiit-fat-burn/cover.jpg",
+  "low-impact-cardio-burn": "/workouts/hiit-fat-burn/cover.jpg",
+  "core-control-and-abs": "/workouts/core-control/cover.jpg",
+  "core-stability-flow": "/workouts/core-control/cover.jpg",
+  "full-body-dumbbell-circuit": "/workouts/full-body-dumbbell/cover.jpg",
+  "mobility-reset-flow": "/workouts/mobility-reset/cover.jpg",
+  "mobility-recovery-stretch": "/workouts/mobility-reset/cover.jpg",
+  "boxing-conditioning-rounds": "/workouts/boxing-conditioning/cover.jpg",
+};
+
 const fallbackExercisesByCategory = {
   chest: [
     ["Incline Push-up", 3, "8-12", 45, 60, "Keep your body straight and lower with control."],
@@ -139,14 +156,14 @@ const fallbackExercisesByCategory = {
 };
 
 const localWorkoutCatalog = [
-  { slug: "upper-body-strength-builder", title: "Upper Body Strength Builder", category: "Strength", muscle_group: "Chest", difficulty: "Beginner", duration_minutes: 26, description: "Beginner-friendly push training for chest, shoulders, arms, and core control.", thumbnail_url: "/pulse-assets/workout-strength.jpg", equipment: "Bodyweight, Dumbbells", goal_tags: ["build_muscle", "improve_fitness"] },
-  { slug: "back-and-biceps-foundation", title: "Back and Biceps Foundation", category: "Strength", muscle_group: "Back", difficulty: "Beginner", duration_minutes: 30, description: "A clear pull-day session with rows, rear-delts, arms, and a core finisher.", thumbnail_url: "/pulse-assets/workout-strength.jpg", equipment: "Dumbbells", goal_tags: ["build_muscle", "improve_fitness"] },
-  { slug: "lower-body-leg-day", title: "Lower Body Leg Day", category: "Strength", muscle_group: "Legs", difficulty: "Beginner", duration_minutes: 34, description: "Simple lower-body work for quads, glutes, hamstrings, and balance.", thumbnail_url: "/pulse-assets/workout-cardio.jpg", equipment: "Bodyweight, Dumbbells", goal_tags: ["build_muscle", "lose_weight"] },
-  { slug: "shoulder-shape-and-posture", title: "Shoulder Shape and Posture", category: "Strength", muscle_group: "Shoulders", difficulty: "Beginner", duration_minutes: 24, description: "Shoulder volume with controlled presses, raises, and upper-back support.", thumbnail_url: "/pulse-assets/workout-strength.jpg", equipment: "Dumbbells", goal_tags: ["build_muscle", "maintain"] },
-  { slug: "hiit-fat-burn-starter", title: "HIIT Fat Burn Starter", category: "Cardio", muscle_group: "Full body", difficulty: "Beginner", duration_minutes: 20, description: "Short conditioning intervals with scalable movements and simple rest.", thumbnail_url: "/pulse-assets/workout-cardio.jpg", equipment: "Bodyweight", goal_tags: ["lose_weight", "improve_fitness"] },
-  { slug: "core-control-and-abs", title: "Core Control and Abs", category: "Core", muscle_group: "Core", difficulty: "Beginner", duration_minutes: 22, description: "A core session focused on bracing, balance, and clean movement.", thumbnail_url: "/pulse-assets/workout-yoga.jpg", equipment: "Bodyweight", goal_tags: ["improve_fitness", "maintain"] },
-  { slug: "full-body-dumbbell-circuit", title: "Full Body Dumbbell Circuit", category: "Strength", muscle_group: "Full body", difficulty: "Intermediate", duration_minutes: 38, description: "A balanced circuit mixing legs, push, pull, and core without complicated setup.", thumbnail_url: "/pulse-assets/workout-strength.jpg", equipment: "Dumbbells", goal_tags: ["build_muscle", "lose_weight"] },
-  { slug: "mobility-reset-flow", title: "Mobility Reset Flow", category: "Mobility", muscle_group: "Full body", difficulty: "Beginner", duration_minutes: 18, description: "A light recovery workout for hips, shoulders, back, and breathing.", thumbnail_url: "/pulse-assets/workout-stretch.jpg", equipment: "Bodyweight", goal_tags: ["maintain", "improve_fitness"] },
+  { slug: "upper-body-strength-builder", title: "Upper Body Strength Builder", category: "Strength", muscle_group: "Chest", difficulty: "Beginner", duration_minutes: 26, description: "Beginner-friendly push training for chest, shoulders, arms, and core control.", thumbnail_url: localWorkoutMediaBySlug["upper-body-strength-builder"], equipment: "Bodyweight, Dumbbells", goal_tags: ["build_muscle", "improve_fitness"] },
+  { slug: "back-and-biceps-foundation", title: "Back and Biceps Foundation", category: "Strength", muscle_group: "Back", difficulty: "Beginner", duration_minutes: 30, description: "A clear pull-day session with rows, rear-delts, arms, and a core finisher.", thumbnail_url: localWorkoutMediaBySlug["back-and-biceps-foundation"], equipment: "Dumbbells", goal_tags: ["build_muscle", "improve_fitness"] },
+  { slug: "lower-body-leg-day", title: "Lower Body Leg Day", category: "Strength", muscle_group: "Legs", difficulty: "Beginner", duration_minutes: 34, description: "Simple lower-body work for quads, glutes, hamstrings, and balance.", thumbnail_url: localWorkoutMediaBySlug["lower-body-leg-day"], equipment: "Bodyweight, Dumbbells", goal_tags: ["build_muscle", "lose_weight"] },
+  { slug: "shoulder-shape-and-posture", title: "Shoulder Shape and Posture", category: "Strength", muscle_group: "Shoulders", difficulty: "Beginner", duration_minutes: 24, description: "Shoulder volume with controlled presses, raises, and upper-back support.", thumbnail_url: localWorkoutMediaBySlug["shoulder-shape-and-posture"], equipment: "Dumbbells", goal_tags: ["build_muscle", "maintain"] },
+  { slug: "hiit-fat-burn-starter", title: "HIIT Fat Burn Starter", category: "Cardio", muscle_group: "Full body", difficulty: "Beginner", duration_minutes: 20, description: "Short conditioning intervals with scalable movements and simple rest.", thumbnail_url: localWorkoutMediaBySlug["hiit-fat-burn-starter"], equipment: "Bodyweight", goal_tags: ["lose_weight", "improve_fitness"] },
+  { slug: "core-control-and-abs", title: "Core Control and Abs", category: "Core", muscle_group: "Core", difficulty: "Beginner", duration_minutes: 22, description: "A core session focused on bracing, balance, and clean movement.", thumbnail_url: localWorkoutMediaBySlug["core-control-and-abs"], equipment: "Bodyweight", goal_tags: ["improve_fitness", "maintain"] },
+  { slug: "full-body-dumbbell-circuit", title: "Full Body Dumbbell Circuit", category: "Strength", muscle_group: "Full body", difficulty: "Intermediate", duration_minutes: 38, description: "A balanced circuit mixing legs, push, pull, and core without complicated setup.", thumbnail_url: localWorkoutMediaBySlug["full-body-dumbbell-circuit"], equipment: "Dumbbells", goal_tags: ["build_muscle", "lose_weight"] },
+  { slug: "mobility-reset-flow", title: "Mobility Reset Flow", category: "Mobility", muscle_group: "Full body", difficulty: "Beginner", duration_minutes: 18, description: "A light recovery workout for hips, shoulders, back, and breathing.", thumbnail_url: localWorkoutMediaBySlug["mobility-reset-flow"], equipment: "Bodyweight", goal_tags: ["maintain", "improve_fitness"] },
 ];
 
 export function fallbackVideoForExercise(name) {
@@ -161,10 +178,18 @@ export function exerciseImageFor(name, workout = null) {
 
 export function withExerciseMedia(exercise, workout = null) {
   const name = exercise?.name || exercise?.exercise_name || "";
+  const imageUrl = exercise?.image_url || exercise?.imageUrl || exerciseImageFor(name, workout);
+  const videoUrl = exercise?.video_url || exercise?.videoUrl || fallbackVideoForExercise(name);
+  const instructions = exercise?.instructions || exercise?.notes || "";
   return {
     ...exercise,
-    image_url: exercise?.image_url || exerciseImageFor(name, workout),
-    video_url: exercise?.video_url || fallbackVideoForExercise(name),
+    image_url: imageUrl,
+    imageUrl,
+    video_url: videoUrl,
+    videoUrl,
+    restSeconds: exercise?.restSeconds ?? exercise?.rest_seconds ?? null,
+    instructions,
+    targetMuscles: exercise?.targetMuscles || exercise?.muscle_group || workout?.muscle_group || "Full body",
   };
 }
 
@@ -249,21 +274,30 @@ export function fallbackExercisesForWorkout(workout) {
     Object.keys(fallbackExercisesByCategory).find((item) => haystack.includes(item)) ||
     "strength";
 
-  return fallbackExercisesByCategory[key].map(([name, sets, reps, time_seconds, rest_seconds, notes], index) => ({
-    id: `${workout.id || workout.slug || "workout"}-fallback-${index + 1}`,
-    name,
-    sets,
-    reps,
-    time_seconds,
-    rest_seconds,
-    notes,
-    order_index: index + 1,
-    muscle_group: workout.muscle_group || "Full body",
-    equipment: workout.equipment || "Bodyweight",
-    image_url: exerciseImageFor(name, workout),
-    video_url: fallbackVideoForExercise(name),
-    fallback: true,
-  }));
+  return fallbackExercisesByCategory[key].map(([name, sets, reps, time_seconds, rest_seconds, notes], index) => {
+    const imageUrl = exerciseImageFor(name, workout);
+    const videoUrl = fallbackVideoForExercise(name);
+    return {
+      id: `${workout.id || workout.slug || "workout"}-fallback-${index + 1}`,
+      name,
+      sets,
+      reps,
+      time_seconds,
+      rest_seconds,
+      restSeconds: rest_seconds,
+      notes,
+      instructions: notes,
+      order_index: index + 1,
+      muscle_group: workout.muscle_group || "Full body",
+      targetMuscles: workout.muscle_group || "Full body",
+      equipment: workout.equipment || "Bodyweight",
+      image_url: imageUrl,
+      imageUrl,
+      video_url: videoUrl,
+      videoUrl,
+      fallback: true,
+    };
+  });
 }
 
 export function withWorkoutSteps(workout, exercises) {
@@ -281,16 +315,35 @@ export function withWorkoutSteps(workout, exercises) {
 }
 
 function normalizeLocalCatalogWorkout(row) {
+  const coverImage = localWorkoutMediaBySlug[row.slug] || row.cover_image || row.thumbnail_url;
   const workout = {
     id: `local-${row.slug}`,
     is_local_catalog: true,
     is_public: true,
     source: "local_catalog",
-    workout_media: [],
+    workout_media: coverImage
+      ? [{
+          id: `local-${row.slug}-cover`,
+          media_type: "image",
+          media_url: coverImage,
+          thumbnail_url: coverImage,
+          alt_text: row.title,
+          is_primary: true,
+          order_index: 1,
+        }]
+      : [],
+    cover_image: coverImage,
+    coverImage,
+    thumbnailUrl: coverImage,
+    preview_video_url: row.preview_video_url || null,
+    previewVideoUrl: row.preview_video_url || null,
     ...row,
   };
   const exercises = fallbackExercisesForWorkout(workout);
   workout.thumbnail_url = workoutThumbnailFor(workout, row.thumbnail_url, exercises);
+  workout.thumbnailUrl = workout.thumbnail_url;
+  workout.cover_image = workout.cover_image || workout.thumbnail_url;
+  workout.coverImage = workout.cover_image;
   return withWorkoutSteps(workout, exercises);
 }
 
@@ -317,6 +370,7 @@ export function normalizeWorkoutPreferenceRow(row) {
 
 export function normalizeWorkoutLibraryRow(row) {
   const media = [...(row.workout_media || [])].sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+  const slugCover = localWorkoutMediaBySlug[row.slug] || null;
   const linkedExercises = [...(row.workout_exercises || [])]
     .sort((a, b) => (a.order_index || 0) - (b.order_index || 0))
     .map((item, index) => {
@@ -344,7 +398,13 @@ export function normalizeWorkoutLibraryRow(row) {
     .map((exercise, index) => withExerciseMedia({ ...exercise, order_index: exercise.order_index || index + 1 }, row));
   const exercises = orderExercisesForWorkout(row, linkedExercises.length ? linkedExercises : directExercises);
   const primaryMedia = media.find((item) => item.is_primary) || media[0] || null;
-  const thumbnail = row.thumbnail_url || primaryMedia?.thumbnail_url || (primaryMedia?.media_type === "image" ? primaryMedia.media_url : null);
+  const thumbnail = row.thumbnail_url || slugCover || primaryMedia?.thumbnail_url || (primaryMedia?.media_type === "image" ? primaryMedia.media_url : null);
+  const coverImage = row.cover_image || slugCover || thumbnail;
+  const previewVideoUrl =
+    row.preview_video_url ||
+    row.video_url ||
+    (primaryMedia?.media_type === "video" ? primaryMedia.media_url : null);
+  const normalizedThumbnail = workoutThumbnailFor(row, thumbnail, exercises);
 
   return {
     ...row,
@@ -352,7 +412,12 @@ export function normalizeWorkoutLibraryRow(row) {
     muscle_group: row.muscle_group || "Full body",
     difficulty: row.difficulty || "Beginner",
     duration_minutes: row.duration_minutes || null,
-    thumbnail_url: workoutThumbnailFor(row, thumbnail, exercises),
+    thumbnail_url: normalizedThumbnail,
+    thumbnailUrl: normalizedThumbnail,
+    cover_image: coverImage || normalizedThumbnail,
+    coverImage: coverImage || normalizedThumbnail,
+    preview_video_url: previewVideoUrl,
+    previewVideoUrl,
     goal_tags: Array.isArray(row.goal_tags) ? row.goal_tags : [],
     workout_media: media,
     workout_steps: exercises.map((exercise, index) => ({
