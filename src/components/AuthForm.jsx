@@ -5,15 +5,11 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
-  CheckCircle2,
-  Dumbbell,
   Eye,
   EyeOff,
   Loader2,
   LockKeyhole,
   Mail,
-  ShieldCheck,
-  Sparkles,
   UserRound,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -25,18 +21,6 @@ import {
   isProfileComplete,
 } from "@/src/services/profileService";
 import EmptyState from "@/src/components/EmptyState";
-
-const authBenefits = [
-  "Personalized training plans",
-  "Progress saved across devices",
-  "Secure Supabase authentication",
-];
-
-const trustItems = [
-  { value: "AI", label: "guided plans" },
-  { value: "24/7", label: "coach access" },
-  { value: "100%", label: "private profile" },
-];
 
 export default function AuthForm({ mode }) {
   const isSignup = mode === "signup";
@@ -157,10 +141,8 @@ export default function AuthForm({ mode }) {
     return <EmptyState title="Supabase configuration missing" description={supabaseConfigError} />;
   }
 
-  const heading = isSignup ? "Create your coach account." : "Welcome back to your coach.";
-  const description = isSignup
-    ? "Set up a secure account and continue into your personalized profile."
-    : "Sign in to continue your workouts, progress, and AI recommendations.";
+  const heading = isSignup ? "Create account" : "Welcome back";
+  const description = isSignup ? "Start your training journey." : "Continue your training journey.";
   const submitText = isSignup ? "Create account" : "Login";
 
   return (
@@ -174,100 +156,24 @@ export default function AuthForm({ mode }) {
         className="pointer-events-none object-cover opacity-[0.62]"
         aria-hidden
       />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(1,5,3,0.92)_0%,rgba(1,9,5,0.76)_42%,rgba(1,5,3,0.92)_100%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(34,197,94,0.34),transparent_32%),radial-gradient(circle_at_82%_18%,rgba(16,185,129,0.22),transparent_30%),radial-gradient(circle_at_50%_95%,rgba(132,204,22,0.14),transparent_38%)]" />
-      <div className="pointer-events-none absolute inset-0 opacity-[0.16] [background-image:linear-gradient(rgba(255,255,255,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.12)_1px,transparent_1px),radial-gradient(rgba(134,239,172,0.28)_1px,transparent_1px)] [background-size:54px_54px,54px_54px,18px_18px]" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(1,5,3,0.78),rgba(1,8,5,0.54)_44%,rgba(1,5,3,0.92))]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_18%,rgba(34,197,94,0.28),transparent_30%),radial-gradient(circle_at_78%_26%,rgba(16,185,129,0.26),transparent_28%),radial-gradient(circle_at_72%_82%,rgba(132,204,22,0.16),transparent_34%)]" />
+      <div className="pointer-events-none absolute inset-0 opacity-[0.13] [background-image:linear-gradient(rgba(255,255,255,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.12)_1px,transparent_1px),radial-gradient(rgba(134,239,172,0.28)_1px,transparent_1px)] [background-size:56px_56px,56px_56px,18px_18px]" />
 
-      <main className="relative z-10 flex min-h-screen items-center px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mx-auto grid w-full max-w-6xl overflow-hidden rounded-[2rem] border border-emerald-200/18 bg-[#03100a]/68 shadow-[0_32px_140px_rgba(0,0,0,0.64),0_0_70px_rgba(52,211,153,0.14)] backdrop-blur-2xl lg:grid-cols-[0.92fr_1.08fr]">
-          <aside className="relative hidden min-h-[680px] flex-col justify-between overflow-hidden border-r border-emerald-200/12 bg-black/20 p-8 lg:flex">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_28%_12%,rgba(52,211,153,0.2),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.015))]" />
-            <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-emerald-400/20 to-transparent" />
-            <div className="absolute -right-24 top-24 h-64 w-64 rounded-full bg-emerald-400/24 blur-3xl" />
-            <div className="absolute -bottom-20 left-10 h-72 w-72 rounded-full bg-emerald-300/14 blur-3xl" />
+      <main className="relative z-10 flex min-h-screen items-center justify-center px-4 py-8 sm:px-6 lg:justify-end lg:px-16 xl:px-24">
+        <section className="w-full max-w-[440px] rounded-[28px] border border-emerald-200/18 bg-[#03100a]/62 p-6 shadow-[0_32px_120px_rgba(0,0,0,0.58),0_0_60px_rgba(52,211,153,0.16)] backdrop-blur-2xl sm:p-8">
+          <Link href="/" className="inline-flex text-xs font-black uppercase tracking-[0.22em] text-emerald-200 transition hover:text-emerald-100">
+            AI Fitness Coach
+          </Link>
 
-            <div className="relative">
-              <Link href="/" className="inline-flex items-center gap-3 rounded-[1.2rem] border border-emerald-200/16 bg-white/[0.075] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:border-emerald-300/45 hover:bg-white/[0.11]">
-                <Image
-                  src="/brand/ai-fitness-coach-icon.svg"
-                  width={38}
-                  height={38}
-                  alt="AI Fitness Coach"
-                  priority
-                  className="h-9 w-9"
-                />
-                <span className="text-sm font-black uppercase tracking-[0.08em] text-emerald-100">
-                  AI Fitness Coach
-                </span>
-              </Link>
+          <div className="mt-12">
+            <h1 className="text-5xl font-black leading-[0.98] tracking-[-0.055em] text-white">
+              {heading}
+            </h1>
+            <p className="mt-4 text-base leading-7 text-emerald-50/62">{description}</p>
+          </div>
 
-              <div className="mt-12 max-w-md">
-                <p className="inline-flex items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1.5 text-xs font-black uppercase tracking-[0.22em] text-emerald-200">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  Secure member area
-                </p>
-                <h1 className="mt-6 text-5xl font-black leading-[0.98] tracking-[-0.05em] text-white">
-                  Train smarter with a coach that remembers you.
-                </h1>
-                <p className="mt-5 text-base leading-8 text-white/[0.62]">
-                  Your workouts, goals, and profile stay connected after every sign in.
-                  Clean, focused, and built for consistent progress.
-                </p>
-              </div>
-
-              <div className="mt-10 grid gap-3">
-                {authBenefits.map((item) => (
-                  <div
-                    key={item}
-                  className="flex items-center gap-3 rounded-[1.2rem] border border-emerald-200/12 bg-white/[0.065] px-4 py-3 text-sm font-semibold text-white/[0.88] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
-                  >
-                    <CheckCircle2 className="h-5 w-5 flex-none text-emerald-300" />
-                    {item}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="relative grid grid-cols-3 gap-3">
-              {trustItems.map((item) => (
-                <div key={item.label} className="rounded-[1.25rem] border border-emerald-200/12 bg-black/28 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-                  <p className="text-2xl font-black tracking-[-0.04em] text-white">{item.value}</p>
-                  <p className="mt-1 text-[0.65rem] font-bold uppercase tracking-[0.16em] text-white/45">
-                    {item.label}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </aside>
-
-          <section className="bg-black/14 p-5 sm:p-8 lg:p-10">
-            <div className="mx-auto flex min-h-[620px] w-full max-w-md flex-col justify-center">
-              <Link href="/" className="mb-8 inline-flex w-fit items-center gap-3 rounded-[1.2rem] border border-emerald-200/16 bg-white/[0.075] px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:border-emerald-300/40 hover:bg-white/[0.11] lg:hidden">
-                <Image
-                  src="/brand/ai-fitness-coach-icon.svg"
-                  width={34}
-                  height={34}
-                  alt="AI Fitness Coach"
-                  priority
-                  className="h-8 w-8"
-                />
-                <span className="text-xs font-black uppercase tracking-[0.08em] text-emerald-100">
-                  AI Fitness Coach
-                </span>
-              </Link>
-
-              <div>
-                <p className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.24em] text-emerald-300">
-                  {isSignup ? <Dumbbell className="h-4 w-4" /> : <ShieldCheck className="h-4 w-4" />}
-                  {isSignup ? "Start your plan" : "Member login"}
-                </p>
-                <h2 className="mt-4 text-4xl font-black leading-[1.02] tracking-[-0.045em] text-white sm:text-5xl">
-                  {heading}
-                </h2>
-                <p className="mt-4 text-base leading-7 text-white/[0.55]">{description}</p>
-              </div>
-
-              <form onSubmit={submit} className="mt-8 space-y-4 rounded-[1.6rem] border border-emerald-200/12 bg-black/18 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_18px_60px_rgba(0,0,0,0.22)] sm:p-5">
+          <form onSubmit={submit} className="mt-9 space-y-4">
                 {notice ? (
                   <div className="rounded-[1.1rem] border border-emerald-300/20 bg-emerald-300/10 px-4 py-3 text-sm leading-6 text-emerald-50">
                     {notice}
@@ -360,20 +266,17 @@ export default function AuthForm({ mode }) {
                     </>
                   )}
                 </button>
-              </form>
+          </form>
 
-              <p className="mt-6 text-sm text-white/[0.52]">
-                {isSignup ? "Already have an account?" : "No account yet?"}{" "}
-                <Link
-                  href={isSignup ? "/login" : "/signup"}
-                  className="font-black text-white transition hover:text-emerald-300"
-                >
-                  {isSignup ? "Login" : "Create one"}
-                </Link>
-              </p>
-            </div>
-          </section>
-        </div>
+          <p className="mt-6 text-center text-sm text-white/[0.58]">
+            <Link
+              href={isSignup ? "/login" : "/signup"}
+              className="font-black text-white transition hover:text-emerald-300"
+            >
+              {isSignup ? "Login" : "Create one"}
+            </Link>
+          </p>
+        </section>
       </main>
     </div>
   );
