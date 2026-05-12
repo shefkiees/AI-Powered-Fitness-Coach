@@ -6,12 +6,14 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
+  ArrowUpRight,
   BarChart3,
   CheckCircle2,
   Clock3,
   DatabaseZap,
   Dumbbell,
   Filter,
+  Flame,
   Heart,
   Library,
   Loader2,
@@ -220,20 +222,20 @@ function MediaFrame({ workout, compact = false }) {
 function StatCard({ icon: Icon, label, value, helper, tone = "lime" }) {
   const toneClass =
     tone === "rose"
-      ? "bg-rose-50 text-rose-600"
+      ? "bg-rose-300/12 text-rose-100 ring-1 ring-rose-300/18"
       : tone === "sky"
-        ? "bg-sky-50 text-sky-600"
-        : "bg-emerald-50 text-emerald-600";
+        ? "bg-sky-300/12 text-sky-100 ring-1 ring-sky-300/18"
+        : "bg-emerald-300/12 text-emerald-100 ring-1 ring-emerald-300/18";
 
   return (
-    <article className="rounded-[1.35rem] border border-[#e5e7eb] bg-white p-5 shadow-[0_10px_28px_rgba(17,24,39,0.06)]">
+    <article className="rounded-[1.35rem] border border-emerald-300/12 bg-white/[0.045] p-5 shadow-[0_18px_46px_rgba(0,0,0,0.26)] backdrop-blur-xl">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.16em] text-[#9ca3af]">
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-100/52">
             {label}
           </p>
-          <p className="mt-3 text-4xl font-black tracking-[-0.04em] text-[#111827]">{value}</p>
-          <p className="mt-2 text-sm leading-6 text-[#6b7280]">{helper}</p>
+          <p className="mt-3 text-4xl font-black tracking-[-0.04em] text-white">{value}</p>
+          <p className="mt-2 text-sm leading-6 text-emerald-50/62">{helper}</p>
         </div>
         <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${toneClass}`}>
           <Icon className="h-5 w-5" />
@@ -254,12 +256,12 @@ function FilterSelect({
   const finalOptions = includeAll ? [allValue, ...options] : options;
 
   return (
-    <label className="grid gap-2 text-[0.68rem] font-black uppercase tracking-[0.16em] text-[#9ca3af]">
+    <label className="grid gap-2 text-[0.68rem] font-black uppercase tracking-[0.16em] text-emerald-100/52">
       {label}
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-12 w-full rounded-2xl border border-[#e5e7eb] bg-white px-4 text-sm font-semibold normal-case tracking-normal text-[#111827] outline-none transition focus:border-[#22c55e] focus:ring-4 focus:ring-emerald-100"
+        className="h-12 w-full rounded-2xl border border-emerald-300/14 bg-black/25 px-4 text-sm font-semibold normal-case tracking-normal text-white outline-none transition focus:border-emerald-300/45 focus:ring-4 focus:ring-emerald-300/10"
       >
         {finalOptions.map((option) => (
           <option key={option} value={option}>
@@ -282,34 +284,34 @@ function FilterBar({
   resetFilters,
 }) {
   return (
-    <section className="mb-7 overflow-hidden rounded-[1.45rem] border border-[#e5e7eb] bg-white p-4 shadow-[0_12px_32px_rgba(17,24,39,0.06)] sm:p-5">
-      <div className="flex flex-col gap-3 border-b border-[#eef0f4] pb-4 lg:flex-row lg:items-center lg:justify-between">
+    <section className="mb-7 overflow-hidden rounded-[1.45rem] border border-emerald-300/12 bg-white/[0.035] p-4 shadow-[0_18px_50px_rgba(0,0,0,0.25)] backdrop-blur-xl sm:p-5">
+      <div className="flex flex-col gap-3 border-b border-white/[0.08] pb-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-300/12 text-emerald-100 ring-1 ring-emerald-300/18">
             <SlidersHorizontal className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="text-base font-black text-[#111827]">Find the right session</h2>
-            <p className="mt-1 text-sm text-[#6b7280]">
+            <h2 className="text-base font-black text-white">Find the right session</h2>
+            <p className="mt-1 text-sm text-emerald-50/58">
               Showing {resultCount} of {totalCount} workouts
             </p>
           </div>
         </div>
-        <button type="button" onClick={resetFilters} className={lightButtonClass}>
+        <button type="button" onClick={resetFilters} className={secondaryButtonClass}>
           <Filter className="h-4 w-4" />
           Reset filters
         </button>
       </div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_0.85fr_0.95fr_1fr]">
-        <label className="grid gap-2 text-[0.68rem] font-black uppercase tracking-[0.16em] text-[#9ca3af]">
+        <label className="grid gap-2 text-[0.68rem] font-black uppercase tracking-[0.16em] text-emerald-100/52">
           Search
           <span className="relative">
-            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9ca3af]" />
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-emerald-100/45" />
             <input
               value={filters.search}
               onChange={(event) => setFilter("search", event.target.value)}
-              className="h-12 w-full rounded-2xl border border-[#e5e7eb] bg-white px-11 text-sm font-semibold text-[#111827] outline-none transition placeholder:text-[#9ca3af] focus:border-[#22c55e] focus:ring-4 focus:ring-emerald-100"
+              className="h-12 w-full rounded-2xl border border-emerald-300/14 bg-black/25 px-11 text-sm font-semibold text-white outline-none transition placeholder:text-emerald-50/38 focus:border-emerald-300/45 focus:ring-4 focus:ring-emerald-300/10"
               placeholder="Search by name, muscle, or goal"
             />
           </span>
@@ -351,8 +353,8 @@ function FilterBar({
             onClick={() => setFilter("view", value)}
             className={`inline-flex min-h-10 items-center justify-center rounded-full px-4 py-2 text-sm font-black transition ${
               filters.view === value
-                ? "bg-[#111827] text-white"
-                : "border border-[#e5e7eb] bg-white text-[#6b7280] hover:bg-[#f3f4f6] hover:text-[#111827]"
+                ? "bg-emerald-300 text-[#05110a] shadow-[0_0_24px_rgba(52,211,153,0.22)]"
+                : "border border-emerald-300/12 bg-white/[0.04] text-emerald-50/66 hover:border-emerald-300/28 hover:bg-white/[0.07] hover:text-white"
             }`}
           >
             {label}
@@ -372,6 +374,37 @@ function MetaPill({ icon: Icon, label }) {
   );
 }
 
+function workoutCalories(workout) {
+  const minutes = Number(workout.duration_minutes || 0);
+  if (!minutes) return "--";
+  return Math.max(120, Math.round(minutes * 12.5));
+}
+
+function PremiumChip({ icon: Icon, children, roomy = false }) {
+  return (
+    <span
+      className={`inline-flex items-center justify-center gap-1.5 rounded-full border border-emerald-300/16 bg-white/[0.065] font-black text-emerald-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${
+        roomy ? "min-h-12 px-4 text-sm" : "min-h-7 px-2.5 text-[0.68rem]"
+      }`}
+    >
+      <Icon className={`${roomy ? "h-4 w-4" : "h-3.5 w-3.5"} text-emerald-300`} />
+      {children}
+    </span>
+  );
+}
+
+function WorkoutArrowButton({ workout, label = "Start session" }) {
+  return (
+    <Link
+      href={`/workout/session?workout=${workout.id}`}
+      className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-emerald-200/18 bg-emerald-300/16 text-emerald-50 shadow-[0_0_26px_rgba(52,211,153,0.2)] transition group-hover:border-emerald-200/35 group-hover:bg-emerald-300 group-hover:text-[#05110a]"
+      aria-label={label}
+    >
+      <ArrowUpRight className="h-4 w-4" />
+    </Link>
+  );
+}
+
 function WorkoutCard({
   workout,
   preference,
@@ -381,59 +414,151 @@ function WorkoutCard({
   onOpen,
   onToggleFavorite,
   onComplete,
+  featured = false,
+  wide = false,
+  displayTitle,
 }) {
+  const title = displayTitle || workout.title;
+  const category = workout.category || "Workout";
+  const description = workout.description || "A focused session with simple coaching and steady pacing.";
+  const imageShellClass = featured
+    ? "relative min-h-[360px] overflow-hidden rounded-[1.25rem] border border-white/[0.08] bg-black/35 sm:min-h-[520px] lg:min-h-[620px]"
+    : wide
+      ? "relative aspect-[21/8] min-h-[160px] overflow-hidden rounded-[1rem] border border-white/[0.08] bg-black/35 sm:aspect-[21/7]"
+      : "relative aspect-[16/10] overflow-hidden rounded-[1rem] border border-white/[0.08] bg-black/35";
+
+  if (featured) {
+    return (
+      <article className="group grid overflow-hidden rounded-[1.45rem] border border-emerald-300/18 bg-[linear-gradient(145deg,rgba(16,62,36,0.56),rgba(5,13,9,0.84))] p-3 shadow-[0_24px_70px_rgba(0,0,0,0.42),0_0_34px_rgba(52,211,153,0.08)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:border-emerald-300/36 hover:shadow-[0_28px_80px_rgba(0,0,0,0.5),0_0_42px_rgba(52,211,153,0.18)] sm:grid-cols-[1.05fr_0.95fr] sm:p-4">
+        <button
+          type="button"
+          onClick={() => onOpen(workout)}
+          className={imageShellClass}
+          aria-label={`Open ${title}`}
+        >
+          <MediaFrame workout={workout} compact />
+          <span className="absolute left-4 top-4 rounded-full border border-white/14 bg-black/45 px-3 py-1.5 text-[0.68rem] font-black uppercase tracking-[0.08em] text-white backdrop-blur">
+            Featured plan
+          </span>
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/68 to-transparent" />
+          <div className="absolute bottom-4 left-4 flex flex-wrap gap-2">
+            <PremiumChip icon={Clock3}>{workout.duration_minutes || "--"} min</PremiumChip>
+            <PremiumChip icon={Flame}>{workoutCalories(workout)} kcal</PremiumChip>
+          </div>
+        </button>
+
+        <div className="flex min-h-full flex-col p-4 sm:p-5 lg:p-6">
+          <div>
+            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-300/18 bg-emerald-300/10 px-3 py-2 text-[0.68rem] font-black uppercase tracking-[0.08em] text-emerald-300">
+              <Sparkles className="h-3.5 w-3.5" />
+              Featured plan
+            </span>
+            <button type="button" onClick={() => onOpen(workout)} className="mt-7 block text-left">
+              <h3 className="text-4xl font-black leading-[1.04] tracking-[-0.04em] text-white sm:text-5xl lg:text-6xl">
+                {title}
+              </h3>
+            </button>
+            <p className="mt-5 max-w-sm text-base leading-8 text-emerald-50/68">{description}</p>
+            <div className="mt-6 flex flex-wrap gap-2">
+              <span className="rounded-full border border-white/12 bg-white/[0.07] px-3 py-2 text-xs font-black text-white">
+                {workout.muscle_group || "Full body"}
+              </span>
+              <span className="rounded-full border border-white/12 bg-white/[0.07] px-3 py-2 text-xs font-black text-white">
+                {workout.difficulty || "Beginner"} pacing
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-8 flex flex-wrap items-end justify-between gap-4 border-t border-white/[0.08] pt-6 sm:mt-auto">
+            <div className="flex flex-wrap gap-3">
+              <PremiumChip icon={Clock3} roomy>{workout.duration_minutes || "--"} min</PremiumChip>
+              <PremiumChip icon={Flame} roomy>{workoutCalories(workout)} kcal</PremiumChip>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => onToggleFavorite(workout)}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.055] text-emerald-50 transition hover:border-rose-200/25 hover:text-rose-100 disabled:opacity-60"
+                aria-label={preference?.is_favorite ? "Remove favorite" : "Save favorite"}
+              >
+                <Heart className={`h-4 w-4 ${preference?.is_favorite ? "fill-current text-rose-300" : ""}`} />
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => onComplete(workout)}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.055] text-emerald-50 transition hover:border-emerald-200/30 hover:text-emerald-200 disabled:opacity-60"
+                aria-label="Mark workout completed"
+              >
+                <CheckCircle2 className="h-4 w-4" />
+              </button>
+              <WorkoutArrowButton workout={workout} />
+            </div>
+          </div>
+        </div>
+      </article>
+    );
+  }
+
   return (
-    <article className="group overflow-hidden rounded-[1.4rem] border border-[#e5e7eb] bg-white shadow-[0_10px_28px_rgba(17,24,39,0.06)] transition hover:translate-y-[-1px] hover:shadow-[0_16px_36px_rgba(17,24,39,0.09)]">
+    <article
+      className={`group flex min-h-full flex-col overflow-hidden rounded-[1.15rem] border border-emerald-300/14 bg-[linear-gradient(150deg,rgba(22,58,38,0.48),rgba(7,13,10,0.82))] p-3 shadow-[0_18px_50px_rgba(0,0,0,0.32)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:border-emerald-300/34 hover:shadow-[0_24px_64px_rgba(0,0,0,0.42),0_0_32px_rgba(52,211,153,0.16)] ${
+        wide ? "sm:col-span-2" : ""
+      }`}
+    >
       <button
         type="button"
         onClick={() => onOpen(workout)}
-        className="relative block aspect-[16/10] w-full overflow-hidden bg-[#e5e7eb]"
-        aria-label={`Open ${workout.title}`}
+        className={imageShellClass}
+        aria-label={`Open ${title}`}
       >
         <MediaFrame workout={workout} compact />
-        <span className={`absolute left-3 top-3 rounded-full px-2.5 py-1 text-xs font-black ${recommended ? "bg-[#dcfce7] text-[#15803d]" : "bg-white/90 text-[#111827]"}`}>
-          {workout.category || "Workout"}
+        <span className="absolute left-3 top-3 rounded-full border border-white/12 bg-black/48 px-2.5 py-1 text-[0.62rem] font-black uppercase tracking-[0.08em] text-white backdrop-blur">
+          {category}
         </span>
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/60 to-transparent" />
       </button>
-      <div className="p-4">
-        <button type="button" onClick={() => onOpen(workout)} className="block min-w-0 text-left">
-          <p className="line-clamp-2 text-lg font-black leading-tight text-[#111827]">{workout.title}</p>
-          <p className="mt-2 flex flex-wrap items-center gap-2 text-sm font-semibold text-[#6b7280]">
-            <span>{workout.duration_minutes || "--"} min</span>
-            <span className="h-1 w-1 rounded-full bg-[#d1d5db]" />
-            <span>{workout.difficulty || "Beginner"}</span>
-          </p>
+      <div className="flex flex-1 flex-col p-1 pt-4">
+        <div className="flex flex-wrap gap-2">
+          <PremiumChip icon={Clock3}>{workout.duration_minutes || "--"} min</PremiumChip>
+          <PremiumChip icon={Flame}>{workoutCalories(workout)} kcal</PremiumChip>
+        </div>
+        <button type="button" onClick={() => onOpen(workout)} className="mt-4 block min-w-0 text-left">
+          <p className="line-clamp-2 text-xl font-black leading-tight text-white">{title}</p>
+          <p className="mt-2 line-clamp-3 text-sm leading-6 text-emerald-50/62">{description}</p>
         </button>
-        <div className="mt-4 flex gap-2">
-          <Link
-            href={`/workout/session?workout=${workout.id}`}
-            className="inline-flex min-h-10 flex-1 items-center justify-center gap-1 rounded-full bg-[#111827] px-3 text-sm font-bold text-white"
-          >
-            <PlayCircle className="h-4 w-4" />
-            Start
-          </Link>
+        <div className="mt-auto flex items-end justify-between gap-3 pt-5">
+          <div className="min-w-0">
+            {recommended ? (
+              <p className="text-xs font-black uppercase tracking-[0.12em] text-emerald-300">Recommended</p>
+            ) : null}
+            {completedRows.length > 0 ? (
+              <p className="mt-1 text-xs font-semibold text-emerald-50/52">Completed {completedRows.length} times</p>
+            ) : null}
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
           <button
             type="button"
             disabled={busy}
             onClick={() => onToggleFavorite(workout)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#f3f4f6] text-[#6b7280] disabled:opacity-60"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.055] text-emerald-50 transition hover:border-rose-200/25 hover:text-rose-100 disabled:opacity-60"
             aria-label={preference?.is_favorite ? "Remove favorite" : "Save favorite"}
           >
-            <Heart className={`h-4 w-4 ${preference?.is_favorite ? "fill-current text-rose-500" : ""}`} />
+              <Heart className={`h-4 w-4 ${preference?.is_favorite ? "fill-current text-rose-300" : ""}`} />
           </button>
           <button
             type="button"
             disabled={busy}
             onClick={() => onComplete(workout)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#dcfce7] text-[#15803d] disabled:opacity-60"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.055] text-emerald-50 transition hover:border-emerald-200/30 hover:text-emerald-200 disabled:opacity-60"
             aria-label="Mark workout completed"
           >
             <CheckCircle2 className="h-4 w-4" />
           </button>
+            <WorkoutArrowButton workout={workout} />
+          </div>
         </div>
-        {completedRows.length > 0 ? (
-          <p className="mt-3 text-xs font-semibold text-[#6b7280]">Completed {completedRows.length} times</p>
-        ) : null}
       </div>
     </article>
   );
@@ -790,41 +915,76 @@ function WorkoutContent({ profile }) {
     >
       {error && state !== "error" ? <InlineError message={error} onRetry={load} /> : null}
 
-      <section className="mb-7 grid gap-4 sm:grid-cols-3">
-        <StatCard
-          icon={Library}
-          label="Library"
-          value={workouts.length}
-          helper="Workouts available to browse"
+      <section className="relative overflow-hidden rounded-[2rem] border border-emerald-300/14 bg-[#020705] px-4 py-6 text-white shadow-[0_30px_90px_rgba(0,0,0,0.45)] sm:px-6 sm:py-8 lg:px-8">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-90"
+          aria-hidden
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 22% 5%, rgba(34,197,94,0.26), transparent 30%), radial-gradient(circle at 72% 16%, rgba(16,185,129,0.15), transparent 28%), radial-gradient(circle at 50% 98%, rgba(132,204,22,0.13), transparent 35%), linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px), radial-gradient(rgba(134,239,172,0.16) 1px, transparent 1px)",
+            backgroundSize: "auto, auto, auto, 48px 48px, 48px 48px, 18px 18px",
+          }}
         />
-        <StatCard
-          icon={Heart}
-          label="Saved"
-          value={favoriteCount}
-          helper="Favorites linked to your profile"
-          tone="rose"
-        />
-        <StatCard
-          icon={BarChart3}
-          label="Completed"
-          value={completedWorkouts.length}
-          helper="Sessions logged by your account"
-          tone="sky"
-        />
-      </section>
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(2,7,5,0.16),rgba(2,7,5,0.72))]" aria-hidden />
 
-      <FilterBar
-        filters={filters}
-        categories={categories}
-        difficulties={difficulties}
-        muscleGroups={muscleGroups}
-        resultCount={filteredWorkouts.length}
-        totalCount={workouts.length}
-        setFilter={setFilter}
-        resetFilters={resetFilters}
-      />
+        <div className="relative z-10 mx-auto max-w-7xl">
+          <div className="mb-7 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-3xl">
+              <p className="text-[0.68rem] font-black uppercase tracking-[0.18em] text-emerald-300">
+                Workout Library
+              </p>
+              <h2 className="mt-3 text-4xl font-black leading-[1.02] tracking-[-0.045em] text-white sm:text-5xl lg:text-6xl">
+                Train every part of you
+              </h2>
+              <p className="mt-4 max-w-2xl text-sm leading-7 text-emerald-50/66 sm:text-base">
+                Pick a focused session, then let the coach adjust the pace around your goals, energy, and schedule.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setFilters((current) => ({ ...current, view: "all", search: "", category: allValue, difficulty: allValue, duration: allValue, muscle: allValue }))}
+              className="inline-flex min-h-12 w-fit items-center justify-center gap-2 rounded-full border border-white/12 bg-white/[0.08] px-5 text-sm font-black text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur transition hover:border-emerald-300/35 hover:bg-emerald-300/14"
+            >
+              View all
+              <ArrowUpRight className="h-4 w-4 text-emerald-300" />
+            </button>
+          </div>
 
-      {state === "loading" ? <LoadingSpinner label="Preparing your workout library..." /> : null}
+          <section className="mb-7 grid gap-4 sm:grid-cols-3">
+            <StatCard
+              icon={Library}
+              label="Library"
+              value={workouts.length}
+              helper="Workouts available to browse"
+            />
+            <StatCard
+              icon={Heart}
+              label="Saved"
+              value={favoriteCount}
+              helper="Favorites linked to your profile"
+              tone="rose"
+            />
+            <StatCard
+              icon={BarChart3}
+              label="Completed"
+              value={completedWorkouts.length}
+              helper="Sessions logged by your account"
+              tone="sky"
+            />
+          </section>
+
+          <FilterBar
+            filters={filters}
+            categories={categories}
+            difficulties={difficulties}
+            muscleGroups={muscleGroups}
+            resultCount={filteredWorkouts.length}
+            totalCount={workouts.length}
+            setFilter={setFilter}
+            resetFilters={resetFilters}
+          />
+
+          {state === "loading" ? <LoadingSpinner label="Preparing your workout library..." /> : null}
 
       {state === "error" ? (
         <EmptyState
@@ -864,8 +1024,22 @@ function WorkoutContent({ profile }) {
       ) : null}
 
       {state === "ready" && filteredWorkouts.length > 0 ? (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredWorkouts.map(({ workout, preference, completedRows, recommended }) => (
+        <div className="grid gap-5 xl:grid-cols-[1.06fr_0.94fr]">
+          <WorkoutCard
+            key={filteredWorkouts[0].workout.id}
+            workout={filteredWorkouts[0].workout}
+            preference={filteredWorkouts[0].preference}
+            completedRows={filteredWorkouts[0].completedRows}
+            recommended={filteredWorkouts[0].recommended}
+            busy={Boolean(busyAction)}
+            onOpen={setSelectedWorkout}
+            onToggleFavorite={toggleFavorite}
+            onComplete={completeWorkout}
+            featured
+            displayTitle="Strength Builder"
+          />
+          <div className="grid gap-4 sm:grid-cols-2">
+          {filteredWorkouts.slice(1, 6).map(({ workout, preference, completedRows, recommended }, index) => (
             <WorkoutCard
               key={workout.id}
               workout={workout}
@@ -876,10 +1050,15 @@ function WorkoutContent({ profile }) {
               onOpen={setSelectedWorkout}
               onToggleFavorite={toggleFavorite}
               onComplete={completeWorkout}
+              wide={index === 4}
+              displayTitle={["Cardio", "Squats", "Boxing", "Push-Ups", "HIIT"][index] || workout.title}
             />
           ))}
+          </div>
         </div>
       ) : null}
+        </div>
+      </section>
 
       <WorkoutDetailModal
         workout={selectedWorkout}
