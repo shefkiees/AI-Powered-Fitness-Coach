@@ -8,7 +8,11 @@ const {
   workoutPlanRequestSchema,
 } = require("../lib/apiValidation.js");
 const { isStrictBackendModeValue } = require("../lib/backendMode.js");
-const { consumePersistentRateLimit } = require("../lib/persistentRateLimit.js");
+const {
+  consumePersistentRateLimit,
+  shouldUseLocalRateLimitFallback,
+} = require("../lib/persistentRateLimit.js");
+const { resetRateLimitStore } = require("../lib/rateLimit.js");
 
 function createFakeRateLimitCluster() {
   const rows = new Map();
@@ -224,4 +228,38 @@ test("persistent limiter keeps separate limits per user", async () => {
 
   assert.equal(otherUser.ok, true);
   assert.equal(otherUser.requestCount, 1);
+});
+
+test("persistent limiter falls back locally when the database limiter is unavailable", async () => {
+  resetRateLimitStore();
+
+  const result = await consumePersistentRateLimit({
+    supabase: {
+      async rpc() {
+        return {
+          data: null,
+          error: new Error("Function not found"),
+        };
+      },
+    },
+    userId: "user-a",
+    endpoint: "api-coach-exercise-substitution",
+    limit: 2,
+    windowMs: 60000,
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.source, "local");
+  assert.equal(result.requestCount, 1);
+});
+
+test("local rate limit fallback can be disabled explicitly", () => {
+  assert.equal(shouldUseLocalRateLimitFallback({ NODE_ENV: "production" }), true);
+  assert.equal(
+    shouldUseLocalRateLimitFallback({
+      NODE_ENV: "production",
+      AI_RATE_LIMIT_ALLOW_LOCAL_FALLBACK: "false",
+    }),
+    false,
+  );
 });
