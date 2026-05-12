@@ -179,15 +179,17 @@ export default function AuthForm({ mode }) {
           <section className="relative overflow-hidden rounded-[32px] bg-[linear-gradient(145deg,rgba(52,211,153,0.35),rgba(255,255,255,0.08)_34%,rgba(52,211,153,0.12)_100%)] p-px shadow-[0_34px_100px_rgba(0,0,0,0.58),0_0_46px_rgba(52,211,153,0.11)]">
             <div className="relative overflow-hidden rounded-[31px] border border-white/[0.06] bg-[rgba(3,15,10,0.72)] p-9 shadow-[inset_0_1px_0_rgba(255,255,255,0.10),inset_0_-1px_0_rgba(52,211,153,0.08)] backdrop-blur-[24px] sm:p-11">
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_34%,rgba(52,211,153,0.09),transparent_35%),linear-gradient(180deg,rgba(255,255,255,0.035),transparent_28%,rgba(0,0,0,0.22))]" />
-              <div className="pointer-events-none absolute inset-x-8 top-8 h-[385px] opacity-[0.25] mix-blend-screen [mask-image:linear-gradient(to_bottom,transparent,black_14%,black_78%,transparent)]">
-                <div className="absolute left-1/2 top-7 h-28 w-24 -translate-x-1/2 rounded-[52%_52%_46%_46%] bg-[radial-gradient(ellipse_at_45%_42%,rgba(255,255,255,0.38),rgba(255,255,255,0.07)_44%,transparent_70%)] blur-[0.5px]" />
-                <div className="absolute left-1/2 top-28 h-48 w-56 -translate-x-1/2 rounded-[48%_48%_36%_36%] bg-[radial-gradient(ellipse_at_50%_22%,rgba(255,255,255,0.30),rgba(255,255,255,0.06)_46%,transparent_72%)]" />
-                <div className="absolute left-[8%] top-32 h-44 w-24 -rotate-[18deg] rounded-full bg-[radial-gradient(ellipse_at_58%_22%,rgba(255,255,255,0.27),rgba(255,255,255,0.05)_48%,transparent_73%)]" />
-                <div className="absolute right-[8%] top-32 h-44 w-24 rotate-[18deg] rounded-full bg-[radial-gradient(ellipse_at_42%_22%,rgba(255,255,255,0.27),rgba(255,255,255,0.05)_48%,transparent_73%)]" />
-                <div className="absolute left-[23%] top-36 h-36 w-10 -rotate-[32deg] rounded-full bg-emerald-100/18 blur-md" />
-                <div className="absolute right-[23%] top-36 h-36 w-10 rotate-[32deg] rounded-full bg-emerald-100/18 blur-md" />
-                <div className="absolute left-1/2 top-20 h-72 w-px -translate-x-1/2 bg-gradient-to-b from-white/25 via-white/5 to-transparent" />
-              </div>
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 opacity-[0.11] mix-blend-screen blur-[0.45px] [mask-image:linear-gradient(to_bottom,transparent,black_10%,black_84%,transparent)]"
+                style={{
+                  backgroundImage: "url('/images/login-athlete.png')",
+                  backgroundPosition: "right 38% bottom -18px",
+                  backgroundRepeat: "no-repeat",
+                  backgroundSize: "74% auto",
+                }}
+              />
+              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(3,15,10,0.88)_0%,rgba(3,15,10,0.72)_48%,rgba(3,15,10,0.58)_100%),radial-gradient(circle_at_76%_38%,rgba(52,211,153,0.13),transparent_34%)]" />
               <div className="pointer-events-none absolute left-8 right-8 top-32 h-px bg-gradient-to-r from-transparent via-emerald-200/24 to-transparent motion-safe:animate-pulse" />
               <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-36 bg-gradient-to-t from-[rgba(3,15,10,0.92)] via-[rgba(3,15,10,0.58)] to-transparent" />
 
