@@ -129,43 +129,26 @@ export function LandingPage() {
       </header>
 
       {/* Hero */}
-      <section className="relative isolate overflow-hidden border-b border-white/[0.08] bg-[#061008] text-white">
-        <div className="absolute inset-0 -z-30 bg-[radial-gradient(circle_at_72%_18%,rgba(34,197,94,0.30),transparent_31%),radial-gradient(circle_at_22%_84%,rgba(134,239,172,0.14),transparent_32%),linear-gradient(135deg,#061008_0%,#0b1b10_48%,#020604_100%)]" />
-        <div className="absolute inset-0 -z-30 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:72px_72px] opacity-38 [mask-image:radial-gradient(circle_at_60%_35%,black,transparent_76%)]" />
-        <div className="absolute inset-0 -z-30 opacity-[0.07] [background-image:radial-gradient(circle_at_1px_1px,white_1px,transparent_0)] [background-size:18px_18px]" />
-        <div className="absolute right-[-8%] top-8 -z-20 hidden h-[680px] w-[54%] overflow-hidden opacity-28 mix-blend-screen md:block">
-          <Image
-            src="/pulse-assets/hero-athlete.jpg"
-            alt=""
-            fill
-            sizes="52vw"
-            className="object-cover object-center grayscale-[18%] saturate-125"
-            priority
-          />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_45%_42%,transparent_0%,rgba(6,16,8,0.22)_35%,#061008_82%),linear-gradient(90deg,#061008_0%,rgba(6,16,8,0.62)_44%,rgba(6,16,8,0.18)_100%)]" />
-        </div>
-        <div className="absolute left-[7%] top-36 -z-20 h-72 w-72 rounded-full bg-[var(--fc-accent)]/10 blur-3xl" />
-        <div className="absolute right-[13%] top-28 -z-20 h-96 w-96 rounded-full bg-[var(--fc-accent)]/12 blur-3xl" />
-        <div className="absolute right-[-120px] top-20 -z-10 hidden opacity-[0.13] lg:block">
-          <Image
-            src="/brand/ai-fitness-coach-logo.svg"
-            alt=""
-            width={640}
-            height={196}
-            className="h-auto w-[640px] drop-shadow-[0_0_45px_rgba(34,197,94,0.22)]"
-            priority
-          />
-        </div>
-        <div className="absolute inset-x-0 bottom-0 -z-10 h-40 bg-gradient-to-t from-[#080907] via-[#080907]/70 to-transparent" />
+      <section className="relative isolate overflow-hidden border-b border-white/[0.08] bg-[#010302] text-white">
+        <div className="absolute inset-0 -z-40 bg-[radial-gradient(ellipse_at_58%_12%,rgba(22,101,52,0.18),transparent_38%),radial-gradient(ellipse_at_18%_78%,rgba(6,95,70,0.12),transparent_34%),radial-gradient(ellipse_at_86%_70%,rgba(20,83,45,0.11),transparent_30%),linear-gradient(145deg,#010302_0%,#06110b_48%,#010302_100%)]" />
+        <div className="absolute inset-0 -z-40 opacity-60 blur-[1px] [background-image:conic-gradient(from_160deg_at_50%_50%,rgba(52,211,153,0.08),transparent_18%,rgba(15,118,110,0.07),transparent_46%,rgba(132,204,22,0.05),transparent_70%,rgba(52,211,153,0.06))]" />
+        <div className="absolute inset-0 -z-40 bg-[radial-gradient(ellipse_at_center,transparent_30%,rgba(0,0,0,0.58)_72%,rgba(0,0,0,0.92)_100%)]" />
+        <div className="absolute inset-0 -z-40 opacity-[0.06] [background-image:linear-gradient(rgba(255,255,255,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.12)_1px,transparent_1px)] [background-size:72px_72px]" />
+        <div className="absolute inset-0 -z-40 opacity-[0.045] [background-image:radial-gradient(rgba(255,255,255,0.55)_0.55px,transparent_0.55px)] [background-size:3px_3px]" />
+        <div className="absolute inset-x-0 bottom-0 -z-10 h-44 bg-gradient-to-t from-[#080907] via-[#080907]/74 to-transparent" />
 
-        <div className="mx-auto grid min-h-[720px] max-w-6xl items-center gap-10 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[minmax(0,1fr)_minmax(340px,0.72fr)] lg:px-8">
+        <div className="mx-auto grid min-h-[730px] max-w-6xl items-center gap-8 px-4 py-16 sm:px-6 sm:py-20 md:grid-cols-[minmax(0,0.98fr)_minmax(260px,0.72fr)] lg:grid-cols-[minmax(0,0.96fr)_minmax(360px,0.86fr)] lg:gap-10 lg:px-8">
           <div className="relative min-w-0 max-w-2xl">
-            <div className="absolute -left-5 top-2 hidden h-16 w-16 rounded-full border border-[var(--fc-accent)]/20 bg-[var(--fc-accent)]/5 blur-[1px] lg:block" />
-            <div className="absolute left-[58%] top-16 hidden h-3 w-3 rounded-full bg-[var(--fc-accent)] shadow-[0_0_28px_rgba(34,197,94,0.9)] motion-safe:animate-pulse sm:block" />
-            <h1 className="relative mt-5 max-w-[22rem] text-[2.75rem] font-black leading-[0.98] text-white drop-shadow-[0_18px_50px_rgba(0,0,0,0.30)] sm:max-w-3xl sm:text-6xl lg:text-7xl">
+            <div className="absolute -left-6 top-1 hidden h-20 w-20 rounded-full border border-emerald-300/14 bg-emerald-300/5 blur-[1px] lg:block" />
+            <div className="absolute left-[58%] top-14 hidden h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_28px_rgba(52,211,153,0.95)] motion-safe:animate-pulse sm:block" />
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200/14 bg-white/[0.045] px-3.5 py-2 text-[0.68rem] font-black uppercase text-emerald-50/62 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_14px_40px_rgba(0,0,0,0.28)] backdrop-blur-xl">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_18px_rgba(52,211,153,0.85)]" />
+              AI Fitness Coach
+            </div>
+            <h1 className="relative mt-7 max-w-[22rem] text-[2.9rem] font-black leading-[0.93] tracking-normal text-white drop-shadow-[0_24px_70px_rgba(0,0,0,0.48)] sm:max-w-3xl sm:text-[4rem] lg:text-[5.8rem]">
               Train smarter with your AI fitness coach.
             </h1>
-            <p className="mt-6 max-w-[22rem] text-lg leading-8 text-white/70 sm:max-w-xl sm:text-xl">
+            <p className="mt-6 max-w-[22rem] text-lg leading-8 text-emerald-50/68 sm:max-w-xl sm:text-xl">
               Custom workouts, practical nutrition guidance, and progress tracking in one calm coaching workspace.
             </p>
 
@@ -173,9 +156,11 @@ export function LandingPage() {
               {heroHighlights.map((item) => (
                 <div
                   key={item}
-                  className="flex items-center gap-2 rounded-full border border-white/[0.10] bg-white/[0.055] px-3 py-2 text-sm font-bold text-white/84 shadow-[0_12px_34px_rgba(0,0,0,0.16)] backdrop-blur-xl"
+                  className="group flex min-h-[58px] items-center gap-2 rounded-[1.15rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.055),rgba(0,0,0,0.18))] px-3.5 py-3 text-sm font-bold text-emerald-50/86 shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_18px_45px_rgba(0,0,0,0.22)] backdrop-blur-xl transition duration-200 hover:-translate-y-0.5 hover:border-emerald-300/35 hover:bg-emerald-300/[0.055]"
                 >
-                  <CheckCircle2 className="h-4 w-4 shrink-0 text-[var(--fc-accent)] drop-shadow-[0_0_12px_rgba(34,197,94,0.7)]" />
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-emerald-300/20 bg-emerald-300/10">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300 drop-shadow-[0_0_12px_rgba(52,211,153,0.65)]" />
+                  </span>
                   <span>{item}</span>
                 </div>
               ))}
@@ -184,73 +169,84 @@ export function LandingPage() {
             <div className="mt-10 flex max-w-[22rem] flex-col gap-3 sm:max-w-none sm:flex-row sm:flex-wrap">
               <Link
                 href="/onboarding"
-                className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--fc-accent)] px-7 py-3.5 text-sm font-black text-white shadow-[0_18px_45px_rgba(34,197,94,0.30),inset_0_1px_0_rgba(255,255,255,0.20)] transition hover:-translate-y-0.5 hover:brightness-110 sm:w-auto"
+                className="group inline-flex h-[56px] w-full items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#34d399_0%,#a7f3d0_48%,#10b981_100%)] px-7 text-sm font-black text-emerald-950 shadow-[0_18px_45px_rgba(52,211,153,0.28),0_0_26px_rgba(52,211,153,0.16),inset_0_1px_0_rgba(255,255,255,0.42)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_24px_58px_rgba(52,211,153,0.36),0_0_34px_rgba(52,211,153,0.20)] sm:w-auto"
               >
                 Start training free
                 <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
               </Link>
               <Link
                 href="/login"
-                className="group inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/[0.16] bg-white/[0.10] px-6 py-3.5 text-sm font-black text-white shadow-[0_14px_35px_rgba(0,0,0,0.20),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-[var(--fc-accent)]/45 hover:bg-white/[0.16] sm:w-auto"
+                className="group inline-flex h-[56px] w-full items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.055] px-6 text-sm font-black text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_14px_34px_rgba(0,0,0,0.22)] backdrop-blur-xl transition duration-200 hover:-translate-y-0.5 hover:border-emerald-300/35 hover:bg-white/[0.08] sm:w-auto"
               >
-                <Play className="h-4 w-4 fill-current text-[var(--fc-accent)] drop-shadow-[0_0_12px_rgba(34,197,94,0.7)] transition group-hover:scale-110" />
+                <Play className="h-4 w-4 fill-current text-emerald-300 drop-shadow-[0_0_12px_rgba(52,211,153,0.7)] transition group-hover:scale-110" />
                 Live demo
               </Link>
             </div>
           </div>
 
-          <aside className="relative mt-12 hidden justify-self-end lg:block">
-            <div className="absolute -left-12 top-12 h-24 w-24 rounded-full border border-[var(--fc-accent)]/20 bg-[conic-gradient(from_140deg,rgba(34,197,94,0.8),rgba(255,255,255,0.08),rgba(34,197,94,0.18))] p-[1px] opacity-70 blur-[0.2px]">
-              <div className="h-full w-full rounded-full bg-[#071008]/88 backdrop-blur-xl" />
+          <aside className="relative mt-12 min-h-[500px] w-full max-w-[390px] justify-self-center md:mt-0 lg:block lg:min-h-[520px] lg:justify-self-end">
+            <div className="pointer-events-none absolute -inset-8 rounded-[42px] bg-[linear-gradient(135deg,rgba(52,211,153,0.18),rgba(16,185,129,0.06),transparent_66%)] blur-3xl" />
+            <div className="absolute left-1/2 top-0 h-[470px] w-full max-w-[360px] -translate-x-1/2 overflow-hidden rounded-[2rem] border border-white/[0.07] bg-[rgba(3,15,10,0.30)] shadow-[0_34px_100px_rgba(0,0,0,0.58),0_0_46px_rgba(52,211,153,0.11)] backdrop-blur-[18px] lg:h-[500px]">
+              <Image
+                src="/pulse-assets/hero-athlete.jpg"
+                alt="Female fitness athlete"
+                fill
+                sizes="360px"
+                className="object-cover object-[center_22%] opacity-95 saturate-125 brightness-110 contrast-110"
+                priority
+              />
+              <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(3,15,10,0.58)_0%,rgba(3,15,10,0.08)_44%,rgba(3,15,10,0.42)_100%),radial-gradient(circle_at_58%_38%,rgba(16,185,129,0.16),transparent_48%)]" />
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_28%,rgba(0,0,0,0.24)_74%,rgba(0,0,0,0.76)_100%)]" />
             </div>
-            <div className="absolute -right-5 top-[-22px] flex h-16 w-16 items-center justify-center rounded-full border border-white/[0.12] bg-white/[0.07] text-[var(--fc-accent)] shadow-[0_18px_55px_rgba(34,197,94,0.18)] backdrop-blur-xl motion-safe:animate-pulse">
-              <Bot className="h-6 w-6" />
+            <div className="absolute -left-6 top-24 hidden h-28 w-28 rounded-full border border-emerald-300/14 bg-white/[0.025] backdrop-blur-xl lg:block" />
+            <div className="absolute right-3 top-12 flex h-12 w-12 items-center justify-center rounded-full border border-white/[0.14] bg-white/[0.07] text-emerald-300 shadow-[0_20px_55px_rgba(52,211,153,0.18)] backdrop-blur-xl motion-safe:animate-pulse">
+              <Bot className="h-5 w-5" />
             </div>
-            <div className="absolute -bottom-8 right-10 h-28 w-28 rounded-full bg-[var(--fc-accent)]/14 blur-3xl" />
+            <div className="absolute bottom-16 left-10 h-px w-48 rotate-[-15deg] bg-gradient-to-r from-transparent via-emerald-300/32 to-transparent shadow-[0_0_18px_rgba(52,211,153,0.45)]" />
+            <div className="absolute right-0 top-52 h-px w-44 rotate-[17deg] bg-gradient-to-r from-transparent via-emerald-300/28 to-transparent shadow-[0_0_18px_rgba(52,211,153,0.40)]" />
 
-            <div className="group relative w-[350px] overflow-hidden rounded-lg border border-white/[0.14] bg-white/[0.075] p-5 text-white shadow-[0_34px_100px_rgba(0,0,0,0.42),0_0_80px_rgba(34,197,94,0.10)] backdrop-blur-2xl transition duration-300 hover:-translate-y-1 hover:border-[var(--fc-accent)]/34 hover:bg-white/[0.095]">
-              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.13),transparent_38%,rgba(34,197,94,0.12))] opacity-80" />
-              <div className="pointer-events-none absolute right-[-38px] top-[-38px] h-32 w-32 rounded-full bg-[var(--fc-accent)]/16 blur-2xl" />
+            <div className="group absolute bottom-0 left-0 w-[292px] overflow-hidden rounded-[1.35rem] border border-white/[0.08] bg-[rgba(3,15,10,0.78)] p-3.5 text-white shadow-[0_34px_100px_rgba(0,0,0,0.58),0_0_46px_rgba(52,211,153,0.11),inset_0_1px_0_rgba(255,255,255,0.10)] backdrop-blur-[24px] transition duration-300 hover:-translate-y-1 hover:border-emerald-300/24 lg:left-auto lg:right-0">
+              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_72%_24%,rgba(52,211,153,0.10),transparent_35%),linear-gradient(180deg,rgba(255,255,255,0.035),transparent_28%,rgba(0,0,0,0.22))]" />
               <div className="relative flex items-center justify-between">
-                <p className="text-xs font-black uppercase text-[var(--fc-accent)]">Today&apos;s plan</p>
-                <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--fc-accent)]/20 bg-[var(--fc-accent)]/10 shadow-[0_0_30px_rgba(34,197,94,0.16)]">
-                  <Gauge className="h-5 w-5 text-[var(--fc-accent)]" />
+                <div>
+                  <p className="text-[0.68rem] font-black uppercase text-emerald-300">Today&apos;s plan</p>
+                  <p className="mt-1 text-xs font-bold text-emerald-50/42">AI adjusted for recovery</p>
+                </div>
+                <span className="flex h-10 w-10 items-center justify-center rounded-full border border-emerald-300/20 bg-emerald-300/10 shadow-[0_0_30px_rgba(52,211,153,0.16)]">
+                  <Gauge className="h-5 w-5 text-emerald-300" />
                 </span>
               </div>
               <div className="relative mt-5 grid grid-cols-[1fr_auto] items-start gap-4">
-                <p className="text-2xl font-black leading-tight">Balanced strength</p>
-                <div className="relative h-16 w-16 rounded-full bg-[conic-gradient(var(--fc-accent)_74%,rgba(255,255,255,0.12)_0)] p-[3px] shadow-[0_0_34px_rgba(34,197,94,0.18)]">
-                  <div className="flex h-full w-full items-center justify-center rounded-full bg-[#071008]/92">
-                    <LineChart className="h-5 w-5 text-[var(--fc-accent)]" />
+                <div>
+                  <p className="text-[1.35rem] font-black leading-tight">Balanced strength</p>
+                  <p className="mt-1.5 text-xs font-semibold text-emerald-50/48">45 min · 3 blocks</p>
+                </div>
+                <div className="relative h-12 w-12 rounded-full bg-[conic-gradient(#34d399_74%,rgba(255,255,255,0.12)_0)] p-[3px] shadow-[0_0_34px_rgba(52,211,153,0.18)]">
+                  <div className="flex h-full w-full items-center justify-center rounded-full bg-[#03100a]/94">
+                    <LineChart className="h-4 w-4 text-emerald-300" />
                   </div>
                 </div>
               </div>
-              <div className="relative mt-6 space-y-3">
+              <div className="relative mt-4 space-y-2">
                 {["Warm up - 6 min", "Strength block - 32 min", "Cooldown - 7 min"].map((step, index) => (
                   <div
                     key={step}
-                    className="group/step rounded-md border border-white/[0.08] bg-black/[0.16] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition group-hover:bg-white/[0.075]"
+                    className="group/step rounded-[0.95rem] border border-white/10 bg-white/[0.055] px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)] transition group-hover:bg-white/[0.075]"
                   >
                     <div className="flex items-center gap-3">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--fc-accent)]/15 text-xs font-black text-[var(--fc-accent)]">
-                      {index + 1}
-                    </span>
-                    <span className="text-sm font-bold text-white/88">{step}</span>
-                    </div>
-                    <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/[0.08]">
-                      <div
-                        className="h-full rounded-full bg-[var(--fc-accent)] shadow-[0_0_18px_rgba(34,197,94,0.52)]"
-                        style={{ width: `${[68, 86, 52][index]}%` }}
-                      />
+                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-300/12 text-xs font-black text-emerald-300">
+                        {index + 1}
+                      </span>
+                      <span className="text-[0.78rem] font-bold text-emerald-50/86">{step}</span>
                     </div>
                   </div>
                 ))}
               </div>
-              <div className="relative mt-5 flex items-center gap-2 border-t border-white/[0.10] pt-5 text-[var(--fc-accent)]">
+              <div className="relative mt-3.5 flex items-center gap-2 border-t border-white/[0.10] pt-3.5 text-emerald-300">
                 {Array.from({ length: 5 }).map((_, i) => (
-                  <Star key={i} className="h-4 w-4 fill-current" />
+                  <Star key={i} className="h-3.5 w-3.5 fill-current" />
                 ))}
-                <span className="ml-2 text-sm font-bold text-white/80">4.9 coach rating</span>
+                <span className="ml-1.5 text-xs font-bold text-emerald-50/76">4.9 coach rating</span>
               </div>
             </div>
           </aside>
