@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
@@ -145,26 +146,50 @@ export default function AuthForm({ mode }) {
   const submitText = isSignup ? "Create account" : "Login";
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#020503] text-white">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,rgba(8,27,18,0.92),transparent_42%),linear-gradient(135deg,#010302_0%,#07130d_46%,#010302_100%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_56%_32%,rgba(52,211,153,0.13),transparent_24%),radial-gradient(circle_at_38%_72%,rgba(16,185,129,0.08),transparent_28%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_38%,rgba(0,0,0,0.52)_72%,rgba(0,0,0,0.86)_100%)]" />
-      <div className="pointer-events-none absolute inset-0 opacity-[0.08] [background-image:linear-gradient(rgba(255,255,255,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.12)_1px,transparent_1px),radial-gradient(rgba(134,239,172,0.24)_1px,transparent_1px)] [background-size:64px_64px,64px_64px,22px_22px]" />
+    <div className="relative min-h-screen overflow-hidden bg-[#010302] text-white">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_18%,rgba(22,101,52,0.16),transparent_38%),radial-gradient(ellipse_at_18%_78%,rgba(6,95,70,0.12),transparent_34%),radial-gradient(ellipse_at_86%_72%,rgba(20,83,45,0.10),transparent_30%),linear-gradient(145deg,#010302_0%,#06110b_48%,#010302_100%)]" />
+      <div className="pointer-events-none absolute inset-0 opacity-70 blur-[1px] [background-image:conic-gradient(from_160deg_at_50%_50%,rgba(52,211,153,0.08),transparent_18%,rgba(15,118,110,0.07),transparent_46%,rgba(132,204,22,0.05),transparent_70%,rgba(52,211,153,0.06))]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_34%,rgba(0,0,0,0.56)_72%,rgba(0,0,0,0.9)_100%)]" />
+      <div className="pointer-events-none absolute inset-0 opacity-[0.07] [background-image:linear-gradient(rgba(255,255,255,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.12)_1px,transparent_1px)] [background-size:72px_72px]" />
+      <div className="pointer-events-none absolute inset-0 opacity-[0.055] [background-image:radial-gradient(rgba(255,255,255,0.55)_0.55px,transparent_0.55px)] [background-size:3px_3px]" />
+
+      <Link
+        href="/"
+        aria-label="AI Fitness Coach"
+        className="absolute left-5 top-5 z-20 grid h-10 w-10 place-items-center rounded-2xl border border-emerald-200/14 bg-white/[0.045] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_14px_40px_rgba(0,0,0,0.28)] backdrop-blur-xl transition hover:border-emerald-300/35 hover:bg-white/[0.07] sm:left-8 sm:top-8"
+      >
+        <Image
+          src="/brand/ai-fitness-coach-icon.svg"
+          width={24}
+          height={24}
+          alt="AI Fitness Coach"
+          priority
+          className="h-6 w-6"
+        />
+      </Link>
+
+      <div className="pointer-events-none absolute left-[12%] top-[18%] hidden h-24 w-px bg-gradient-to-b from-transparent via-emerald-300/18 to-transparent sm:block" />
+      <div className="pointer-events-none absolute bottom-[17%] right-[16%] hidden h-px w-32 bg-gradient-to-r from-transparent via-emerald-300/18 to-transparent sm:block" />
+      <div className="pointer-events-none absolute right-[19%] top-[25%] hidden h-14 w-14 border-r border-t border-emerald-300/14 sm:block" />
+      <div className="pointer-events-none absolute bottom-[24%] left-[18%] hidden h-12 w-12 border-b border-l border-emerald-300/12 sm:block" />
 
       <main className="relative z-10 flex min-h-screen items-center justify-center px-4 py-8 sm:px-6">
-        <section className="w-[92%] max-w-[440px] rounded-[28px] border border-[rgba(52,211,153,0.22)] bg-[rgba(3,15,10,0.72)] p-10 shadow-[0_28px_90px_rgba(0,0,0,0.48),0_0_42px_rgba(52,211,153,0.10)] backdrop-blur-[24px] sm:p-12">
-          <Link href="/" className="inline-flex text-[0.68rem] font-black uppercase tracking-[0.24em] text-emerald-200/90 transition hover:text-emerald-100">
-            AI FITNESS COACH
-          </Link>
+        <div className="relative w-[92%] max-w-[440px]">
+          <div className="pointer-events-none absolute -inset-10 rounded-[42px] bg-[linear-gradient(135deg,rgba(52,211,153,0.16),rgba(16,185,129,0.05),transparent_66%)] blur-3xl" />
+          <section className="relative overflow-hidden rounded-[32px] bg-[linear-gradient(145deg,rgba(52,211,153,0.35),rgba(255,255,255,0.08)_34%,rgba(52,211,153,0.12)_100%)] p-px shadow-[0_34px_100px_rgba(0,0,0,0.58),0_0_46px_rgba(52,211,153,0.11)]">
+            <div className="rounded-[31px] border border-white/[0.06] bg-[rgba(3,15,10,0.72)] p-9 shadow-[inset_0_1px_0_rgba(255,255,255,0.10),inset_0_-1px_0_rgba(52,211,153,0.08)] backdrop-blur-[24px] sm:p-11">
+              <Link href="/" className="inline-flex text-[0.66rem] font-black uppercase tracking-[0.26em] text-emerald-100/62 transition hover:text-emerald-100">
+                AI FITNESS COACH
+              </Link>
 
-          <div className="mt-10">
-            <h1 className="text-4xl font-black leading-tight tracking-[-0.04em] text-white">
-              {heading}
-            </h1>
-            <p className="mt-3 text-sm leading-6 text-emerald-50/58">{description}</p>
-          </div>
+              <div className="mt-9">
+                <h1 className="text-[2.35rem] font-black leading-[1.05] tracking-[-0.045em] text-white">
+                  {heading}
+                </h1>
+                <p className="mt-3 text-[0.95rem] leading-6 text-emerald-50/68">{description}</p>
+              </div>
 
-          <form onSubmit={submit} className="mt-8 space-y-4">
+              <form onSubmit={submit} className="mt-8 space-y-4">
                 {notice ? (
                   <div className="rounded-[1.1rem] border border-emerald-300/20 bg-emerald-300/10 px-4 py-3 text-sm leading-6 text-emerald-50">
                     {notice}
@@ -194,7 +219,7 @@ export default function AuthForm({ mode }) {
                       <input
                         value={name}
                         onChange={(event) => setName(event.target.value)}
-                        className="h-[54px] w-full rounded-[1rem] border border-white/12 bg-black/30 pl-11 pr-4 text-sm font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] outline-none transition placeholder:text-white/28 focus:border-emerald-300/70 focus:bg-emerald-300/6 focus:ring-4 focus:ring-emerald-300/12"
+                        className="h-[54px] w-full rounded-[1rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.055),rgba(0,0,0,0.18))] pl-11 pr-4 text-sm font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-1px_0_rgba(0,0,0,0.22)] outline-none transition duration-200 placeholder:text-emerald-50/28 hover:border-white/16 focus:border-emerald-300/70 focus:bg-emerald-300/[0.055] focus:ring-4 focus:ring-emerald-300/12"
                         placeholder="Your name"
                         autoComplete="name"
                       />
@@ -209,7 +234,7 @@ export default function AuthForm({ mode }) {
                     <input
                       value={email}
                       onChange={(event) => setEmail(event.target.value)}
-                      className="h-[54px] w-full rounded-[1rem] border border-white/12 bg-black/30 pl-11 pr-4 text-sm font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] outline-none transition placeholder:text-white/28 focus:border-emerald-300/70 focus:bg-emerald-300/6 focus:ring-4 focus:ring-emerald-300/12"
+                      className="h-[54px] w-full rounded-[1rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.055),rgba(0,0,0,0.18))] pl-11 pr-4 text-sm font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-1px_0_rgba(0,0,0,0.22)] outline-none transition duration-200 placeholder:text-emerald-50/28 hover:border-white/16 focus:border-emerald-300/70 focus:bg-emerald-300/[0.055] focus:ring-4 focus:ring-emerald-300/12"
                       placeholder="you@example.com"
                       type="email"
                       autoComplete="email"
@@ -224,7 +249,7 @@ export default function AuthForm({ mode }) {
                     <input
                       value={password}
                       onChange={(event) => setPassword(event.target.value)}
-                      className="h-[54px] w-full rounded-[1rem] border border-white/12 bg-black/30 pl-11 pr-12 text-sm font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] outline-none transition placeholder:text-white/28 focus:border-emerald-300/70 focus:bg-emerald-300/6 focus:ring-4 focus:ring-emerald-300/12"
+                      className="h-[54px] w-full rounded-[1rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.055),rgba(0,0,0,0.18))] pl-11 pr-12 text-sm font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-1px_0_rgba(0,0,0,0.22)] outline-none transition duration-200 placeholder:text-emerald-50/28 hover:border-white/16 focus:border-emerald-300/70 focus:bg-emerald-300/[0.055] focus:ring-4 focus:ring-emerald-300/12"
                       placeholder="At least 6 characters"
                       type={showPassword ? "text" : "password"}
                       autoComplete={isSignup ? "new-password" : "current-password"}
@@ -243,7 +268,7 @@ export default function AuthForm({ mode }) {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="mt-3 inline-flex h-[54px] w-full items-center justify-center gap-3 rounded-[1rem] bg-gradient-to-r from-emerald-400 via-green-300 to-emerald-500 px-5 text-sm font-black text-emerald-950 shadow-[0_18px_45px_rgba(52,211,153,0.22)] transition hover:-translate-y-px hover:shadow-[0_22px_52px_rgba(52,211,153,0.28)] disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-70"
+                  className="mt-3 inline-flex h-[54px] w-full items-center justify-center gap-3 rounded-[1rem] bg-[linear-gradient(135deg,#34d399_0%,#a7f3d0_48%,#10b981_100%)] px-5 text-sm font-black text-emerald-950 shadow-[0_18px_45px_rgba(52,211,153,0.24),inset_0_1px_0_rgba(255,255,255,0.42)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_24px_58px_rgba(52,211,153,0.34),0_0_28px_rgba(52,211,153,0.18)] disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-70"
                 >
                   {submitting ? (
                     <>
@@ -257,17 +282,19 @@ export default function AuthForm({ mode }) {
                     </>
                   )}
                 </button>
-          </form>
+              </form>
 
-          <p className="mt-6 text-center text-sm text-white/[0.58]">
-            <Link
-              href={isSignup ? "/login" : "/signup"}
-              className="font-black text-white transition hover:text-emerald-300"
-            >
-              {isSignup ? "Login" : "Create one"}
-            </Link>
-          </p>
-        </section>
+              <p className="mt-6 text-center text-sm text-white/[0.58]">
+                <Link
+                  href={isSignup ? "/login" : "/signup"}
+                  className="font-black text-white transition hover:text-emerald-300"
+                >
+                  {isSignup ? "Login" : "Create one"}
+                </Link>
+              </p>
+            </div>
+          </section>
+        </div>
       </main>
     </div>
   );
