@@ -23,6 +23,7 @@ import {
 import EmptyState from "@/src/components/EmptyState";
 import LoadingSpinner from "@/src/components/LoadingSpinner";
 import ProtectedRoute from "@/src/components/ProtectedRoute";
+import { fetchAiEndpoint } from "@/lib/aiFetch";
 import {
   completeWorkout,
   getUpcomingWorkoutSessions,
@@ -414,7 +415,7 @@ function SessionRunner({ user, profile, workout, initialSessionId }) {
     setSubBusy(true);
     setError("");
     try {
-      const response = await fetch("/api/coach/exercise-substitution", {
+      const response = await fetchAiEndpoint("/api/coach/exercise-substitution", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ exercise, workout, reason }),
@@ -468,7 +469,7 @@ function SessionRunner({ user, profile, workout, initialSessionId }) {
       });
       let adaptation = null;
       try {
-        const response = await fetch("/api/coach/adaptive-plan", {
+        const response = await fetchAiEndpoint("/api/coach/adaptive-plan", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ completed_workout_id: saved.id }),

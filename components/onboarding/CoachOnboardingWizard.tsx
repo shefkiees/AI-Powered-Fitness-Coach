@@ -28,6 +28,7 @@ import {
   emptyCoachOnboarding,
 } from "@/lib/coachOnboardingTypes";
 import { cn } from "@/lib/cn";
+import { fetchAiEndpoint } from "@/lib/aiFetch";
 
 const EQUIPMENT_OPTIONS = [
   "Bodyweight only",
@@ -113,7 +114,7 @@ export function CoachOnboardingWizard() {
     setAiBusy(true);
     setAiError("");
     try {
-      const response = await fetch("/api/coach/onboarding-summary", {
+      const response = await fetchAiEndpoint("/api/coach/onboarding-summary", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(draft),

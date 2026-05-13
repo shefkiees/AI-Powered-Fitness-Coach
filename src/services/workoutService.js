@@ -1,4 +1,5 @@
 import { refreshProgressSnapshot } from "@/src/services/progressService";
+import { fetchAiEndpoint } from "@/lib/aiFetch";
 import {
   emptyUuid,
   estimateCalories,
@@ -162,7 +163,7 @@ export async function deleteExercise(exerciseId) {
 }
 
 export async function createWorkoutPlan(_userId, profile) {
-  const response = await fetch("/api/workout-plan/generate", {
+  const response = await fetchAiEndpoint("/api/workout-plan/generate", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ profile }),

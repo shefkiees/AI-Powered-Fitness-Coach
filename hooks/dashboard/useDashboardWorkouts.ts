@@ -2,6 +2,7 @@
 
 import { useCallback } from "react";
 import { supabase } from "@/src/lib/supabaseClient";
+import { fetchAiEndpoint } from "@/lib/aiFetch";
 import type {
   DashboardActionState,
   DashboardProfile,
@@ -196,7 +197,7 @@ export function useDashboardWorkouts({
   const generateAiPlan = useCallback(async () => {
     setAction({ generatingPlan: true, error: null, notice: null });
     try {
-      const response = await fetch("/api/workout-plan/generate", {
+      const response = await fetchAiEndpoint("/api/workout-plan/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ profile: profile || {} }),

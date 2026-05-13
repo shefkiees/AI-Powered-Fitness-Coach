@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/src/lib/supabaseClient";
+import { fetchAiEndpoint } from "@/lib/aiFetch";
 import { useDashboardActivity, addActivityVolume, addWorkoutVolume, buildTimeline } from "@/hooks/dashboard/useDashboardActivity";
 import { useDashboardGoals, mapGoals } from "@/hooks/dashboard/useDashboardGoals";
 import { buildNutritionSummary, useDashboardNutrition } from "@/hooks/dashboard/useDashboardNutrition";
@@ -215,7 +216,7 @@ export function usePulseDashboard(userId: string | undefined): PulseDashboardMod
     if (!userId) return;
     setAction({ reviewingCoach: true, error: null, notice: null });
     try {
-      const response = await fetch("/api/coach/weekly-review", {
+      const response = await fetchAiEndpoint("/api/coach/weekly-review", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });

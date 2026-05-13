@@ -12,6 +12,7 @@ export type FitnessAiProvider = {
 const GROQ_BASE_URL = "https://api.groq.com/openai/v1";
 const DEFAULT_GROQ_MODEL = "openai/gpt-oss-120b";
 const DEFAULT_OPENAI_MODEL = "gpt-4o-mini";
+const DEFAULT_AI_PROVIDER_TIMEOUT_MS = 45000;
 
 const GROQ_TASK_MODELS: Record<FitnessAiTask, string> = {
   chat: "GROQ_CHAT_MODEL",
@@ -43,6 +44,11 @@ function cleanApiKey(value: string | undefined) {
 function envValue(name: string) {
   const value = process.env[name]?.trim();
   return value || undefined;
+}
+
+function aiProviderTimeoutMs() {
+  const value = Number(envValue("AI_PROVIDER_TIMEOUT_MS") || envValue("AI_REQUEST_TIMEOUT_MS"));
+  return Number.isFinite(value) && value >= 5000 ? value : DEFAULT_AI_PROVIDER_TIMEOUT_MS;
 }
 
 export function getFitnessAiProvider(task: FitnessAiTask): FitnessAiProvider | null {
@@ -78,6 +84,8 @@ export function createFitnessAiClient(provider: FitnessAiProvider) {
   return new OpenAI({
     apiKey: provider.apiKey,
     baseURL: provider.baseURL,
+    maxRetries: 1,
+    timeout: aiProviderTimeoutMs(),
   });
 }
 

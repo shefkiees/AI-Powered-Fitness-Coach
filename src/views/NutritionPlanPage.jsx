@@ -7,6 +7,7 @@ import EmptyState from "@/src/components/EmptyState";
 import LoadingSpinner from "@/src/components/LoadingSpinner";
 import NutritionCard from "@/src/components/NutritionCard";
 import ProtectedRoute from "@/src/components/ProtectedRoute";
+import { fetchAiEndpoint } from "@/lib/aiFetch";
 import {
   addMealLog,
   addWaterLog,
@@ -200,7 +201,7 @@ function NutritionContent({ user, profile }) {
     setBusy("coach");
     setError("");
     try {
-      const response = await fetch("/api/coach/nutrition-suggest", {
+      const response = await fetchAiEndpoint("/api/coach/nutrition-suggest", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question }),

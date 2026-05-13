@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { getTextFieldClassName } from "@/components/ui/textFieldStyles";
 import { cn } from "@/lib/cn";
+import { fetchAiEndpoint } from "@/lib/aiFetch";
 import { CoachMessage } from "@/components/dashboard/CoachMessage";
 import { useCoachingSession } from "@/hooks/useCoachingSession";
 
@@ -71,7 +72,7 @@ export function CoachChat({ coachDisplayName, userId, onActivity }: Props) {
       if (userId) onActivity?.();
 
       try {
-        const response = await fetch("/api/chat", {
+        const response = await fetchAiEndpoint("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ message: trimmed }),

@@ -1,4 +1,5 @@
 import { calculateNutritionTargets, generateMeals } from "@/src/utils/fitnessCalculations";
+import { fetchAiEndpoint } from "@/lib/aiFetch";
 import { getProfile } from "@/src/services/profileService";
 import { isMissingRelationError, nullableNumber, requireSupabase, todayKey } from "@/src/services/serviceShared";
 
@@ -108,7 +109,7 @@ export async function createNutritionPlan(_userId, profile) {
 }
 
 export async function estimateNutritionInput(input) {
-  const response = await fetch("/api/nutrition/estimate", {
+  const response = await fetchAiEndpoint("/api/nutrition/estimate", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ input }),
