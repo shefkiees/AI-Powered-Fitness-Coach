@@ -12,7 +12,46 @@ export type AutoExercise =
   | "jumping_jack"
   | "situp"
   | "lateral_raise"
-  | "deadlift";
+  | "deadlift"
+  | "burpee"
+  | "mountain_climber"
+  | "tricep_dip"
+  | "high_knees"
+  | "jumping_squat"
+  | "calf_raise"
+  | "side_lunge"
+  | "russian_twist"
+  | "bicycle_crunch"
+  | "leg_raise"
+  | "wall_sit"
+  | "superman_hold"
+  | "glute_bridge"
+  | "donkey_kick"
+  | "fire_hydrant"
+  | "front_raise"
+  | "bent_over_row"
+  | "pullup"
+  | "chinup"
+  | "toe_touch"
+  | "side_plank"
+  | "reverse_crunch"
+  | "step_up"
+  | "kettlebell_swing"
+  | "box_jump"
+  | "seated_shoulder_press"
+  | "hammer_curl"
+  | "arnold_press"
+  | "flutter_kicks"
+  | "bear_crawl"
+  | "skater_jump"
+  | "inchworm"
+  | "hip_thrust"
+  | "sumo_squat"
+  | "goblet_squat"
+  | "overhead_tricep_extension"
+  | "resistance_band_row"
+  | "lateral_walk"
+  | "sprint_in_place";
 
 export type SetupChecklistItem = {
   label: string;
@@ -108,7 +147,7 @@ export type AutoWorkoutState = {
   sessionReady: boolean;
   detectedExercises: AutoExercise[];
   detection?: {
-    mode: "auto" | "manual";
+    mode: "auto";
     movementPattern: string;
     movementScore: number;
     scanning: boolean;
@@ -129,7 +168,7 @@ export type AutoWorkoutTracker = {
 
 export const EXERCISE_LABELS: Record<AutoExercise, string>;
 export const EXERCISES: AutoExercise[];
-export const COUNTED_EXERCISES: Exclude<AutoExercise, "general" | "plank">[];
+export const COUNTED_EXERCISES: Exclude<AutoExercise, "general" | "plank" | "wall_sit" | "superman_hold" | "side_plank">[];
 export const EXERCISE_CONFIG: Record<string, unknown>;
 
 export function createAutoWorkoutTracker(): AutoWorkoutTracker;

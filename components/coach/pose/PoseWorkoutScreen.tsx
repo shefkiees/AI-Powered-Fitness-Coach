@@ -23,8 +23,10 @@ type FinalSessionResult = {
   repsByExercise: Record<AutoExercise, ExerciseTotal>;
   formScore: number;
   avgConfidence: number;
+  caloriesEstimate: number;
   validReps: number;
   partialReps: number;
+  postureIssues: string[];
   feedback: string;
   improvementTips: string[];
   bestCue: string;
@@ -42,6 +44,45 @@ const TRACKED_EXERCISES: AutoExercise[] = [
   "situp",
   "lateral_raise",
   "deadlift",
+  "burpee",
+  "mountain_climber",
+  "tricep_dip",
+  "high_knees",
+  "jumping_squat",
+  "calf_raise",
+  "side_lunge",
+  "russian_twist",
+  "bicycle_crunch",
+  "leg_raise",
+  "wall_sit",
+  "superman_hold",
+  "glute_bridge",
+  "donkey_kick",
+  "fire_hydrant",
+  "front_raise",
+  "bent_over_row",
+  "pullup",
+  "chinup",
+  "toe_touch",
+  "side_plank",
+  "reverse_crunch",
+  "step_up",
+  "kettlebell_swing",
+  "box_jump",
+  "seated_shoulder_press",
+  "hammer_curl",
+  "arnold_press",
+  "flutter_kicks",
+  "bear_crawl",
+  "skater_jump",
+  "inchworm",
+  "hip_thrust",
+  "sumo_squat",
+  "goblet_squat",
+  "overhead_tricep_extension",
+  "resistance_band_row",
+  "lateral_walk",
+  "sprint_in_place",
 ];
 
 const EXERCISES: AutoExercise[] = ["general", ...TRACKED_EXERCISES];
@@ -52,6 +93,11 @@ function formatDuration(totalSeconds: number) {
   const minutes = Math.floor(safeSeconds / 60);
   const seconds = safeSeconds % 60;
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+}
+
+function estimateCalories(durationSeconds: number, reps: number) {
+  const minutes = Math.max(1, durationSeconds / 60);
+  return Math.round(minutes * 6.4 + reps * 0.35);
 }
 
 function emptyTotals() {
@@ -116,13 +162,15 @@ function compactMetric(label: string, value: ReactNode) {
 
 function detectedExerciseText(state: AutoWorkoutState | null) {
   if (!state || state.activeExercise === "general" || state.detectedExercise === "general") {
-    return "Scanning movement";
+    return state?.headline || "Waiting for body detection";
   }
-  return EXERCISE_LABELS[state.activeExercise];
+  return `Detected: ${EXERCISE_LABELS[state.activeExercise]}`;
 }
 
 function liveCueText(state: AutoWorkoutState | null) {
-  if (!state || state.activeExercise === "general") return "Start moving in frame";
+  if (!state) return "Stand back until full body is visible.";
+  if (state.phase === "calibrating") return "Hold still while tracking calibrates.";
+  if (state.activeExercise === "general") return state.tips?.[0] || "Ready to analyze movement.";
   return cleanCueText(state.feedback?.[0]) || state.tips?.[0] || "Keep the movement controlled.";
 }
 
@@ -197,8 +245,10 @@ export function PoseWorkoutScreen() {
       repsByExercise: totals,
       formScore: workoutState?.averageFormScore || workoutState?.score || 0,
       avgConfidence: workoutState?.averageConfidence || workoutState?.confidence || 0,
+      caloriesEstimate: estimateCalories(durationSeconds, workoutState?.totalReps || 0),
       validReps: workoutState?.validReps || 0,
       partialReps: workoutState?.partialReps || 0,
+      postureIssues: (workoutState?.detectedIssues || []).map((item) => item.issue.replace(/_/g, " ")).slice(0, 5),
       feedback,
       improvementTips: workoutState?.improvementTips?.length ? workoutState.improvementTips : [bestTip(workoutState)],
       bestCue: cleanCueText(workoutState?.feedback?.[0]) || bestTip(workoutState),
@@ -215,9 +265,18 @@ export function PoseWorkoutScreen() {
   const totals = workoutState?.totals || emptyTotals();
   const activeExercise = workoutState?.activeExercise || "general";
   const activeTotal = totals[activeExercise] || totals.general;
-  const repsValue = activeExercise === "plank" ? formatDuration(activeTotal.hold_seconds || 0) : workoutState?.totalReps || 0;
-  const formScore = Math.round(workoutState?.averageFormScore || workoutState?.score || 0);
-  const confidence = Math.round(workoutState?.confidence || 0);
+  const isHoldExercise = ["plank", "wall_sit", "superman_hold", "side_plank"].includes(activeExercise);
+  const repsValue = isHoldExercise ? formatDuration(activeTotal.hold_seconds || 0) : workoutState?.totalReps || 0;
+  const trackingStarted = Boolean(cameraActive && workoutState?.sessionReady);
+  const formScore = trackingStarted ? Math.round(workoutState?.averageFormScore || workoutState?.score || 0) : null;
+  const confidence = workoutState ? Math.round(workoutState.confidence || 0) : null;
+  const postureQuality = trackingStarted ? Math.round(Number(workoutState?.metrics?.posture_quality || workoutState?.metrics?.score_alignment || 0)) : null;
+  const movementStability = trackingStarted ? Math.round(Number(workoutState?.metrics?.movement_stability || workoutState?.metrics?.score_stability || 0)) : null;
+  const trackingStable = Boolean(workoutState?.trackingStable && workoutState?.setup?.trackable && (confidence || 0) >= 35);
+  const setupMessages = workoutState?.setup?.messages?.length
+    ? workoutState.setup.messages
+    : ["Stand back until full body is visible", "Ensure good lighting", "Keep camera stable", "Face the camera"];
+  const missingJoints = workoutState?.missingJoints || [];
   const cue = liveCueText(workoutState);
 
   if (report) {
@@ -257,6 +316,7 @@ export function PoseWorkoutScreen() {
               {compactMetric("Total reps", report.totalReps)}
               {compactMetric("Form score", `${Math.round(report.formScore)}/100`)}
               {compactMetric("Confidence", `${Math.round(report.avgConfidence)}%`)}
+              {compactMetric("Calories est.", report.caloriesEstimate)}
               {compactMetric("Valid vs partial", `${report.validReps} / ${report.partialReps}`)}
               {compactMetric("Best cue", report.bestCue)}
               {compactMetric("Rep events", report.repEvents.length)}
@@ -273,6 +333,9 @@ export function PoseWorkoutScreen() {
                 </p>
               ))}
             </div>
+            <p className="mt-4 text-xs font-semibold leading-5 text-white/40">
+              Posture issues observed: {report.postureIssues.length ? report.postureIssues.join(", ") : "none flagged during this session"}.
+            </p>
           </section>
         </div>
       </div>
@@ -309,9 +372,16 @@ export function PoseWorkoutScreen() {
 
         <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,680px)_380px]">
           <div className={cn(panelClass, "overflow-hidden p-3 sm:p-4")}>
+            <div className="mb-3 grid gap-2 rounded-lg border border-white/10 bg-white/[0.035] p-3 text-xs font-semibold text-white/58 sm:grid-cols-2">
+              {["Stand back until full body is visible", "Ensure good lighting", "Keep camera stable", "Face the camera"].map((item) => (
+                <div key={item} className="flex items-center gap-2">
+                  <span className={cn("h-2 w-2 rounded-full", trackingStable ? "bg-[var(--fc-accent-strong)]" : "bg-white/24")} />
+                  {item}
+                </div>
+              ))}
+            </div>
             <PoseCameraPreview
               autoDetect
-              selectedExercise="general"
               formFeedback
               enablePoseDetection
               sessionResetKey={resetKey}
@@ -328,19 +398,42 @@ export function PoseWorkoutScreen() {
           </div>
 
           <aside className={cn(panelClass, "p-5")}>
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-white/42">Live performance</p>
-            <h2 className="mt-2 text-2xl font-black">{detectedExerciseText(workoutState)}</h2>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-white/42">Live performance</p>
+                <h2 className="mt-2 text-2xl font-black">{detectedExerciseText(workoutState)}</h2>
+              </div>
+              <span className={cn("mt-1 rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em]", trackingStable ? "bg-emerald-400/15 text-emerald-200" : "bg-amber-400/12 text-amber-100")}>
+                {trackingStable ? "Stable" : cameraActive ? "Calibrating" : "Waiting"}
+              </span>
+            </div>
 
             <div className="mt-6 grid grid-cols-2 gap-5">
               {metric("Reps", repsValue, true)}
-              {metric("Form score", `${formScore}/100`)}
-              {metric("Confidence", `${confidence}%`)}
+              {metric("Form score", formScore === null ? "Waiting" : `${formScore}/100`)}
+              {metric("Confidence", confidence === null ? "--" : `${confidence}%`)}
               {metric("Phase", String(workoutState?.phase || "Ready"))}
+              {metric("Posture quality", postureQuality === null ? "Waiting" : `${postureQuality}%`)}
+              {metric("Movement stability", movementStability === null ? "Waiting" : `${movementStability}%`)}
             </div>
 
             <div className="mt-6 rounded-lg bg-white/[0.045] px-4 py-4">
               <p className="text-xs font-semibold text-white/45">Current cue</p>
               <p className="mt-2 text-base font-black leading-6 text-white">{cue}</p>
+            </div>
+
+            <div className="mt-4 rounded-lg border border-white/10 bg-black/20 px-4 py-4">
+              <p className="text-xs font-semibold text-white/45">Tracking guidance</p>
+              <div className="mt-2 grid gap-1.5">
+                {setupMessages.slice(0, 4).map((message) => (
+                  <p key={message} className="text-xs font-semibold leading-5 text-white/62">{message}</p>
+                ))}
+              </div>
+              {missingJoints.length ? (
+                <p className="mt-2 text-xs font-bold leading-5 text-amber-100">
+                  Missing keypoints: {missingJoints.slice(0, 4).join(", ")}
+                </p>
+              ) : null}
             </div>
           </aside>
         </section>
@@ -354,7 +447,7 @@ export function PoseWorkoutScreen() {
 
         <div className="flex items-start gap-2 pb-2 text-xs leading-5 text-white/40">
           <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
-          <p>Movement-specific coaching only. Stop if you feel pain, dizziness, or instability.</p>
+          <p>This application is not medical advice and should not replace professional fitness or healthcare guidance. Stop if you feel pain, dizziness, or instability.</p>
         </div>
       </div>
     </div>

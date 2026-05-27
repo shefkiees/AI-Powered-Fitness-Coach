@@ -500,7 +500,7 @@ export function PoseCameraPreview({
                 </span>
               ) : (
                 <span className="rounded-full bg-black/25 px-2 py-0.5">
-                  {selectedExercise === "general" ? "Auto detect off" : EXERCISE_LABELS[selectedExercise]}
+                  {selectedExercise === "general" ? "Auto movement detection" : EXERCISE_LABELS[selectedExercise]}
                 </span>
               )}
             </div>
