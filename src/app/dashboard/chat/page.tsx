@@ -23,8 +23,8 @@ export default function DashboardChatPage() {
           Ask anything about training, recovery, or your plan.
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-[var(--fc-muted)]">
-          Replies are for general fitness education only - not medical advice.
-          Configure a Groq or OpenAI key on the server to enable live answers.
+          Replies are for general fitness guidance only - not medical advice.
+          Ask about workouts, recovery, motivation, or your next best step.
         </p>
       </div>
       <CoachChat userId={user?.id} coachDisplayName="Pulse" />

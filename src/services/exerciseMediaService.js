@@ -25,34 +25,90 @@ export const exerciseLibraryFallback = [
 
 const fallbackExerciseVideos = {
   "bodyweight squat": "https://www.youtube.com/watch?v=u-xm0I1Lcgs",
+  "chair squat": "https://www.youtube.com/watch?v=u-xm0I1Lcgs",
+  "box squat": "https://www.youtube.com/watch?v=u-xm0I1Lcgs",
   "goblet squat": "https://www.youtube.com/watch?v=MeIiIdhvXT4",
   "incline push-up": "https://www.youtube.com/watch?v=IODxDxX7oi4",
+  "wall push-up": "https://www.youtube.com/watch?v=IODxDxX7oi4",
+  "knee push-up": "https://www.youtube.com/watch?v=jWxvty2KROs",
   "push-up": "https://www.youtube.com/watch?v=IODxDxX7oi4",
   "dumbbell floor press": "https://www.youtube.com/watch?v=VmB1G1K7v94",
+  "chest press": "https://www.youtube.com/watch?v=VmB1G1K7v94",
   "plank shoulder tap": "https://www.youtube.com/watch?v=gWHQpMUd7vw",
   "dumbbell row": "https://www.youtube.com/watch?v=roCP6wCXPqo",
+  "bent-over row": "https://www.youtube.com/watch?v=roCP6wCXPqo",
+  "resistance band row": "https://www.youtube.com/watch?v=HEENGjNnB7Q",
   "reverse fly": "https://www.youtube.com/watch?v=JoCRRZ3zRtI",
   "lat pulldown": "https://www.youtube.com/watch?v=CAwf7n6Luuc",
   "biceps curl": "https://www.youtube.com/watch?v=ykJmrZ5v0Oo",
+  "hammer curl": "https://www.youtube.com/watch?v=TwD-YGVP4Bk",
   "triceps dip": "https://www.youtube.com/watch?v=6kALZikXxLc",
+  "overhead tricep extension": "https://www.youtube.com/watch?v=nRiJVZDpdL0",
   "plank": "https://www.youtube.com/watch?v=pSHjTRCQxIw",
   "side plank": "https://www.youtube.com/watch?v=K2VljzCC16g",
   "dead bug": "https://www.youtube.com/watch?v=g_BYB0R-4Ws",
   "bird dog": "https://www.youtube.com/watch?v=wiFNA3sqjCA",
   "bicycle crunch": "https://www.youtube.com/watch?v=9FGilxCbdz8",
+  "russian twist": "https://www.youtube.com/watch?v=wkD8rjkodUI",
+  "leg raise": "https://www.youtube.com/watch?v=JB2oyawG9KI",
+  "flutter kicks": "https://www.youtube.com/watch?v=ANVdMDaYRts",
   "marching intervals": "https://www.youtube.com/watch?v=ZllXIKITzfg",
   "mountain climber": "https://www.youtube.com/watch?v=nmwgirgXLYM",
   "jumping jacks": "https://www.youtube.com/watch?v=c4DAnQ6DtF8",
   burpee: "https://www.youtube.com/watch?v=TU8QYVW0gDU",
   "high knees": "https://www.youtube.com/watch?v=oDdkytliOqE",
+  "sprint in place": "https://www.youtube.com/watch?v=oDdkytliOqE",
   "shoulder press": "https://www.youtube.com/watch?v=B-aVuyhvLHU",
+  "seated shoulder press": "https://www.youtube.com/watch?v=B-aVuyhvLHU",
   "lateral raise": "https://www.youtube.com/watch?v=3VcKaXpzqRo",
   "front raise": "https://www.youtube.com/watch?v=-t7fuZ0KhDA",
   "reverse lunge": "https://www.youtube.com/watch?v=QOVaHwm-Q6U",
+  "side lunge": "https://www.youtube.com/watch?v=rvqLVxYqEvo",
   "step-up": "https://www.youtube.com/watch?v=dQqApCGd5Ss",
   "glute bridge": "https://www.youtube.com/watch?v=wPM8icPu6H8",
+  "hip thrust": "https://www.youtube.com/watch?v=LM8XHLYJoYs",
+  "calf raise": "https://www.youtube.com/watch?v=gwLzBJYoWlI",
   "romanian deadlift": "https://www.youtube.com/watch?v=JCXUYuzwNrM",
 };
+
+const exerciseVideoRules = [
+  { match: ["goblet squat"], url: fallbackExerciseVideos["goblet squat"] },
+  { match: ["chair squat", "box squat", "bodyweight squat", "sumo squat", "squat"], url: fallbackExerciseVideos["bodyweight squat"] },
+  { match: ["incline push", "wall push", "knee push", "push-up", "push up"], url: fallbackExerciseVideos["push-up"] },
+  { match: ["floor press", "chest press"], url: fallbackExerciseVideos["dumbbell floor press"] },
+  { match: ["shoulder tap"], url: fallbackExerciseVideos["plank shoulder tap"] },
+  { match: ["band row", "resistance band row"], url: fallbackExerciseVideos["resistance band row"] },
+  { match: ["dumbbell row", "bent-over row", "bent over row", "row"], url: fallbackExerciseVideos["dumbbell row"] },
+  { match: ["reverse fly"], url: fallbackExerciseVideos["reverse fly"] },
+  { match: ["lat pulldown", "pulldown"], url: fallbackExerciseVideos["lat pulldown"] },
+  { match: ["hammer curl"], url: fallbackExerciseVideos["hammer curl"] },
+  { match: ["biceps curl", "bicep curl", "curl"], url: fallbackExerciseVideos["biceps curl"] },
+  { match: ["triceps dip", "tricep dip", "dip"], url: fallbackExerciseVideos["triceps dip"] },
+  { match: ["tricep extension"], url: fallbackExerciseVideos["overhead tricep extension"] },
+  { match: ["side plank"], url: fallbackExerciseVideos["side plank"] },
+  { match: ["plank"], url: fallbackExerciseVideos.plank },
+  { match: ["dead bug"], url: fallbackExerciseVideos["dead bug"] },
+  { match: ["bird dog"], url: fallbackExerciseVideos["bird dog"] },
+  { match: ["bicycle crunch"], url: fallbackExerciseVideos["bicycle crunch"] },
+  { match: ["russian twist"], url: fallbackExerciseVideos["russian twist"] },
+  { match: ["leg raise"], url: fallbackExerciseVideos["leg raise"] },
+  { match: ["flutter"], url: fallbackExerciseVideos["flutter kicks"] },
+  { match: ["marching"], url: fallbackExerciseVideos["marching intervals"] },
+  { match: ["mountain climber"], url: fallbackExerciseVideos["mountain climber"] },
+  { match: ["jumping jack"], url: fallbackExerciseVideos["jumping jacks"] },
+  { match: ["burpee"], url: fallbackExerciseVideos.burpee },
+  { match: ["high knees", "sprint in place"], url: fallbackExerciseVideos["high knees"] },
+  { match: ["shoulder press", "arnold press"], url: fallbackExerciseVideos["shoulder press"] },
+  { match: ["lateral raise"], url: fallbackExerciseVideos["lateral raise"] },
+  { match: ["front raise"], url: fallbackExerciseVideos["front raise"] },
+  { match: ["side lunge"], url: fallbackExerciseVideos["side lunge"] },
+  { match: ["reverse lunge", "lunge"], url: fallbackExerciseVideos["reverse lunge"] },
+  { match: ["step-up", "step up"], url: fallbackExerciseVideos["step-up"] },
+  { match: ["glute bridge"], url: fallbackExerciseVideos["glute bridge"] },
+  { match: ["hip thrust"], url: fallbackExerciseVideos["hip thrust"] },
+  { match: ["calf raise"], url: fallbackExerciseVideos["calf raise"] },
+  { match: ["romanian deadlift", "deadlift"], url: fallbackExerciseVideos["romanian deadlift"] },
+];
 
 const exerciseThumbnailRules = [
   { match: ["goblet squat", "bodyweight squat", "squat", "reverse lunge", "lunge", "step-up", "step up"], url: "https://images.unsplash.com/photo-1434682881908-b43d0467b798?auto=format&fit=crop&w=1200&q=80" },
@@ -85,6 +141,15 @@ const workoutThumbnailRules = [
   { match: ["mobility", "stretch", "recovery", "yoga"], url: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=1200&q=80" },
   { match: ["boxing"], url: "https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?auto=format&fit=crop&w=1200&q=80" },
 ];
+
+const genericWorkoutImageBases = [
+  ...exerciseThumbnailRules.map((rule) => rule.url),
+  ...workoutThumbnailRules.map((rule) => rule.url),
+  "/pulse-assets/workout-strength.jpg",
+  "/pulse-assets/workout-cardio.jpg",
+  "/pulse-assets/workout-yoga.jpg",
+  "/pulse-assets/workout-stretch.jpg",
+].map((url) => String(url).split("?")[0]);
 
 const fallbackExercisesByCategory = {
   chest: [
@@ -150,10 +215,26 @@ const localWorkoutCatalog = [
 ];
 
 export function fallbackVideoForExercise(name) {
-  return fallbackExerciseVideos[normalizeText(name)] || null;
+  const text = normalizeText(name).replace(/[–—]/g, "-");
+  const exact = fallbackExerciseVideos[text];
+  if (exact) return exact;
+  const hit = exerciseVideoRules.find((rule) => rule.match.some((word) => text.includes(word)));
+  return hit?.url || null;
+}
+
+function youtubeThumbnailForVideo(url) {
+  const text = String(url || "");
+  const match =
+    text.match(/[?&]v=([^&]+)/) ||
+    text.match(/youtu\.be\/([^?&]+)/) ||
+    text.match(/embed\/([^?&]+)/);
+  const id = match?.[1]?.replace(/[^A-Za-z0-9_-]/g, "");
+  return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : null;
 }
 
 export function exerciseImageFor(name, workout = null) {
+  const videoThumbnail = youtubeThumbnailForVideo(fallbackVideoForExercise(name));
+  if (videoThumbnail) return videoThumbnail;
   const text = normalizeText(`${name || ""} ${workout?.title || ""} ${workout?.category || ""} ${workout?.muscle_group || ""}`);
   const hit = exerciseThumbnailRules.find((rule) => rule.match.some((word) => text.includes(word)));
   return hit?.url || null;
@@ -215,10 +296,7 @@ function workoutThumbnailFor(workout, fallback = null, exercises = []) {
   const current = String(fallback || "");
   const isGenericLocal =
     !current ||
-    current.includes("/pulse-assets/workout-strength.jpg") ||
-    current.includes("/pulse-assets/workout-cardio.jpg") ||
-    current.includes("/pulse-assets/workout-yoga.jpg") ||
-    current.includes("/pulse-assets/workout-stretch.jpg");
+    genericWorkoutImageBases.some((base) => current.includes(base));
 
   if (!workout?.is_local_catalog && !workout?.slug?.includes?.("starter") && !isGenericLocal) return fallback;
 

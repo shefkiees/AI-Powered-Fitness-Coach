@@ -188,6 +188,14 @@ export async function completeWorkout(_userId, workout, values = {}) {
   const { data, error } = await client.from("completed_workouts").insert(normalizeWorkoutLogPayload(workout, values)).select().single();
   if (error) throw error;
   if (values.session_id) {
+    const sessionData =
+      values.session_data && typeof values.session_data === "object"
+        ? values.session_data
+        : {
+            workout,
+            completedSets: values.completed_sets || [],
+            skippedExercises: values.skipped_exercises || [],
+          };
     await client
       .from("user_workout_sessions")
       .update({
@@ -195,6 +203,8 @@ export async function completeWorkout(_userId, workout, values = {}) {
         completed_at: data.completed_at,
         duration_minutes: data.duration_minutes,
         calories_burned: data.calories_burned,
+        notes: values.notes?.trim?.() || "",
+        session_data: sessionData,
       })
       .eq("id", values.session_id);
   }

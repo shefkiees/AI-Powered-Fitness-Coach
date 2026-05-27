@@ -160,7 +160,7 @@ function pickWorkoutMedia(workout, exercise, profile) {
     workout?.workout_media?.find((item) => item.is_primary) ||
     workout?.workout_media?.[0] ||
     null;
-  const explicitExerciseVideo = exercise?.fallback ? null : exercise?.video_url;
+  const explicitExerciseVideo = exercise?.video_url || null;
   const explicitVideo = explicitExerciseVideo || workout?.video_url || null;
 
   return {
@@ -486,6 +486,25 @@ function SessionRunner({ user, profile, workout, initialSessionId }) {
         calories_burned: calories,
         rating,
         notes,
+        completed_sets: completedSets,
+        skipped_exercises: skipped,
+        session_data: {
+          workout: {
+            id: workout.id,
+            title: workout.title,
+            category: workout.category,
+            difficulty: workout.difficulty,
+            duration_minutes: workout.duration_minutes,
+          },
+          completedSets,
+          skippedExercises: skipped,
+          exerciseOverrides,
+          rating,
+          notes,
+          progress,
+          elapsed_seconds: Math.max(0, Math.floor((Date.now() - started.getTime()) / 1000)),
+          saved_at: new Date().toISOString(),
+        },
       });
       let adaptation = null;
       try {

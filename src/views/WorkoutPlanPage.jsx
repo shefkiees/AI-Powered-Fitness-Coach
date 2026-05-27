@@ -121,6 +121,17 @@ function completedRowsForWorkout(completedByWorkout, workout) {
   });
 }
 
+function dedupeWorkouts(workouts) {
+  const seen = new Set();
+  return workouts.filter((workout) => {
+    const key = normalize(workout.title) || String(workout.id || "");
+    if (!key) return true;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function goalMatchesWorkout(workout, profile) {
   const goal = normalize(profile?.goal);
   if (!goal) return false;
@@ -504,6 +515,15 @@ function WorkoutDetailModal({
   if (!workout) return null;
 
   const latestCompletion = completedRows?.[0];
+  const exerciseRows = workout.exercises?.length
+    ? workout.exercises
+    : (workout.workout_steps || []).map((step) => ({
+        id: step.id,
+        name: step.title,
+        notes: step.description,
+        image_url: workout.thumbnail_url,
+        video_url: workout.video_url,
+      }));
 
   return (
     <div className="fixed inset-0 z-[100] overflow-y-auto bg-black/76 px-3 py-4 backdrop-blur-md sm:px-4 sm:py-6">
@@ -596,23 +616,43 @@ function WorkoutDetailModal({
 
             <section className="rounded-[1.3rem] border border-white/[0.08] bg-white/[0.035] p-4">
               <h3 className="text-sm font-black uppercase tracking-[0.22em] text-white">
-                Step-by-step coaching
+                Exercise media and coaching
               </h3>
               <ol className="mt-4 grid gap-3">
-                {(workout.workout_steps || []).map((step, index) => (
+                {exerciseRows.map((exercise, index) => (
                   <li
-                    key={step.id || `${workout.id}-${index}`}
-                    className="grid grid-cols-[auto_1fr] gap-3 rounded-[1.1rem] border border-white/[0.08] bg-black/20 p-4"
+                    key={exercise.id || `${workout.id}-${index}`}
+                    className="grid gap-3 rounded-[1.1rem] border border-white/[0.08] bg-black/20 p-3 sm:grid-cols-[92px_1fr_auto] sm:items-center"
                   >
-                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--fc-accent)]/14 text-sm font-black text-[var(--fc-accent)] ring-1 ring-[rgba(184,245,61,0.22)]">
-                      {index + 1}
-                    </span>
-                    <div>
-                      <p className="font-semibold text-white">{step.title}</p>
-                      {step.description ? (
-                        <p className="mt-1 text-sm leading-6 text-[var(--fc-muted)]">
-                          {step.description}
-                        </p>
+                    <div className="relative aspect-video overflow-hidden rounded-[0.9rem] border border-white/[0.08] bg-black/35">
+                      {exercise.image_url ? (
+                        <img src={exercise.image_url} alt={exercise.name || `Exercise ${index + 1}`} className="h-full w-full object-cover" loading="lazy" />
+                      ) : (
+                        <div className="grid h-full place-items-center text-[var(--fc-accent)]">
+                          <Dumbbell className="h-6 w-6" />
+                        </div>
+                      )}
+                      <span className="absolute left-2 top-2 grid h-6 w-6 place-items-center rounded-full bg-black/65 text-xs font-black text-white">
+                        {index + 1}
+                      </span>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-white">{exercise.name || `Exercise ${index + 1}`}</p>
+                      <p className="mt-1 text-sm leading-6 text-[var(--fc-muted)]">
+                        {[exercise.sets ? `${exercise.sets} sets` : "", exercise.reps || "", exercise.notes || exercise.instructions || ""].filter(Boolean).join(" - ") || "Move smoothly and keep control."}
+                      </p>
+                    </div>
+                    <div className="flex sm:justify-end">
+                      {exercise.video_url ? (
+                        <a
+                          href={exercise.video_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-white/[0.1] bg-white/[0.06] px-4 text-xs font-black text-white transition hover:bg-white/[0.1]"
+                        >
+                          <PlayCircle className="h-4 w-4" />
+                          Video
+                        </a>
                       ) : null}
                     </div>
                   </li>
@@ -686,13 +726,14 @@ function WorkoutContent({ profile }) {
 
   const preferencesByWorkout = useMemo(() => preferenceMap(preferences), [preferences]);
   const completedByWorkout = useMemo(() => completedMap(completedWorkouts), [completedWorkouts]);
+  const visibleWorkouts = useMemo(() => dedupeWorkouts(workouts), [workouts]);
 
-  const categories = useMemo(() => optionValues(workouts, "category"), [workouts]);
-  const difficulties = useMemo(() => optionValues(workouts, "difficulty"), [workouts]);
-  const muscleGroups = useMemo(() => optionValues(workouts, "muscle_group"), [workouts]);
+  const categories = useMemo(() => optionValues(visibleWorkouts, "category"), [visibleWorkouts]);
+  const difficulties = useMemo(() => optionValues(visibleWorkouts, "difficulty"), [visibleWorkouts]);
+  const muscleGroups = useMemo(() => optionValues(visibleWorkouts, "muscle_group"), [visibleWorkouts]);
 
   const enrichedWorkouts = useMemo(() => {
-    return workouts
+    return visibleWorkouts
       .map((workout) => {
         const preference = preferencesByWorkout.get(workout.id);
         return {
@@ -707,7 +748,7 @@ function WorkoutContent({ profile }) {
         if (filters.view === "recommended") return b.score - a.score;
         return String(a.workout.title).localeCompare(String(b.workout.title));
       });
-  }, [completedByWorkout, filters.view, preferencesByWorkout, profile, workouts]);
+  }, [completedByWorkout, filters.view, preferencesByWorkout, profile, visibleWorkouts]);
 
   const filteredWorkouts = useMemo(() => {
     const query = normalize(filters.search);
@@ -844,7 +885,7 @@ function WorkoutContent({ profile }) {
         <StatCard
           icon={Library}
           label="Library"
-          value={workouts.length}
+          value={visibleWorkouts.length}
           helper="Workouts available to browse"
         />
         <StatCard
@@ -869,7 +910,7 @@ function WorkoutContent({ profile }) {
         difficulties={difficulties}
         muscleGroups={muscleGroups}
         resultCount={filteredWorkouts.length}
-        totalCount={workouts.length}
+        totalCount={visibleWorkouts.length}
         setFilter={setFilter}
         resetFilters={resetFilters}
       />
