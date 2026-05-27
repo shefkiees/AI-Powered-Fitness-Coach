@@ -293,7 +293,7 @@ export default function ProfileForm({
       : inputClass("light");
     const compactSubmitClass = darkCompact
       ? "inline-flex items-center justify-center gap-3 rounded-lg bg-emerald-400 px-5 py-3.5 text-sm font-black text-emerald-950 shadow-[0_18px_50px_rgba(52,211,153,0.22)] transition hover:-translate-y-0.5 hover:bg-emerald-300 disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-70"
-      : "inline-flex items-center justify-center gap-3 rounded-full bg-[var(--fc-accent)] px-5 py-3.5 text-sm font-black text-[var(--fc-accent-ink)] shadow-[0_18px_44px_rgba(34,197,94,0.18)] transition hover:bg-[var(--fc-accent-strong)] disabled:cursor-not-allowed disabled:opacity-70";
+      : "inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--fc-accent)] px-5 py-3 text-sm font-black text-[var(--fc-accent-ink)] shadow-[0_14px_32px_rgba(34,197,94,0.14)] transition hover:bg-[var(--fc-accent-strong)] disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto sm:min-w-40";
 
     return (
       <form onSubmit={submit} className={darkCompact ? "grid gap-4 text-white" : "grid gap-4 text-[#111827]"}>
@@ -473,14 +473,16 @@ export default function ProfileForm({
           </div>
         ) : null}
 
-        <button
-          type="submit"
-          disabled={saving}
-          className={compactSubmitClass}
-        >
-          {saving ? "Saving..." : submitLabel || "Save profile"}
-          {!saving ? <Save className="h-4 w-4" /> : null}
-        </button>
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            disabled={saving}
+            className={compactSubmitClass}
+          >
+            {saving ? "Saving..." : submitLabel || "Save profile"}
+            {!saving ? <Save className="h-4 w-4" /> : null}
+          </button>
+        </div>
       </form>
     );
   }
