@@ -464,8 +464,8 @@ function WorkoutDetailModal({
   const latestCompletion = completedRows?.[0];
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/76 px-4 py-6 backdrop-blur-md">
-      <div className="mx-auto max-w-6xl overflow-hidden rounded-[1.7rem] border border-white/[0.1] bg-[rgba(9,12,9,0.96)] shadow-[0_30px_110px_rgba(0,0,0,0.5)]">
+    <div className="fixed inset-0 z-[100] overflow-y-auto bg-black/76 px-3 py-4 backdrop-blur-md sm:px-4 sm:py-6">
+      <div className="mx-auto max-w-6xl overflow-hidden rounded-[1.35rem] border border-white/[0.1] bg-[rgba(9,12,9,0.96)] shadow-[0_30px_110px_rgba(0,0,0,0.5)] sm:rounded-[1.7rem]">
         <div className="relative border-b border-white/[0.08] bg-[linear-gradient(135deg,rgba(184,245,61,0.08),rgba(255,255,255,0.025))] p-4 sm:p-6">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">

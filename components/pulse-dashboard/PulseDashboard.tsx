@@ -645,20 +645,20 @@ export function PulseDashboard() {
               title="1-2 good options"
               action={<Link href="/workout-plan" className="text-sm font-black text-[#16a34a]">See all</Link>}
             />
-            <div className="mt-4 grid min-w-0 gap-3 overflow-hidden">
+            <div className="mt-4 grid min-w-0 gap-3">
               {d.recommendedWorkouts.length ? (
                 d.recommendedWorkouts.slice(0, 2).map((workout) => (
                   <Link
                     key={workout.id}
                     href={`/workout/session?workout=${workout.workoutId}`}
-                    className="flex w-full min-w-0 max-w-full items-center gap-3 overflow-hidden rounded-2xl bg-[#f8fafc] p-3 transition hover:bg-[#f0fdf4]"
+                    className="grid w-full min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-3 rounded-2xl bg-[#f8fafc] p-3 transition hover:bg-[#f0fdf4]"
                   >
                     <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-white text-[#16a34a] shadow-sm">
                       <Dumbbell className="h-4 w-4" />
                     </span>
-                    <span className="min-w-0 flex-1 overflow-hidden">
-                      <span className="block max-w-full truncate text-sm font-black text-[#111827]">{workout.title}</span>
-                      <span className="block max-w-full truncate text-xs font-semibold text-[#6b7280]">
+                    <span className="min-w-0">
+                      <span className="block break-words text-sm font-black leading-5 text-[#111827]">{workout.title}</span>
+                      <span className="mt-0.5 block break-words text-xs font-semibold leading-5 text-[#6b7280]">
                         {workout.minutes ? `${workout.minutes} min` : "No duration"} - {workout.reason}
                       </span>
                     </span>

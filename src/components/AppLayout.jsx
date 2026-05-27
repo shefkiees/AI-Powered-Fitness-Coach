@@ -105,14 +105,14 @@ export default function AppLayout({ title, subtitle, actions = null, profile, ch
   };
 
   const pageHeader = (
-    <header className="sticky top-0 z-20 mb-5 rounded-[1.6rem] border border-[#ececef] bg-white/90 px-4 py-4 backdrop-blur-xl">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <header className="mb-5 rounded-[1.6rem] border border-[#ececef] bg-white px-4 py-4 shadow-[0_10px_28px_rgba(17,24,39,0.06)]">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0 flex-1">
           <p className="text-[0.62rem] font-black uppercase tracking-[0.22em] text-[#9ca3af]">AI Fitness Coach</p>
           <h1 className="mt-1 text-2xl font-black tracking-[-0.03em] text-[#171717]">{title}</h1>
           {subtitle ? <p className="mt-1 text-sm text-[#6b7280]">{subtitle}</p> : null}
         </div>
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-2 lg:justify-end">
           {actions}
           {user && pathname !== "/profile" ? <ProfileBadge profile={displayedProfile} user={user} /> : null}
           <button
