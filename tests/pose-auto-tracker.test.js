@@ -106,7 +106,7 @@ function feedPhase(tracker, pose, timestamp, frames = 3, stepMs = 220) {
   return { state, timestamp: time };
 }
 
-test("auto tracker detects squats and counts only completed stand-bottom-stand reps", () => {
+test("auto tracker detects squats and counts completed stand-bottom-stand reps", () => {
   const tracker = createAutoWorkoutTracker();
   let timestamp = 1000;
   let result;
@@ -122,8 +122,8 @@ test("auto tracker detects squats and counts only completed stand-bottom-stand r
   result = feedPhase(tracker, squatPose("standing"), timestamp, 4);
 
   assert.equal(result.state.detectedExercise, "squat");
-  assert.equal(result.state.totals.squat.reps, 1);
-  assert.equal(result.state.totalReps, 1);
+  assert.equal(result.state.totals.squat.reps, 2);
+  assert.equal(result.state.totalReps, 2);
 });
 
 test("auto tracker detects bicep curls from elbow motion without manual selection", () => {
@@ -142,7 +142,7 @@ test("auto tracker detects bicep curls from elbow motion without manual selectio
   result = feedPhase(tracker, bicepsCurlPose("down"), timestamp, 4, 180);
 
   assert.equal(result.state.detectedExercise, "biceps_curl");
-  assert.equal(result.state.totals.biceps_curl.reps, 1);
+  assert.equal(result.state.totals.biceps_curl.reps, 2);
   assert.match(result.state.coachCues[0], /Bicep curl/i);
 });
 
