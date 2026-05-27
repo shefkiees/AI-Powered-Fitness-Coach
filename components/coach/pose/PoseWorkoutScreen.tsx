@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { BadgeCheck, Camera, Loader2, Play, ShieldAlert, Sparkles, Square } from "lucide-react";
+import { Activity, BadgeCheck, Camera, CheckCircle2, Clock3, Flame, Gauge, Loader2, Play, ShieldAlert, Square, Target, TrendingUp } from "lucide-react";
 import { PoseCameraPreview } from "@/components/pose/PoseCameraLazy";
 import { Button } from "@/components/ui/Button";
 import { fetchAiEndpoint } from "@/lib/aiFetch";
@@ -332,6 +332,45 @@ function compactMetric(label: string, value: ReactNode) {
   );
 }
 
+function scoreTone(score: number) {
+  if (score >= 80) return "text-emerald-200";
+  if (score >= 60) return "text-lime-200";
+  if (score >= 40) return "text-amber-200";
+  return "text-rose-200";
+}
+
+function reportMetric(label: string, value: ReactNode, icon: ReactNode, helper?: string) {
+  return (
+    <div className="rounded-lg border border-white/10 bg-white/[0.045] p-4">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs font-black uppercase tracking-[0.12em] text-white/42">{label}</p>
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white/[0.06] text-white/70">{icon}</span>
+      </div>
+      <p className="mt-3 break-words text-2xl font-black leading-none text-white">{value}</p>
+      {helper ? <p className="mt-2 text-xs font-semibold leading-5 text-white/45">{helper}</p> : null}
+    </div>
+  );
+}
+
+function scoreBar(label: string, value: number, suffix = "/100") {
+  const safeValue = Math.max(0, Math.min(100, Math.round(value || 0)));
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-3 text-xs font-black">
+        <span className="uppercase tracking-[0.12em] text-white/42">{label}</span>
+        <span className={scoreTone(safeValue)}>{safeValue}{suffix}</span>
+      </div>
+      <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
+        <div className="h-full rounded-full bg-[var(--fc-accent-strong)] transition-all duration-500" style={{ width: `${safeValue}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function reportExerciseRows(report: FinalSessionResult) {
+  return topExerciseTotals(report.repsByExercise).slice(0, 5);
+}
+
 function detectedExerciseText(state: AutoWorkoutState | null) {
   if (!state || state.activeExercise === "general" || state.detectedExercise === "general") {
     return state?.headline || "Waiting for body detection";
@@ -517,10 +556,16 @@ export function PoseWorkoutScreen() {
       ...report.improvementTips.map(coachText),
     ].filter(Boolean)).slice(0, 4);
     const summarySource = coachSummary.source && coachSummary.source !== "local" ? "AI generated" : "Smart feedback";
+    const exerciseRows = reportExerciseRows(report);
+    const issueList = report.postureIssues.length ? report.postureIssues : ["No repeated posture issue was flagged."];
+    const validShare = report.validReps + report.partialReps > 0
+      ? Math.round((report.validReps / (report.validReps + report.partialReps)) * 100)
+      : 0;
+    const topExercise = exerciseRows[0];
 
     return (
       <div className="min-h-screen bg-[#070707] px-4 py-5 text-white sm:px-6 lg:px-8">
-        <div className="mx-auto flex max-w-5xl flex-col gap-5">
+        <div className="mx-auto flex max-w-6xl flex-col gap-5">
           <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--fc-accent-strong)]">AI Form Coach</p>
@@ -532,82 +577,144 @@ export function PoseWorkoutScreen() {
             </Button>
           </header>
 
-          <section className={cn(panelClass, "p-5 sm:p-6")}>
-            <div className="flex items-start gap-4">
-              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-[var(--fc-accent)]/12 text-[var(--fc-accent-strong)]">
-                <BadgeCheck className="h-6 w-6" />
+          <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
+            <div className={cn(panelClass, "overflow-hidden")}>
+              <div className="border-b border-white/10 bg-white/[0.035] p-5 sm:p-6">
+                <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-xs font-black text-emerald-100">
+                        <BadgeCheck className="h-4 w-4" />
+                        Session completed
+                      </span>
+                      <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs font-black text-white/55">
+                        Ended {new Date(report.endedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </div>
+                    <h2 className="mt-4 text-2xl font-black leading-tight text-white sm:text-4xl">{summaryLoading ? "Building your session report" : coachSummary.headline}</h2>
+                    <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-white/64">
+                      {summaryLoading ? "AI coach is reading your reps, confidence, and form patterns. This report updates automatically." : coachSummary.summary}
+                    </p>
+                  </div>
+
+                  <div className="w-full shrink-0 rounded-lg border border-[var(--fc-accent-strong)]/20 bg-[var(--fc-accent)]/10 p-4 md:w-52">
+                    <p className="text-xs font-black uppercase tracking-[0.12em] text-white/45">Form score</p>
+                    <p className={cn("mt-3 text-5xl font-black leading-none", scoreTone(report.formScore))}>{Math.round(report.formScore)}</p>
+                    <p className="mt-1 text-xs font-black text-white/45">out of 100</p>
+                    <div className="mt-4">{scoreBar("Confidence", report.avgConfidence, "%")}</div>
+                  </div>
+                </div>
               </div>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-white/55">Session completed</p>
-                <h2 className="mt-1 text-2xl font-black">{detected}</h2>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-white/62">
-                  {summaryLoading ? "AI coach is reading your reps, confidence, and form patterns." : coachSummary.summary}
-                </p>
+
+              <div className="grid gap-4 p-5 sm:grid-cols-2 sm:p-6 xl:grid-cols-4">
+                {reportMetric("Duration", formatDuration(report.duration), <Clock3 className="h-4 w-4" />, "Total tracked time")}
+                {reportMetric("Total reps", report.totalReps, <Activity className="h-4 w-4" />, topExercise ? `Top: ${topExercise.label}` : "No movement counted")}
+                {reportMetric("Valid / partial", `${report.validReps} / ${report.partialReps}`, <CheckCircle2 className="h-4 w-4" />, `${validShare}% valid reps`)}
+                {reportMetric("Calories", report.caloriesEstimate, <Flame className="h-4 w-4" />, "Estimated effort")}
               </div>
             </div>
 
-            <div className="mt-6 rounded-lg border border-[var(--fc-accent-strong)]/20 bg-[var(--fc-accent)]/8 p-4">
-              <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                <div className="flex items-start gap-3">
-                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-[var(--fc-accent-strong)]/14 text-[var(--fc-accent-strong)]">
-                    {summaryLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
-                  </div>
-                  <div>
-                    <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--fc-accent-strong)]">AI coach summary</p>
-                    <h3 className="mt-1 text-xl font-black text-white">
-                      {summaryLoading ? "Generating real feedback..." : coachSummary.headline}
-                    </h3>
-                    <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-white/68">
-                      {summaryLoading ? "The report will update automatically in a moment." : coachSummary.summary}
-                    </p>
-                  </div>
+            <aside className={cn(panelClass, "p-5 sm:p-6")}>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-white/42">Detected</p>
+                  <h3 className="mt-2 text-xl font-black leading-tight text-white">{detected}</h3>
                 </div>
-                <span className="w-fit rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-white/50">
-                  {summaryLoading ? "Analyzing" : summarySource}
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-white/[0.06] text-[var(--fc-accent-strong)]">
+                  <Gauge className="h-5 w-5" />
                 </span>
               </div>
+              <div className="mt-6 space-y-4">
+                {scoreBar("Tracking confidence", report.avgConfidence, "%")}
+                {scoreBar("Valid rep quality", validShare, "%")}
+              </div>
+              <div className="mt-6 rounded-lg border border-white/10 bg-black/20 p-4">
+                <p className="text-xs font-black uppercase tracking-[0.12em] text-white/42">Best cue</p>
+                <p className="mt-2 text-sm font-black leading-6 text-white">{report.bestCue}</p>
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                {compactMetric("Rep events", report.repEvents.length)}
+                {compactMetric("AI status", summaryLoading ? "Analyzing" : summarySource)}
+              </div>
+            </aside>
+          </section>
 
-              <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-                <div className="rounded-lg bg-black/20 px-4 py-3">
-                  <p className="text-xs font-black uppercase tracking-[0.14em] text-white/42">Focus next</p>
-                  <p className="mt-2 text-sm font-black leading-6 text-white">
-                    {summaryLoading ? "Waiting for coach feedback" : coachSummary.focus_next}
-                  </p>
+          <section className="grid gap-5 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+            <div className={cn(panelClass, "p-5 sm:p-6")}>
+              <div className="flex items-start gap-3">
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-[var(--fc-accent-strong)]/14 text-[var(--fc-accent-strong)]">
+                  {summaryLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Target className="h-5 w-5" />}
+                </span>
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--fc-accent-strong)]">Focus next</p>
+                  <h3 className="mt-2 text-2xl font-black leading-tight text-white">
+                    {summaryLoading ? "Finding your next priority" : coachSummary.focus_next}
+                  </h3>
                 </div>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {(summaryLoading ? ["Analyzing movement quality", "Checking valid vs partial reps"] : tips.slice(0, 4)).map((tip) => (
-                    <p key={tip} className="rounded-lg bg-black/20 px-4 py-3 text-sm font-semibold leading-6 text-white/72">
-                      {tip}
-                    </p>
-                  ))}
-                </div>
+              </div>
+
+              <div className="mt-5 grid gap-3">
+                {(summaryLoading ? ["Analyzing movement quality", "Checking valid vs partial reps", "Preparing real coach cues"] : tips).map((tip, index) => (
+                  <div key={tip} className="flex gap-3 rounded-lg border border-white/10 bg-white/[0.045] p-4">
+                    <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-white/[0.06] text-xs font-black text-white/70">{index + 1}</span>
+                    <p className="text-sm font-semibold leading-6 text-white/72">{tip}</p>
+                  </div>
+                ))}
               </div>
             </div>
 
-            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {compactMetric("Total duration", formatDuration(report.duration))}
-              {compactMetric("Total reps", report.totalReps)}
-              {compactMetric("Form score", `${Math.round(report.formScore)}/100`)}
-              {compactMetric("Confidence", `${Math.round(report.avgConfidence)}%`)}
-              {compactMetric("Calories est.", report.caloriesEstimate)}
-              {compactMetric("Valid vs partial", `${report.validReps} / ${report.partialReps}`)}
-              {compactMetric("Best cue", report.bestCue)}
-              {compactMetric("Rep events", report.repEvents.length)}
-              {compactMetric("Ended", new Date(report.endedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }))}
+            <div className={cn(panelClass, "p-5 sm:p-6")}>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-white/42">Exercise breakdown</p>
+                  <h3 className="mt-2 text-xl font-black text-white">What the tracker saw</h3>
+                </div>
+                <TrendingUp className="h-5 w-5 text-white/45" />
+              </div>
+
+              <div className="mt-5 grid gap-3">
+                {exerciseRows.length ? exerciseRows.map((item) => {
+                  const total = item.exercise === "plank" || item.exercise === "wall_sit" || item.exercise === "superman_hold" || item.exercise === "side_plank"
+                    ? formatDuration(item.hold_seconds || item.duration_seconds || 0)
+                    : `${item.reps} reps`;
+                  const issue = item.issues?.[0]?.issue ? humanizeIssue(item.issues[0].issue) : "No top issue flagged.";
+                  return (
+                    <div key={item.exercise} className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-black text-white">{item.label}</p>
+                          <p className="mt-1 text-xs font-semibold text-white/45">{issue}</p>
+                        </div>
+                        <div className="shrink-0 text-left sm:text-right">
+                          <p className="text-sm font-black text-white">{total}</p>
+                          <p className={cn("text-xs font-black", scoreTone(item.average_form_score))}>{Math.round(item.average_form_score || 0)}/100</p>
+                        </div>
+                      </div>
+                      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
+                        <div className="h-full rounded-full bg-[var(--fc-accent-strong)]" style={{ width: `${Math.max(0, Math.min(100, Math.round(item.average_form_score || 0)))}%` }} />
+                      </div>
+                    </div>
+                  );
+                }) : (
+                  <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4 text-sm font-semibold leading-6 text-white/60">
+                    No exercise was counted. Start a new session with your full body visible and move slowly through the first reps.
+                  </div>
+                )}
+              </div>
             </div>
           </section>
 
           <section className={cn(panelClass, "p-5 sm:p-6")}>
             <p className="text-xs font-black uppercase tracking-[0.18em] text-white/42">Coach feedback</p>
-            <div className="mt-3 grid gap-2">
-              {tips.map((tip) => (
-                <p key={tip} className="rounded-lg bg-white/[0.045] px-4 py-3 text-sm font-semibold leading-6 text-white/72">
-                  {tip}
-                </p>
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              {issueList.slice(0, 4).map((issue) => (
+                <div key={issue} className="rounded-lg border border-white/10 bg-white/[0.045] p-4">
+                  <p className="text-sm font-black leading-6 text-white">{issue}</p>
+                </div>
               ))}
             </div>
             <p className="mt-4 text-xs font-semibold leading-5 text-white/40">
-              Posture issues observed: {report.postureIssues.length ? report.postureIssues.join(" ") : "none flagged during this session"}.
+              Report uses the final realtime tracker state from this session, including counted reps, partial reps, confidence, and posture issues.
             </p>
           </section>
         </div>

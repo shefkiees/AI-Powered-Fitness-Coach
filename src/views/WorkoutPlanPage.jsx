@@ -89,12 +89,36 @@ function preferenceMap(preferences) {
   return new Map(preferences.map((item) => [item.workout_id, item]));
 }
 
+function workoutCompletionKeys(workout) {
+  return [
+    workout?.id ? `id:${workout.id}` : "",
+    workout?.title ? `title:${normalize(workout.title)}` : "",
+  ].filter(Boolean);
+}
+
 function completedMap(completedWorkouts) {
   return completedWorkouts.reduce((map, row) => {
-    const list = map.get(row.workout_id) || [];
-    map.set(row.workout_id, [...list, row]);
+    const keys = [
+      row.workout_id ? `id:${row.workout_id}` : "",
+      row.workout_title ? `title:${normalize(row.workout_title)}` : "",
+    ].filter(Boolean);
+    keys.forEach((key) => {
+      const list = map.get(key) || [];
+      map.set(key, [...list, row]);
+    });
     return map;
   }, new Map());
+}
+
+function completedRowsForWorkout(completedByWorkout, workout) {
+  const rows = workoutCompletionKeys(workout).flatMap((key) => completedByWorkout.get(key) || []);
+  const seen = new Set();
+  return rows.filter((row) => {
+    const key = row.id || `${row.workout_title}-${row.completed_at}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function goalMatchesWorkout(workout, profile) {
@@ -382,8 +406,13 @@ function WorkoutCard({
   onToggleFavorite,
   onComplete,
 }) {
+  const completed = completedRows.length > 0;
+  const latestCompletion = completedRows[0];
+
   return (
-    <article className="group overflow-hidden rounded-[1.4rem] border border-[#e5e7eb] bg-white shadow-[0_10px_28px_rgba(17,24,39,0.06)] transition hover:translate-y-[-1px] hover:shadow-[0_16px_36px_rgba(17,24,39,0.09)]">
+    <article className={`group overflow-hidden rounded-[1.4rem] border bg-white shadow-[0_10px_28px_rgba(17,24,39,0.06)] transition hover:translate-y-[-1px] hover:shadow-[0_16px_36px_rgba(17,24,39,0.09)] ${
+      completed ? "border-emerald-300 ring-2 ring-emerald-100" : "border-[#e5e7eb]"
+    }`}>
       <button
         type="button"
         onClick={() => onOpen(workout)}
@@ -394,6 +423,12 @@ function WorkoutCard({
         <span className={`absolute left-3 top-3 rounded-full px-2.5 py-1 text-xs font-black ${recommended ? "bg-[#dcfce7] text-[#15803d]" : "bg-white/90 text-[#111827]"}`}>
           {workout.category || "Workout"}
         </span>
+        {completed ? (
+          <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-emerald-600 px-3 py-1 text-xs font-black text-white shadow-lg">
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            Completed
+          </span>
+        ) : null}
       </button>
       <div className="p-4">
         <button type="button" onClick={() => onOpen(workout)} className="block min-w-0 text-left">
@@ -425,14 +460,21 @@ function WorkoutCard({
             type="button"
             disabled={busy}
             onClick={() => onComplete(workout)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#dcfce7] text-[#15803d] disabled:opacity-60"
-            aria-label="Mark workout completed"
+            className={`inline-flex h-10 items-center justify-center gap-1 rounded-full px-3 text-sm font-black disabled:opacity-60 ${
+              completed ? "bg-emerald-600 text-white" : "bg-[#dcfce7] text-[#15803d]"
+            }`}
+            aria-label={completed ? "Workout completed" : "Mark workout completed"}
           >
             <CheckCircle2 className="h-4 w-4" />
+            {completed ? "Saved" : "Done"}
           </button>
         </div>
-        {completedRows.length > 0 ? (
-          <p className="mt-3 text-xs font-semibold text-[#6b7280]">Completed {completedRows.length} times</p>
+        {completed ? (
+          <p className="mt-3 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-black text-emerald-700">
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            Completed {completedRows.length} time{completedRows.length === 1 ? "" : "s"}
+            {latestCompletion?.completed_at ? ` - last ${toDateInputValue(latestCompletion.completed_at)}` : ""}
+          </p>
         ) : null}
       </div>
     </article>
@@ -523,10 +565,10 @@ function WorkoutDetailModal({
                 type="button"
                 disabled={busy}
                 onClick={() => onComplete(workout)}
-                className={primaryButtonClass}
+                className={latestCompletion ? secondaryButtonClass : primaryButtonClass}
               >
                 <CheckCircle2 className="h-4 w-4" />
-                Mark completed
+                {latestCompletion ? "Log again" : "Mark completed"}
               </button>
               <Link
                 href={`/workout/session?workout=${workout.id}`}
@@ -539,8 +581,16 @@ function WorkoutDetailModal({
 
             {latestCompletion ? (
               <div className="rounded-[1.2rem] border border-emerald-300/16 bg-emerald-300/10 p-4 text-sm leading-6 text-emerald-100">
-                Completed {completedRows.length} time{completedRows.length === 1 ? "" : "s"}.
-                Last session: {toDateInputValue(latestCompletion.completed_at)}
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
+                  <div>
+                    <p className="font-black text-white">Saved in your workout history</p>
+                    <p className="mt-1">
+                      Completed {completedRows.length} time{completedRows.length === 1 ? "" : "s"}.
+                      Last session: {toDateInputValue(latestCompletion.completed_at)}
+                    </p>
+                  </div>
+                </div>
               </div>
             ) : null}
 
@@ -648,7 +698,7 @@ function WorkoutContent({ profile }) {
         return {
           workout,
           preference,
-          completedRows: completedByWorkout.get(workout.id) || [],
+          completedRows: completedRowsForWorkout(completedByWorkout, workout),
           score: recommendationScore(workout, profile, preference),
           recommended: isRecommended(workout, profile, preference),
         };
@@ -758,7 +808,7 @@ function WorkoutContent({ profile }) {
   };
 
   const selectedPreference = selectedWorkout ? preferencesByWorkout.get(selectedWorkout.id) : null;
-  const selectedCompletedRows = selectedWorkout ? completedByWorkout.get(selectedWorkout.id) || [] : [];
+  const selectedCompletedRows = selectedWorkout ? completedRowsForWorkout(completedByWorkout, selectedWorkout) : [];
   const favoriteCount = preferences.filter((item) => item.is_favorite).length;
 
   return (

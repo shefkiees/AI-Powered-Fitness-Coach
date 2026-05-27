@@ -112,7 +112,7 @@ export async function getUserCompletedWorkouts() {
 export async function completeLibraryWorkout(workout, values = {}) {
   const client = requireSupabase();
   const payload = {
-    workout_id: workout?.id || values.workout_id || null,
+    workout_id: workout?.is_local_catalog ? null : workout?.id || values.workout_id || null,
     session_id: values.session_id || null,
     workout_title: (workout?.title || values.workout_title || "Workout").trim(),
     duration_minutes: nullableNumber(workout?.duration_minutes ?? values.duration_minutes),
