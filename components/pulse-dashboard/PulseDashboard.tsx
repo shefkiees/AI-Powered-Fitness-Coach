@@ -97,7 +97,7 @@ function ShellCard({
   className?: string;
 }) {
   return (
-    <article className={`rounded-2xl border border-[#e5e7eb] bg-white shadow-[0_8px_22px_rgba(17,24,39,0.05)] ring-1 ring-black/[0.015] ${className}`}>
+    <article className={`min-w-0 rounded-2xl border border-[#e5e7eb] bg-white shadow-[0_8px_22px_rgba(17,24,39,0.05)] ring-1 ring-black/[0.015] ${className}`}>
       {children}
     </article>
   );
@@ -638,8 +638,8 @@ export function PulseDashboard() {
             )}
           </ShellCard>
 
-          <div className="grid gap-5 lg:grid-cols-2">
-          <ShellCard className="p-5 sm:p-6">
+          <div className="grid min-w-0 gap-5 lg:grid-cols-2">
+          <ShellCard className="overflow-hidden p-5 sm:p-6">
             <SectionTitle
               eyebrow="Recommended"
               title="1-2 good options"
@@ -651,9 +651,9 @@ export function PulseDashboard() {
                   <Link
                     key={workout.id}
                     href={`/workout/session?workout=${workout.workoutId}`}
-                    className="flex items-center gap-3 rounded-2xl bg-[#f8fafc] p-3 transition hover:bg-[#f0fdf4]"
+                    className="flex min-w-0 items-center gap-3 rounded-2xl bg-[#f8fafc] p-3 transition hover:bg-[#f0fdf4]"
                   >
-                    <span className="grid h-10 w-10 place-items-center rounded-2xl bg-white text-[#16a34a] shadow-sm">
+                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-white text-[#16a34a] shadow-sm">
                       <Dumbbell className="h-4 w-4" />
                     </span>
                     <span className="min-w-0 flex-1">
