@@ -266,7 +266,7 @@ export function PoseWorkoutScreen() {
   const activeExercise = workoutState?.activeExercise || "general";
   const activeTotal = totals[activeExercise] || totals.general;
   const isHoldExercise = ["plank", "wall_sit", "superman_hold", "side_plank"].includes(activeExercise);
-  const repsValue = isHoldExercise ? formatDuration(activeTotal.hold_seconds || 0) : workoutState?.totalReps || 0;
+  const repsValue = isHoldExercise ? formatDuration(activeTotal.hold_seconds || 0) : activeTotal.reps || 0;
   const trackingStarted = Boolean(cameraActive && workoutState?.sessionReady);
   const formScore = trackingStarted ? Math.round(workoutState?.averageFormScore || workoutState?.score || 0) : null;
   const confidence = workoutState ? Math.round(workoutState.confidence || 0) : null;
@@ -439,9 +439,9 @@ export function PoseWorkoutScreen() {
         </section>
 
         <section className={cn(panelClass, "grid gap-4 p-4 sm:grid-cols-4")}>
-          {compactMetric("Duration", formatDuration(durationSeconds))}
-          {compactMetric("Valid reps", workoutState?.validReps || 0)}
-          {compactMetric("Partial reps", workoutState?.partialReps || 0)}
+          {compactMetric("Session total", workoutState?.totalReps || 0)}
+          {compactMetric("Current valid reps", activeTotal.valid_reps || 0)}
+          {compactMetric("Current partial reps", activeTotal.partial_reps || 0)}
           {compactMetric("Best tip", bestTip(workoutState))}
         </section>
 
