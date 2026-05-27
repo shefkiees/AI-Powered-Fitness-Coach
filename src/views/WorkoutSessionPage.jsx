@@ -54,6 +54,11 @@ function estimateCalories(minutes, completedSets) {
   return Math.max(50, Math.round(Number(minutes || 25) * 6.8 + completedSets * 7));
 }
 
+function estimateHeartRate({ phase, running, completedSets }) {
+  const base = phase === "rest" ? 96 : phase === "work" || running ? 112 : 88;
+  return Math.min(155, base + Math.min(36, completedSets * 3));
+}
+
 const youtubeExerciseVideos = [
   { match: ["goblet squat"], id: "MeIiIdhvXT4" },
   { match: ["bodyweight squat", "squat"], id: "u-xm0I1Lcgs" },
@@ -298,6 +303,7 @@ function SessionRunner({ user, profile, workout, initialSessionId }) {
   const exercises = useMemo(() => workout?.exercises || [], [workout]);
   const [session, setSession] = useState(initialSessionId ? { id: initialSessionId } : null);
   const [startedAt, setStartedAt] = useState(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [index, setIndex] = useState(0);
   const [exerciseOverrides, setExerciseOverrides] = useState({});
   const [setNo, setSetNo] = useState(1);
@@ -319,12 +325,26 @@ function SessionRunner({ user, profile, workout, initialSessionId }) {
   const totalSets = exerciseSets(exercise);
   const totalPossibleSets = exercises.reduce((sum, item) => sum + exerciseSets(item), 0);
   const progress = totalPossibleSets ? Math.round((completedSets.length / totalPossibleSets) * 100) : 0;
-  const heartRate = 105 + Math.min(40, completedSets.length * 2);
+  const elapsedMinutes = startedAt ? Math.max(1, Math.ceil(elapsedSeconds / 60)) : 0;
+  const liveCalories = startedAt
+    ? estimateCalories(elapsedMinutes, completedSets.length)
+    : estimateCalories(workout.duration_minutes, completedSets.length);
+  const heartRate = estimateHeartRate({ phase, running, completedSets: completedSets.length });
 
   useEffect(() => {
     setSubstitution(null);
     setSubReason("");
   }, [index]);
+
+  useEffect(() => {
+    if (!startedAt || done) return undefined;
+    const updateElapsed = () => {
+      setElapsedSeconds(Math.max(0, Math.floor((Date.now() - startedAt.getTime()) / 1000)));
+    };
+    updateElapsed();
+    const id = window.setInterval(updateElapsed, 1000);
+    return () => window.clearInterval(id);
+  }, [done, startedAt]);
 
   useEffect(() => {
     if (!running || phase === "idle" || phase === "complete") return undefined;
@@ -711,21 +731,21 @@ function SessionRunner({ user, profile, workout, initialSessionId }) {
               <div className="rounded-2xl bg-[#f3f4f6] p-4">
                 <Dumbbell className="h-4 w-4 text-[#22c55e]" />
                 <p className="mt-2 text-xl font-black">{completedSets.length}</p>
-                <p className="text-xs text-[#6b7280]">sets</p>
+                <p className="text-xs text-[#6b7280]">sets done</p>
               </div>
               <div className="rounded-2xl bg-[#f3f4f6] p-4">
                 <Clock3 className="h-4 w-4 text-[#22c55e]" />
-                <p className="mt-2 text-xl font-black">{workout.duration_minutes || "--"}</p>
-                <p className="text-xs text-[#6b7280]">planned min</p>
+                <p className="mt-2 text-xl font-black">{startedAt ? formatTime(elapsedSeconds) : `${workout.duration_minutes || "--"}m`}</p>
+                <p className="text-xs text-[#6b7280]">{startedAt ? "elapsed" : "planned"}</p>
               </div>
               <div className="rounded-2xl bg-[#f3f4f6] p-4">
                 <Flame className="h-4 w-4 text-[#22c55e]" />
-                <p className="mt-2 text-xl font-black">{estimateCalories(workout.duration_minutes, completedSets.length)}</p>
+                <p className="mt-2 text-xl font-black">{liveCalories}</p>
                 <p className="text-xs text-[#6b7280]">kcal est</p>
               </div>
             </div>
             <div className="mt-2 rounded-2xl bg-[#f3f4f6] p-3">
-              <p className="text-xs font-bold text-[#6b7280]">Heart rate</p>
+              <p className="text-xs font-bold text-[#6b7280]">Heart rate estimate</p>
               <p className="text-xl font-black">{heartRate} bpm</p>
             </div>
           </div>
