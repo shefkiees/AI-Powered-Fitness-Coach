@@ -464,6 +464,13 @@ function SessionRunner({ user, profile, workout, initialSessionId }) {
         reps: substitution.reps,
         rest_seconds: substitution.rest_seconds,
         notes: substitution.notes,
+        substitution_details: {
+          reason: subReason,
+          why: substitution.why,
+          safety_note: substitution.safety_note,
+          notes: substitution.notes,
+          original_name: exercise.name,
+        },
         fallback: true,
       },
     }));
@@ -471,6 +478,7 @@ function SessionRunner({ user, profile, workout, initialSessionId }) {
     setPhase("idle");
     setRunning(false);
     setRemaining(exerciseWorkSeconds(exercise));
+    setSubstitution(null);
   };
 
   const finish = async () => {
@@ -620,6 +628,28 @@ function SessionRunner({ user, profile, workout, initialSessionId }) {
                 </p>
                 <h2 className="mt-2 text-2xl font-black">{exercise.name}</h2>
                 <p className="mt-2 text-sm leading-7 text-[#6b7280]">{exercise.notes || "Move smoothly and keep control."}</p>
+
+                {exercise.substitution_details ? (
+                  <div className="mt-4 rounded-[1.2rem] border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="font-black">Easier option active</p>
+                      {exercise.substitution_details.original_name ? (
+                        <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-emerald-700">
+                          Replaced {exercise.substitution_details.original_name}
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="mt-3 grid gap-2">
+                      <p><span className="font-black">How to do it:</span> {exercise.substitution_details.notes || exercise.notes || "Use a comfortable range and move with control."}</p>
+                      {exercise.substitution_details.why ? (
+                        <p><span className="font-black">Why this helps:</span> {exercise.substitution_details.why}</p>
+                      ) : null}
+                      {exercise.substitution_details.safety_note ? (
+                        <p><span className="font-black">Safety cue:</span> {exercise.substitution_details.safety_note}</p>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
 
                 <div className="mt-5 grid gap-3 sm:grid-cols-3">
                   <div className="rounded-2xl bg-white p-4 shadow-sm">

@@ -233,11 +233,10 @@ function youtubeThumbnailForVideo(url) {
 }
 
 export function exerciseImageFor(name, workout = null) {
-  const videoThumbnail = youtubeThumbnailForVideo(fallbackVideoForExercise(name));
-  if (videoThumbnail) return videoThumbnail;
   const text = normalizeText(`${name || ""} ${workout?.title || ""} ${workout?.category || ""} ${workout?.muscle_group || ""}`);
   const hit = exerciseThumbnailRules.find((rule) => rule.match.some((word) => text.includes(word)));
-  return hit?.url || null;
+  if (hit?.url) return hit.url;
+  return youtubeThumbnailForVideo(fallbackVideoForExercise(name));
 }
 
 export function withExerciseMedia(exercise, workout = null) {
@@ -296,6 +295,8 @@ function workoutThumbnailFor(workout, fallback = null, exercises = []) {
   const current = String(fallback || "");
   const isGenericLocal =
     !current ||
+    current.includes("img.youtube.com/vi/") ||
+    current.includes("i.ytimg.com/vi/") ||
     genericWorkoutImageBases.some((base) => current.includes(base));
 
   if (!workout?.is_local_catalog && !workout?.slug?.includes?.("starter") && !isGenericLocal) return fallback;
