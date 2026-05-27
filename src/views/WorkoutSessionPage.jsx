@@ -538,15 +538,21 @@ function SessionRunner({ user, profile, workout, initialSessionId }) {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-3 py-4 text-[#171717] sm:px-5 lg:px-8">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <Link href="/workout-plan" className="inline-flex items-center gap-2 rounded-full border border-[var(--fc-border)] bg-white/[0.04] px-4 py-2 text-sm font-bold">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.10),transparent_34%),linear-gradient(180deg,#f8fafc_0%,#eef2f7_100%)] px-3 py-5 text-[#171717] sm:px-5 lg:px-8">
+      <div className="mx-auto max-w-7xl">
+      <div className="mb-4 flex items-center justify-between gap-3 rounded-[1.4rem] border border-white bg-white/85 px-3 py-3 shadow-[0_12px_34px_rgba(17,24,39,0.07)] backdrop-blur sm:px-4">
+        <Link href="/workout-plan" className="inline-flex items-center gap-2 rounded-full border border-[#e5e7eb] bg-white px-4 py-2 text-sm font-black shadow-sm transition hover:bg-[#f8fafc]">
           <ArrowLeft className="h-4 w-4" />
           Workouts
         </Link>
-        <span className="rounded-full bg-white px-3 py-1.5 text-xs font-black uppercase tracking-[0.12em] text-[#6b7280]">
-          {progress}% complete
-        </span>
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="hidden h-2 w-36 overflow-hidden rounded-full bg-[#e5e7eb] sm:block">
+            <div className="h-full rounded-full bg-[#22c55e]" style={{ width: `${progress}%` }} />
+          </div>
+          <span className="rounded-full bg-[#111827] px-3 py-1.5 text-xs font-black uppercase tracking-[0.12em] text-white">
+            {progress}% complete
+          </span>
+        </div>
       </div>
 
       {error ? (
@@ -555,138 +561,151 @@ function SessionRunner({ user, profile, workout, initialSessionId }) {
         </div>
       ) : null}
 
-      <div className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr] lg:items-start">
-        <section className="overflow-hidden rounded-[1.6rem] bg-white p-4 shadow-[0_12px_30px_rgba(17,24,39,0.08)] sm:p-5">
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(360px,0.8fr)] lg:items-start">
+        <section className="overflow-hidden rounded-[1.8rem] border border-white bg-white p-4 shadow-[0_20px_55px_rgba(17,24,39,0.10)] sm:p-5">
           <p className="text-xs font-black uppercase tracking-[0.22em] text-[#22c55e]">
             {workout.category || "Guided session"}
           </p>
           <h1 className="mt-1 text-3xl font-black tracking-tight">{workout.title}</h1>
           <p className="mt-2 text-sm leading-7 text-[#6b7280]">{workout.description}</p>
 
-          <div className="mt-4 aspect-video overflow-hidden rounded-[1.2rem] bg-[#111827]">
+          <div className="mt-5 aspect-video overflow-hidden rounded-[1.35rem] bg-[#111827] shadow-[0_18px_42px_rgba(17,24,39,0.12)]">
             <SessionMedia workout={workout} exercise={exercise} profile={profile} />
           </div>
 
-          <div className="mt-4 rounded-[1.2rem] bg-[#f3f4f6] p-4 sm:p-5">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
+          <div className="mt-5 rounded-[1.5rem] border border-[#e5e7eb] bg-[#f8fafc] p-4 sm:p-5">
+            <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
+              <div className="min-w-0">
                 <p className="text-xs font-black uppercase tracking-[0.2em] text-[#6b7280]">
                   Exercise {index + 1} / {exercises.length}
                 </p>
                 <h2 className="mt-2 text-2xl font-black">{exercise.name}</h2>
                 <p className="mt-2 text-sm leading-7 text-[#6b7280]">{exercise.notes || "Move smoothly and keep control."}</p>
-              </div>
-              <div className="rounded-2xl bg-white px-4 py-3 text-right shadow-sm">
-                <p className="text-xs text-[#6b7280]">Set</p>
-                <p className="text-2xl font-black">{setNo}/{totalSets}</p>
-              </div>
-            </div>
 
-            <div className="mt-6 flex justify-center">
-              <div className="flex h-44 w-44 items-center justify-center rounded-full bg-[conic-gradient(#4ade80_0deg,#4ade80_220deg,#e5e7eb_220deg)] p-2 sm:h-52 sm:w-52">
-                <div className="flex h-full w-full items-center justify-center rounded-full bg-white">
-                <div className="text-center">
-                  <p className="text-xs font-black uppercase tracking-[0.22em] text-[#6b7280]">
-                    {phase === "rest" ? "Rest" : phase === "work" ? "Work" : "Ready"}
-                  </p>
-                  <p className="mt-2 text-5xl font-black sm:text-6xl">{formatTime(remaining)}</p>
+                <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-2xl bg-white p-4 shadow-sm">
+                    <p className="text-xs font-bold text-[#6b7280]">Set</p>
+                    <p className="mt-1 text-2xl font-black">{setNo}/{totalSets}</p>
+                  </div>
+                  <div className="rounded-2xl bg-white p-4 shadow-sm">
+                    <p className="text-xs font-bold text-[#6b7280]">Work</p>
+                    <p className="mt-1 text-2xl font-black">{exerciseWorkSeconds(exercise)}s</p>
+                  </div>
+                  <div className="rounded-2xl bg-white p-4 shadow-sm">
+                    <p className="text-xs font-bold text-[#6b7280]">Rest</p>
+                    <p className="mt-1 text-2xl font-black">{exerciseRestSeconds(exercise)}s</p>
+                  </div>
                 </div>
-                </div>
-              </div>
-            </div>
 
-            <div className="mt-6 grid gap-2 sm:grid-cols-2">
-              {!running ? (
-                <button type="button" onClick={start} className="inline-flex items-center justify-center gap-2 rounded-full bg-[#22c55e] px-5 py-3 text-sm font-black text-white transition hover:brightness-110">
-                  <Play className="h-4 w-4" />
-                  {phase === "idle" ? "Start" : "Resume"}
-                </button>
-              ) : (
-                <button type="button" onClick={() => setRunning(false)} className="inline-flex items-center justify-center gap-2 rounded-full border border-[#e5e7eb] bg-white px-5 py-3 text-sm font-bold">
-                  <Pause className="h-4 w-4" />
-                  Pause
-                </button>
-              )}
-              <button type="button" onClick={completeSet} className="inline-flex items-center justify-center gap-2 rounded-full border border-emerald-300/30 bg-emerald-50 px-5 py-3 text-sm font-bold text-emerald-700">
-                <CheckCircle2 className="h-4 w-4" />
-                Complete set
-              </button>
-              <button type="button" onClick={skipExercise} className="inline-flex items-center justify-center gap-2 rounded-full border border-[#e5e7eb] bg-white px-5 py-3 text-sm font-bold">
-                <SkipForward className="h-4 w-4" />
-                Skip exercise
-              </button>
-              <button type="button" onClick={resetTimer} className="inline-flex items-center justify-center gap-2 rounded-full border border-[#e5e7eb] bg-white px-5 py-3 text-sm font-bold">
-                <RotateCcw className="h-4 w-4" />
-                Reset timer
-              </button>
-            </div>
-
-            <div className="mt-5 rounded-[1.2rem] border border-emerald-200 bg-white p-4">
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-[#16a34a]" />
-                <p className="text-sm font-black text-[#111827]">Need an exercise swap?</p>
-              </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {[
-                  "No equipment",
-                  "Knee friendly",
-                  "Make it easier",
-                ].map((reason) => (
-                  <button
-                    key={reason}
-                    type="button"
-                    disabled={subBusy}
-                    onClick={() => void suggestSubstitution(reason)}
-                    className="rounded-full border border-[#e5e7eb] bg-[#f8fafc] px-3 py-2 text-xs font-black text-[#111827] disabled:opacity-60"
-                  >
-                    {reason}
-                  </button>
-                ))}
-              </div>
-              <div className="mt-3 flex gap-2">
-                <input
-                  value={subReason}
-                  onChange={(event) => setSubReason(event.target.value)}
-                  className="min-h-10 min-w-0 flex-1 rounded-xl border border-[#e5e7eb] bg-[#f9fafb] px-3 text-sm font-semibold outline-none focus:border-[#22c55e] focus:ring-4 focus:ring-emerald-100"
-                  placeholder="Example: shoulder discomfort or no dumbbells"
-                />
-                <button
-                  type="button"
-                  disabled={subBusy}
-                  onClick={() => void suggestSubstitution()}
-                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-[#111827] px-3 text-xs font-black text-white disabled:opacity-60"
-                >
-                  {subBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-                  Ask
-                </button>
-              </div>
-              {substitution ? (
-                <div className="mt-3 rounded-2xl bg-[#f0fdf4] p-3 text-sm text-emerald-900">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-black">{substitution.name}</p>
-                      <p className="mt-1 font-semibold">
-                        {substitution.sets} sets x {substitution.reps} - rest {substitution.rest_seconds}s
-                      </p>
-                    </div>
+                <div className="mt-5 rounded-[1.2rem] border border-emerald-200 bg-white p-4">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-[#16a34a]" />
+                    <p className="text-sm font-black text-[#111827]">Need an exercise swap?</p>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {[
+                      "No equipment",
+                      "Knee friendly",
+                      "Make it easier",
+                    ].map((reason) => (
+                      <button
+                        key={reason}
+                        type="button"
+                        disabled={subBusy}
+                        onClick={() => void suggestSubstitution(reason)}
+                        className="rounded-full border border-[#e5e7eb] bg-[#f8fafc] px-3 py-2 text-xs font-black text-[#111827] disabled:opacity-60"
+                      >
+                        {reason}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                    <input
+                      value={subReason}
+                      onChange={(event) => setSubReason(event.target.value)}
+                      className="min-h-10 min-w-0 flex-1 rounded-xl border border-[#e5e7eb] bg-[#f9fafb] px-3 text-sm font-semibold outline-none focus:border-[#22c55e] focus:ring-4 focus:ring-emerald-100"
+                      placeholder="Example: shoulder discomfort or no dumbbells"
+                    />
                     <button
                       type="button"
-                      onClick={useSubstitution}
-                      className="shrink-0 rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-black text-white"
+                      disabled={subBusy}
+                      onClick={() => void suggestSubstitution()}
+                      className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-[#111827] px-4 text-xs font-black text-white disabled:opacity-60"
                     >
-                      Use
+                      {subBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                      Ask
                     </button>
                   </div>
-                  <p className="mt-2 leading-6">{substitution.why}</p>
-                  <p className="mt-1 text-xs font-bold opacity-80">{substitution.safety_note}</p>
+                  {substitution ? (
+                    <div className="mt-3 rounded-2xl bg-[#f0fdf4] p-3 text-sm text-emerald-900">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-black">{substitution.name}</p>
+                          <p className="mt-1 font-semibold">
+                            {substitution.sets} sets x {substitution.reps} - rest {substitution.rest_seconds}s
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={useSubstitution}
+                          className="shrink-0 rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-black text-white"
+                        >
+                          Use
+                        </button>
+                      </div>
+                      <p className="mt-2 leading-6">{substitution.why}</p>
+                      <p className="mt-1 text-xs font-bold opacity-80">{substitution.safety_note}</p>
+                    </div>
+                  ) : null}
                 </div>
-              ) : null}
+              </div>
+
+              <div className="rounded-[1.35rem] bg-white p-4 shadow-sm">
+                <div className="mx-auto flex h-44 w-44 items-center justify-center rounded-full bg-[conic-gradient(#4ade80_0deg,#4ade80_220deg,#e5e7eb_220deg)] p-2">
+                  <div className="flex h-full w-full items-center justify-center rounded-full bg-white">
+                    <div className="text-center">
+                      <p className="text-xs font-black uppercase tracking-[0.22em] text-[#6b7280]">
+                        {phase === "rest" ? "Rest" : phase === "work" ? "Work" : "Ready"}
+                      </p>
+                      <p className="mt-2 text-5xl font-black">{formatTime(remaining)}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-5 grid gap-2">
+                  {!running ? (
+                    <button type="button" onClick={start} className="inline-flex items-center justify-center gap-2 rounded-full bg-[#22c55e] px-5 py-3 text-sm font-black text-white transition hover:brightness-110">
+                      <Play className="h-4 w-4" />
+                      {phase === "idle" ? "Start" : "Resume"}
+                    </button>
+                  ) : (
+                    <button type="button" onClick={() => setRunning(false)} className="inline-flex items-center justify-center gap-2 rounded-full border border-[#e5e7eb] bg-white px-5 py-3 text-sm font-bold">
+                      <Pause className="h-4 w-4" />
+                      Pause
+                    </button>
+                  )}
+                  <button type="button" onClick={completeSet} className="inline-flex items-center justify-center gap-2 rounded-full border border-emerald-300/30 bg-emerald-50 px-5 py-3 text-sm font-bold text-emerald-700">
+                    <CheckCircle2 className="h-4 w-4" />
+                    Complete set
+                  </button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button type="button" onClick={skipExercise} className="inline-flex items-center justify-center gap-2 rounded-full border border-[#e5e7eb] bg-white px-4 py-3 text-sm font-bold">
+                      <SkipForward className="h-4 w-4" />
+                      Skip
+                    </button>
+                    <button type="button" onClick={resetTimer} className="inline-flex items-center justify-center gap-2 rounded-full border border-[#e5e7eb] bg-white px-4 py-3 text-sm font-bold">
+                      <RotateCcw className="h-4 w-4" />
+                      Reset
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </section>
 
-        <aside className="space-y-4 lg:sticky lg:top-4">
-          <div className="rounded-[1.4rem] bg-white p-5 shadow-[0_10px_30px_rgba(17,24,39,0.08)]">
+        <aside className="space-y-4 lg:sticky lg:top-5">
+          <div className="rounded-[1.6rem] border border-white bg-white p-5 shadow-[0_18px_48px_rgba(17,24,39,0.09)]">
             <p className="text-xs font-black uppercase tracking-[0.2em] text-[#6b7280]">Session stats</p>
             <div className="mt-4 grid grid-cols-3 gap-3">
               <div className="rounded-2xl bg-[#f3f4f6] p-4">
@@ -711,7 +730,7 @@ function SessionRunner({ user, profile, workout, initialSessionId }) {
             </div>
           </div>
 
-          <div className="rounded-[1.4rem] bg-white p-5 shadow-[0_10px_30px_rgba(17,24,39,0.08)]">
+          <div className="rounded-[1.6rem] border border-white bg-white p-5 shadow-[0_18px_48px_rgba(17,24,39,0.09)]">
             <p className="text-xs font-black uppercase tracking-[0.2em] text-[#6b7280]">Finish workout</p>
             <label className="mt-4 block text-sm font-semibold">
               Rating
@@ -751,6 +770,7 @@ function SessionRunner({ user, profile, workout, initialSessionId }) {
             ) : null}
           </div>
         </aside>
+      </div>
       </div>
     </div>
   );
