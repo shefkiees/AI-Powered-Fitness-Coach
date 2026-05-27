@@ -11,7 +11,7 @@ import { fetchAiEndpoint } from "@/lib/aiFetch";
 import { CoachMessage } from "@/components/dashboard/CoachMessage";
 import { useCoachingSession } from "@/hooks/useCoachingSession";
 
-type Msg = { role: "user" | "assistant"; text: string };
+type Msg = { role: "user" | "assistant"; text: string; createdAt?: string };
 
 const MAX_COACH_MESSAGE_CHARS = 1600;
 
@@ -42,11 +42,47 @@ type Props = {
 export function CoachChat({ coachDisplayName, userId, onActivity }: Props) {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Msg[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const inFlightRef = useRef(false);
   const { sessionStartedAt, resetSession } = useCoachingSession();
+
+  useEffect(() => {
+    if (!userId) {
+      setHistoryLoaded(true);
+      return undefined;
+    }
+
+    let cancelled = false;
+    setHistoryLoading(true);
+    setHistoryLoaded(false);
+
+    fetchAiEndpoint("/api/chat")
+      .then(async (response) => {
+        const data = (await response.json().catch(() => ({}))) as {
+          messages?: Msg[];
+          error?: string;
+        };
+        if (!response.ok) throw new Error(data.error || "Could not load chat history.");
+        if (!cancelled) {
+          setMessages(Array.isArray(data.messages) ? data.messages : []);
+          setHistoryLoaded(true);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setHistoryLoaded(true);
+      })
+      .finally(() => {
+        if (!cancelled) setHistoryLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
 
   useEffect(() => {
     const element = scrollRef.current;
@@ -174,11 +210,21 @@ export function CoachChat({ coachDisplayName, userId, onActivity }: Props) {
         </div>
       </div>
 
+      <div className="shrink-0 border-b border-black/8 bg-slate-100/80 px-4 py-2">
+        <p className="text-[11px] font-semibold text-slate-500">
+          {historyLoading
+            ? "Loading chat history..."
+            : messages.length
+              ? `Chat history: ${messages.length} saved message${messages.length === 1 ? "" : "s"}`
+              : "Chat history will appear here after your first saved coach reply."}
+        </p>
+      </div>
+
       <div
         ref={scrollRef}
         className="custom-scrollbar min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4"
       >
-        {messages.length === 0 && !loading ? (
+        {messages.length === 0 && !loading && historyLoaded ? (
           <div className="flex flex-col items-center justify-center gap-4 py-10 text-center">
             <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-black/8 bg-white">
               <MessageSquare className="h-5 w-5 text-[var(--fc-accent)]" />
@@ -256,7 +302,7 @@ export function CoachChat({ coachDisplayName, userId, onActivity }: Props) {
             placeholder="Ask your coach..."
             className={getTextFieldClassName({
               className:
-                "min-w-0 flex-1 border-black/10 bg-white text-[#17181b] placeholder:text-[#7a8067] focus:bg-white",
+                "min-w-0 flex-1 border-black/10 bg-white text-[#17181b] placeholder:text-slate-400 focus:bg-white",
             })}
             disabled={loading}
             aria-label="Message to coach"

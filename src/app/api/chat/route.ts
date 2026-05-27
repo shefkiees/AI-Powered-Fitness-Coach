@@ -17,6 +17,7 @@ const LOCAL_COACH_MODEL = "local-coach-fallback";
 const MAX_HISTORY_MESSAGES = 4;
 const MAX_HISTORY_CONTENT_CHARS = 700;
 const MAX_CONTEXT_TEXT_CHARS = 160;
+const MAX_VISIBLE_CHAT_HISTORY = 24;
 
 type CoachContext = {
   profile?: Record<string, unknown> | null;
@@ -25,6 +26,43 @@ type CoachContext = {
   recent_nutrition: Array<Record<string, unknown>>;
   recent_weight_logs: Array<Record<string, unknown>>;
 };
+
+export async function GET() {
+  try {
+    const supabase = await createSupabaseRouteClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { data, error } = await supabase
+      .from("ai_coach_messages")
+      .select("role,content,created_at")
+      .eq("user_id", user.id)
+      .eq("category", "chat")
+      .order("created_at", { ascending: false })
+      .limit(MAX_VISIBLE_CHAT_HISTORY);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    const messages = [...(data || [])].reverse().map((row) => ({
+      role: row.role === "assistant" ? "assistant" : "user",
+      text: clipText(row.content, MAX_HISTORY_CONTENT_CHARS),
+      createdAt: row.created_at,
+    }));
+
+    return NextResponse.json({ messages });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
 
 function cleanLabel(value: unknown, fallback: string) {
   const text = typeof value === "string" ? value.trim() : "";

@@ -19,7 +19,7 @@ export default function DashboardChatPage() {
       </Link>
       <div>
         <p className="pulse-kicker">AI coach</p>
-        <h1 className="mt-2 text-3xl font-black tracking-tight text-white sm:text-4xl">
+        <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-200 sm:text-4xl">
           Ask anything about training, recovery, or your plan.
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-[var(--fc-muted)]">
