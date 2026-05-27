@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { BadgeCheck, Camera, Play, ShieldAlert, Square } from "lucide-react";
+import { BadgeCheck, Camera, Loader2, Play, ShieldAlert, Sparkles, Square } from "lucide-react";
 import { PoseCameraPreview } from "@/components/pose/PoseCameraLazy";
 import { Button } from "@/components/ui/Button";
+import { fetchAiEndpoint } from "@/lib/aiFetch";
 import { cn } from "@/lib/cn";
 import {
   EXERCISE_LABELS,
@@ -31,6 +32,15 @@ type FinalSessionResult = {
   improvementTips: string[];
   bestCue: string;
   repEvents: RepSummary[];
+};
+
+type AiSessionSummary = {
+  headline: string;
+  summary: string;
+  focus_next: string;
+  cues: string[];
+  source?: string;
+  warning?: string;
 };
 
 const TRACKED_EXERCISES: AutoExercise[] = [
@@ -88,6 +98,24 @@ const TRACKED_EXERCISES: AutoExercise[] = [
 const EXERCISES: AutoExercise[] = ["general", ...TRACKED_EXERCISES];
 const panelClass = "rounded-lg border border-white/10 bg-white/[0.045] shadow-[0_16px_42px_rgba(0,0,0,0.22)]";
 
+const ISSUE_LABELS: Record<string, string> = {
+  "visibility ankles": "Keep ankles visible so the tracker can judge stance and depth.",
+  "visibility knees": "Keep knees visible from start to finish.",
+  "visibility hips": "Keep hips in frame so posture feedback stays accurate.",
+  "visibility shoulders": "Keep shoulders in frame and square to the camera.",
+  "visibility elbows": "Keep elbows visible during arm movements.",
+  "visibility wrists": "Keep wrists visible so reps are counted cleanly.",
+  "lateral raise short range": "Raise arms closer to shoulder height before lowering.",
+  "front raise short range": "Lift arms through the full front-raise range.",
+  "squat knee cave": "Push knees out so they track over your toes.",
+  "squat partial depth": "Sit lower and finish the full squat depth.",
+  "deadlift short hinge": "Hinge hips farther back before standing tall.",
+  "pushup shallow depth": "Lower with more control before pressing up.",
+  "biceps curl short range": "Fully extend and curl through a complete range.",
+  "russian twist short range": "Rotate farther to each side before switching.",
+  "rep not counted": "Finish the full range of motion before starting the next rep.",
+};
+
 function formatDuration(totalSeconds: number) {
   const safeSeconds = Math.max(0, Math.round(totalSeconds));
   const minutes = Math.floor(safeSeconds / 60);
@@ -98,6 +126,150 @@ function formatDuration(totalSeconds: number) {
 function estimateCalories(durationSeconds: number, reps: number) {
   const minutes = Math.max(1, durationSeconds / 60);
   return Math.round(minutes * 6.4 + reps * 0.35);
+}
+
+function normalizeIssue(issue: string) {
+  return issue.replace(/[_-]/g, " ").replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+function sentenceCase(text: string) {
+  if (!text) return "";
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+function humanizeIssue(issue: string) {
+  const normalized = normalizeIssue(issue);
+  if (!normalized) return "";
+  return ISSUE_LABELS[normalized] || sentenceCase(normalized);
+}
+
+function uniqueList(items: string[]) {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const key = item.toLowerCase();
+    if (!item || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function coachText(text: string) {
+  let output = text;
+  Object.entries(ISSUE_LABELS).forEach(([issue, replacement]) => {
+    output = output.replace(new RegExp(issue, "gi"), replacement);
+  });
+  return output;
+}
+
+function exerciseNames(exercises: AutoExercise[]) {
+  const names = exercises
+    .filter((exercise) => exercise !== "general")
+    .map((exercise) => EXERCISE_LABELS[exercise] || exercise.replace(/_/g, " "));
+  if (!names.length) return "your movement";
+  if (names.length === 1) return names[0];
+  if (names.length === 2) return `${names[0]} and ${names[1]}`;
+  return `${names.slice(0, 2).join(", ")} and ${names.length - 2} more`;
+}
+
+function summarizeRep(rep: RepSummary | null) {
+  if (!rep) return null;
+  return {
+    exercise: rep.exercise,
+    exercise_label: rep.exercise_label,
+    score: rep.score,
+    confidence: rep.confidence,
+    issues: rep.issues?.map(humanizeIssue).filter(Boolean).slice(0, 4) || [],
+    partial: Boolean(rep.partial),
+    kind: rep.kind,
+  };
+}
+
+function compactExerciseTotals(report: FinalSessionResult) {
+  return Object.entries(report.repsByExercise).reduce<Record<string, unknown>>((acc, [exercise, total]) => {
+    if (!total || (total.reps <= 0 && total.hold_seconds <= 0 && total.duration_seconds <= 0)) return acc;
+    acc[exercise] = {
+      label: total.label,
+      reps: total.reps,
+      valid_reps: total.valid_reps,
+      partial_reps: total.partial_reps,
+      duration_seconds: Math.round(total.duration_seconds || 0),
+      hold_seconds: Math.round(total.hold_seconds || 0),
+      average_form_score: Math.round(total.average_form_score || 0),
+      average_confidence: Math.round(total.average_confidence || 0),
+      issues: (total.issues || []).map((issue) => ({
+        issue: humanizeIssue(issue.issue),
+        count: issue.count,
+      })),
+      best_rep: summarizeRep(total.best_rep),
+      worst_rep: summarizeRep(total.worst_rep),
+    };
+    return acc;
+  }, {});
+}
+
+function movementDurations(report: FinalSessionResult) {
+  return Object.entries(report.repsByExercise).reduce<Record<string, number>>((acc, [exercise, total]) => {
+    const seconds = Math.round((total?.hold_seconds || 0) + (total?.duration_seconds || 0));
+    if (seconds > 0) acc[exercise] = seconds;
+    return acc;
+  }, {});
+}
+
+function repQualityMaps(report: FinalSessionResult, key: "best_rep" | "worst_rep") {
+  return Object.entries(report.repsByExercise).reduce<Record<string, unknown>>((acc, [exercise, total]) => {
+    const rep = summarizeRep(total?.[key] || null);
+    if (rep) acc[exercise] = rep;
+    return acc;
+  }, {});
+}
+
+function buildLocalSessionSummary(report: FinalSessionResult): AiSessionSummary {
+  const score = Math.round(report.formScore || 0);
+  const confidence = Math.round(report.avgConfidence || 0);
+  const partialRatio = report.validReps > 0 ? report.partialReps / report.validReps : report.partialReps > 0 ? 1 : 0;
+  const mainIssue = report.postureIssues[0];
+  const exercises = exerciseNames(report.detectedExercises);
+  const headline =
+    score >= 85 && confidence >= 70
+      ? "Strong controlled session."
+      : partialRatio > 0.45
+        ? "Good effort, but range of motion needs work."
+        : mainIssue
+          ? "Solid session with one form priority."
+          : "Session complete with clean movement data.";
+  const summary = [
+    `You completed ${report.totalReps} reps across ${exercises} in ${formatDuration(report.duration)}.`,
+    `Average form score was ${score}/100 with ${confidence}% tracking confidence.`,
+    mainIssue ? `Main coaching pattern: ${mainIssue}` : "No repeated posture issue was flagged.",
+    report.partialReps > 0 ? `${report.partialReps} partial reps suggest slowing down and finishing the full range.` : "Rep range looked consistent overall.",
+  ].join(" ");
+  const focus = mainIssue || (partialRatio > 0.3 ? "Finish the full range before adding speed." : "Keep the same tempo and camera setup next time.");
+  const cues = uniqueList([
+    report.bestCue,
+    mainIssue,
+    partialRatio > 0.3 ? "Pause briefly at the end range so reps count cleanly." : "Keep reps smooth and controlled.",
+    confidence < 60 ? "Move farther from the camera and keep the full body visible." : "Keep the camera stable for consistent tracking.",
+  ].filter(Boolean).map(coachText)).slice(0, 4);
+
+  return {
+    headline,
+    summary: coachText(summary),
+    focus_next: coachText(focus),
+    cues,
+    source: "local",
+  };
+}
+
+function normalizeAiSummary(raw: Partial<AiSessionSummary> | undefined, fallback: AiSessionSummary, source?: string, warning?: string): AiSessionSummary {
+  const cues = Array.isArray(raw?.cues) ? raw.cues.map((cue) => coachText(String(cue))).filter(Boolean).slice(0, 4) : [];
+  return {
+    headline: coachText(raw?.headline || fallback.headline),
+    summary: coachText(raw?.summary || fallback.summary),
+    focus_next: coachText(raw?.focus_next || fallback.focus_next),
+    cues: cues.length ? cues : fallback.cues,
+    source: source || fallback.source,
+    warning,
+  };
 }
 
 function emptyTotals() {
@@ -185,6 +357,8 @@ export function PoseWorkoutScreen() {
   const [error, setError] = useState("");
   const [workoutState, setWorkoutState] = useState<AutoWorkoutState | null>(null);
   const [finalSessionResult, setFinalSessionResult] = useState<FinalSessionResult | null>(null);
+  const [aiSummary, setAiSummary] = useState<AiSessionSummary | null>(null);
+  const [aiSummaryState, setAiSummaryState] = useState<"idle" | "loading" | "ready">("idle");
   const [resetKey, setResetKey] = useState(0);
   const sessionStartedAtRef = useRef<number | null>(null);
 
@@ -215,6 +389,8 @@ export function PoseWorkoutScreen() {
   const startSession = useCallback(() => {
     setError("");
     setFinalSessionResult(null);
+    setAiSummary(null);
+    setAiSummaryState("idle");
     setWorkoutState(null);
     setDurationSeconds(0);
     sessionStartedAtRef.current = null;
@@ -248,7 +424,7 @@ export function PoseWorkoutScreen() {
       caloriesEstimate: estimateCalories(durationSeconds, workoutState?.totalReps || 0),
       validReps: workoutState?.validReps || 0,
       partialReps: workoutState?.partialReps || 0,
-      postureIssues: (workoutState?.detectedIssues || []).map((item) => item.issue.replace(/_/g, " ")).slice(0, 5),
+      postureIssues: uniqueList((workoutState?.detectedIssues || []).map((item) => humanizeIssue(item.issue)).filter(Boolean)).slice(0, 5),
       feedback,
       improvementTips: workoutState?.improvementTips?.length ? workoutState.improvementTips : [bestTip(workoutState)],
       bestCue: cleanCueText(workoutState?.feedback?.[0]) || bestTip(workoutState),
@@ -256,10 +432,61 @@ export function PoseWorkoutScreen() {
     };
   }, [durationSeconds, workoutState]);
 
+  const generateAiSummary = useCallback(async (sessionReport: FinalSessionResult) => {
+    const fallback = buildLocalSessionSummary(sessionReport);
+    setAiSummary(null);
+    setAiSummaryState("loading");
+
+    try {
+      const response = await fetchAiEndpoint("/api/coach/pose-summary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          exercise_name: "AI Form Coach",
+          exercise_type: "automatic_form_tracker",
+          detected_exercises: sessionReport.detectedExercises
+            .filter((exercise) => exercise !== "general")
+            .map((exercise) => EXERCISE_LABELS[exercise] || exercise),
+          exercise_totals: compactExerciseTotals(sessionReport),
+          reps: sessionReport.totalReps,
+          average_form_score: Math.round(sessionReport.formScore || 0),
+          score: Math.round(sessionReport.formScore || 0),
+          duration_seconds: Math.round(sessionReport.duration || 0),
+          movement_durations: movementDurations(sessionReport),
+          detected_issues: sessionReport.postureIssues.map((issue) => ({ issue, count: 1 })),
+          best_reps: repQualityMaps(sessionReport, "best_rep"),
+          worst_reps: repQualityMaps(sessionReport, "worst_rep"),
+          cues: uniqueList([
+            sessionReport.bestCue,
+            ...sessionReport.improvementTips,
+            ...sessionReport.postureIssues,
+          ].filter(Boolean).map(coachText)).slice(0, 8),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("AI summary is unavailable for this session.");
+      }
+
+      const data = await response.json() as {
+        summary?: Partial<AiSessionSummary>;
+        source?: string;
+        warning?: string;
+      };
+      setAiSummary(normalizeAiSummary(data.summary, fallback, data.source, data.warning));
+    } catch {
+      setAiSummary(fallback);
+    } finally {
+      setAiSummaryState("ready");
+    }
+  }, []);
+
   const endSession = useCallback(() => {
-    setFinalSessionResult(buildFinalReport());
+    const sessionReport = buildFinalReport();
+    setFinalSessionResult(sessionReport);
     setCameraActive(false);
-  }, [buildFinalReport]);
+    void generateAiSummary(sessionReport);
+  }, [buildFinalReport, generateAiSummary]);
 
   const report = finalSessionResult;
   const totals = workoutState?.totals || emptyTotals();
@@ -283,7 +510,13 @@ export function PoseWorkoutScreen() {
     const detected = report.detectedExercises.length
       ? report.detectedExercises.map((exercise) => EXERCISE_LABELS[exercise]).join(", ")
       : "No exercise detected";
-    const tips = report.improvementTips.filter(Boolean).slice(0, 3);
+    const coachSummary = aiSummary || buildLocalSessionSummary(report);
+    const summaryLoading = aiSummaryState === "loading" && !aiSummary;
+    const tips = uniqueList([
+      ...coachSummary.cues,
+      ...report.improvementTips.map(coachText),
+    ].filter(Boolean)).slice(0, 4);
+    const summarySource = coachSummary.source && coachSummary.source !== "local" ? "AI generated" : "Smart feedback";
 
     return (
       <div className="min-h-screen bg-[#070707] px-4 py-5 text-white sm:px-6 lg:px-8">
@@ -307,7 +540,47 @@ export function PoseWorkoutScreen() {
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-white/55">Session completed</p>
                 <h2 className="mt-1 text-2xl font-black">{detected}</h2>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-white/62">{report.feedback}</p>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-white/62">
+                  {summaryLoading ? "AI coach is reading your reps, confidence, and form patterns." : coachSummary.summary}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 rounded-lg border border-[var(--fc-accent-strong)]/20 bg-[var(--fc-accent)]/8 p-4">
+              <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                <div className="flex items-start gap-3">
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-[var(--fc-accent-strong)]/14 text-[var(--fc-accent-strong)]">
+                    {summaryLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
+                  </div>
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--fc-accent-strong)]">AI coach summary</p>
+                    <h3 className="mt-1 text-xl font-black text-white">
+                      {summaryLoading ? "Generating real feedback..." : coachSummary.headline}
+                    </h3>
+                    <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-white/68">
+                      {summaryLoading ? "The report will update automatically in a moment." : coachSummary.summary}
+                    </p>
+                  </div>
+                </div>
+                <span className="w-fit rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-white/50">
+                  {summaryLoading ? "Analyzing" : summarySource}
+                </span>
+              </div>
+
+              <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+                <div className="rounded-lg bg-black/20 px-4 py-3">
+                  <p className="text-xs font-black uppercase tracking-[0.14em] text-white/42">Focus next</p>
+                  <p className="mt-2 text-sm font-black leading-6 text-white">
+                    {summaryLoading ? "Waiting for coach feedback" : coachSummary.focus_next}
+                  </p>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {(summaryLoading ? ["Analyzing movement quality", "Checking valid vs partial reps"] : tips.slice(0, 4)).map((tip) => (
+                    <p key={tip} className="rounded-lg bg-black/20 px-4 py-3 text-sm font-semibold leading-6 text-white/72">
+                      {tip}
+                    </p>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -325,7 +598,7 @@ export function PoseWorkoutScreen() {
           </section>
 
           <section className={cn(panelClass, "p-5 sm:p-6")}>
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-white/42">Improvement tips</p>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-white/42">Coach feedback</p>
             <div className="mt-3 grid gap-2">
               {tips.map((tip) => (
                 <p key={tip} className="rounded-lg bg-white/[0.045] px-4 py-3 text-sm font-semibold leading-6 text-white/72">
@@ -334,7 +607,7 @@ export function PoseWorkoutScreen() {
               ))}
             </div>
             <p className="mt-4 text-xs font-semibold leading-5 text-white/40">
-              Posture issues observed: {report.postureIssues.length ? report.postureIssues.join(", ") : "none flagged during this session"}.
+              Posture issues observed: {report.postureIssues.length ? report.postureIssues.join(" ") : "none flagged during this session"}.
             </p>
           </section>
         </div>

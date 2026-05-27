@@ -31,8 +31,40 @@ const DEFAULT_SUMMARY: PoseSummary = {
   cues: ["Keep the full body in frame.", "Move slowly enough to keep position clean."],
 };
 
+const ISSUE_LABELS: Record<string, string> = {
+  "visibility ankles": "Keep ankles visible so stance and depth can be checked.",
+  "visibility knees": "Keep knees visible through the full rep.",
+  "visibility hips": "Keep hips in frame for better posture feedback.",
+  "visibility shoulders": "Keep shoulders in frame and square to the camera.",
+  "visibility elbows": "Keep elbows visible during arm movements.",
+  "visibility wrists": "Keep wrists visible so reps count cleanly.",
+  "lateral raise short range": "Raise arms closer to shoulder height before lowering.",
+  "front raise short range": "Lift arms through the full front-raise range.",
+  "squat knee cave": "Push knees out so they track over your toes.",
+  "squat partial depth": "Sit lower and finish the full squat depth.",
+  "deadlift short hinge": "Hinge hips farther back before standing tall.",
+  "pushup shallow depth": "Lower with more control before pressing up.",
+  "biceps curl short range": "Fully extend and curl through a complete range.",
+  "russian twist short range": "Rotate farther to each side before switching.",
+};
+
 function objectRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function humanizeIssue(issue: string) {
+  const normalized = issue.replace(/[_-]/g, " ").replace(/\s+/g, " ").trim().toLowerCase();
+  if (!normalized) return "";
+  return ISSUE_LABELS[normalized] || normalized.charAt(0).toUpperCase() + normalized.slice(1);
+}
+
+function formatDurationText(totalSeconds: number) {
+  const safeSeconds = Math.max(0, Math.round(totalSeconds));
+  const minutes = Math.floor(safeSeconds / 60);
+  const seconds = safeSeconds % 60;
+  if (minutes <= 0) return `${seconds} seconds`;
+  if (seconds === 0) return `${minutes} minutes`;
+  return `${minutes} min ${seconds} sec`;
 }
 
 function issueList(value: unknown) {
@@ -40,7 +72,7 @@ function issueList(value: unknown) {
   return value
     .map((item) => objectRecord(item))
     .map((item) => ({
-      issue: cleanText(item.issue, "", 80).replace(/_/g, " "),
+      issue: humanizeIssue(cleanText(item.issue, "", 120)),
       count: cleanNumber(item.count),
     }))
     .filter((item) => item.issue)
@@ -86,7 +118,7 @@ function localSummary(input: Record<string, unknown>, previousScore: number | nu
   const score = cleanNumber(input.average_form_score ?? input.score);
   const reps = cleanNumber(input.reps);
   const durationSeconds = cleanNumber(input.duration_seconds);
-  const durationText = durationSeconds > 0 ? ` in ${Math.round(durationSeconds)} seconds` : "";
+  const durationText = durationSeconds > 0 ? ` in ${formatDurationText(durationSeconds)}` : "";
   const delta = previousScore !== null ? Math.round(score - previousScore) : null;
   const cues = Array.isArray(input.cues) ? input.cues.map((cue) => cleanText(cue, "", 120)).filter(Boolean) : [];
   const totals = summarizeTotals(objectRecord(input.exercise_totals));
