@@ -638,27 +638,27 @@ export function PulseDashboard() {
             )}
           </ShellCard>
 
-          <div className="grid min-w-0 gap-5 lg:grid-cols-2">
+          <div className="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <ShellCard className="overflow-hidden p-5 sm:p-6">
             <SectionTitle
               eyebrow="Recommended"
               title="1-2 good options"
               action={<Link href="/workout-plan" className="text-sm font-black text-[#16a34a]">See all</Link>}
             />
-            <div className="mt-4 grid gap-3">
+            <div className="mt-4 grid min-w-0 gap-3 overflow-hidden">
               {d.recommendedWorkouts.length ? (
                 d.recommendedWorkouts.slice(0, 2).map((workout) => (
                   <Link
                     key={workout.id}
                     href={`/workout/session?workout=${workout.workoutId}`}
-                    className="flex min-w-0 items-center gap-3 rounded-2xl bg-[#f8fafc] p-3 transition hover:bg-[#f0fdf4]"
+                    className="flex w-full min-w-0 max-w-full items-center gap-3 overflow-hidden rounded-2xl bg-[#f8fafc] p-3 transition hover:bg-[#f0fdf4]"
                   >
                     <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-white text-[#16a34a] shadow-sm">
                       <Dumbbell className="h-4 w-4" />
                     </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-black text-[#111827]">{workout.title}</span>
-                      <span className="block truncate text-xs font-semibold text-[#6b7280]">
+                    <span className="min-w-0 flex-1 overflow-hidden">
+                      <span className="block max-w-full truncate text-sm font-black text-[#111827]">{workout.title}</span>
+                      <span className="block max-w-full truncate text-xs font-semibold text-[#6b7280]">
                         {workout.minutes ? `${workout.minutes} min` : "No duration"} - {workout.reason}
                       </span>
                     </span>
