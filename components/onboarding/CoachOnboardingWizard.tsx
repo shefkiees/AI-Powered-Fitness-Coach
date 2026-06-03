@@ -53,6 +53,10 @@ const STEPS = [
   "Motivation",
 ] as const;
 
+const headingClass = "text-white drop-shadow-[0_1px_12px_rgba(255,255,255,0.16)]";
+const mutedTextClass = "text-slate-200/85";
+const labelClass = "text-sm font-semibold text-slate-100";
+
 function Chip({
   active,
   children,
@@ -69,8 +73,8 @@ function Chip({
       className={cn(
         "rounded-full border px-4 py-2 text-sm font-semibold transition",
         active
-          ? "border-[var(--fc-accent)]/40 bg-[var(--fc-accent)]/15 text-[var(--fc-accent-strong)]"
-          : "border-[var(--fc-border)] bg-black/20 text-[var(--fc-muted)] hover:border-white/20 hover:text-white",
+          ? "border-emerald-300/70 bg-emerald-300/18 text-emerald-100 shadow-[0_0_0_1px_rgba(110,231,183,0.18)]"
+          : "border-white/35 bg-black/35 text-slate-100 hover:border-emerald-200/60 hover:bg-white/[0.08] hover:text-white",
       )}
     >
       {children}
@@ -165,18 +169,24 @@ export function CoachOnboardingWizard() {
         <div className="mb-6 flex items-center justify-between gap-3">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--fc-muted)] hover:text-white"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-slate-200 hover:text-white"
           >
             <ArrowLeft className="h-4 w-4" />
             Home
           </Link>
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--fc-accent)]">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-200">
             Step {step + 1} / {STEPS.length}
           </p>
         </div>
 
-        <div className="ref-glow-card rounded-[1.5rem] border border-white/[0.06] bg-white/[0.02] p-6 sm:p-8">
-          <ProgressBar value={progress} label={STEPS[step]} showValue />
+        <div className="ref-glow-card rounded-[1.5rem] border border-white/15 bg-black/45 p-6 shadow-[0_22px_80px_rgba(0,0,0,0.42)] sm:p-8">
+          <ProgressBar
+            value={progress}
+            label={STEPS[step]}
+            showValue
+            className="[&>div:first-child]:!text-slate-200 [&>div:first-child_span]:!text-slate-200"
+            trackClassName="bg-black/45 ring-white/15"
+          />
           <AnimatePresence mode="wait">
             <motion.div
               key={step}
@@ -188,8 +198,8 @@ export function CoachOnboardingWizard() {
             >
               {step === 0 ? (
                 <div className="space-y-4">
-                  <h1 className="text-2xl font-black tracking-tight">How should we refer to your physiology?</h1>
-                  <p className="text-sm text-[var(--fc-muted)]">Used to tune volume, recovery, and language in your plan.</p>
+                  <h1 className={cn("text-2xl font-black tracking-tight", headingClass)}>How should we refer to your physiology?</h1>
+                  <p className={cn("text-sm", mutedTextClass)}>Used to tune volume, recovery, and language in your plan.</p>
                   <div className="flex flex-wrap gap-2">
                     {["female", "male", "non_binary", "prefer_not_say"].map((g) => (
                       <Chip
@@ -206,9 +216,9 @@ export function CoachOnboardingWizard() {
 
               {step === 1 ? (
                 <div className="grid gap-4">
-                  <h1 className="text-2xl font-black tracking-tight">Age, height, and weight</h1>
+                  <h1 className={cn("text-2xl font-black tracking-tight", headingClass)}>Age, height, and weight</h1>
                   <div className="grid gap-3 sm:grid-cols-3">
-                    <label className="grid gap-1 text-sm font-semibold">
+                    <label className={cn("grid gap-1", labelClass)}>
                       Age
                       <Input
                         type="number"
@@ -218,7 +228,7 @@ export function CoachOnboardingWizard() {
                         max={90}
                       />
                     </label>
-                    <label className="grid gap-1 text-sm font-semibold">
+                    <label className={cn("grid gap-1", labelClass)}>
                       Height (cm)
                       <Input
                         type="number"
@@ -226,7 +236,7 @@ export function CoachOnboardingWizard() {
                         onChange={(e) => setDraft((d) => ({ ...d, heightCm: Number(e.target.value) }))}
                       />
                     </label>
-                    <label className="grid gap-1 text-sm font-semibold">
+                    <label className={cn("grid gap-1", labelClass)}>
                       Weight (kg)
                       <Input
                         type="number"
@@ -241,7 +251,7 @@ export function CoachOnboardingWizard() {
               {step === 2 ? (
                 <div className="space-y-6">
                   <div>
-                    <h2 className="text-lg font-black">Primary fitness goal</h2>
+                    <h2 className={cn("text-lg font-black", headingClass)}>Primary fitness goal</h2>
                     <div className="mt-3 flex flex-wrap gap-2">
                       {(
                         [
@@ -262,7 +272,7 @@ export function CoachOnboardingWizard() {
                     </div>
                   </div>
                   <div>
-                    <h2 className="text-lg font-black">Current fitness level</h2>
+                    <h2 className={cn("text-lg font-black", headingClass)}>Current fitness level</h2>
                     <div className="mt-3 flex flex-wrap gap-2">
                       {(
                         [
@@ -286,8 +296,8 @@ export function CoachOnboardingWizard() {
 
               {step === 3 ? (
                 <div className="grid gap-4">
-                  <h1 className="text-2xl font-black tracking-tight">Weekly rhythm</h1>
-                  <label className="grid gap-1 text-sm font-semibold">
+                  <h1 className={cn("text-2xl font-black tracking-tight", headingClass)}>Weekly rhythm</h1>
+                  <label className={cn("grid gap-1", labelClass)}>
                     Workout days per week
                     <Input
                       type="number"
@@ -299,7 +309,7 @@ export function CoachOnboardingWizard() {
                       }
                     />
                   </label>
-                  <label className="grid gap-1 text-sm font-semibold">
+                  <label className={cn("grid gap-1", labelClass)}>
                     Typical session length (minutes)
                     <Input
                       type="number"
@@ -316,8 +326,8 @@ export function CoachOnboardingWizard() {
 
               {step === 4 ? (
                 <div className="space-y-3">
-                  <h1 className="text-2xl font-black tracking-tight">Available equipment</h1>
-                  <p className="text-sm text-[var(--fc-muted)]">Select everything you can use most weeks.</p>
+                  <h1 className={cn("text-2xl font-black tracking-tight", headingClass)}>Available equipment</h1>
+                  <p className={cn("text-sm", mutedTextClass)}>Select everything you can use most weeks.</p>
                   <div className="flex flex-wrap gap-2">
                     {EQUIPMENT_OPTIONS.map((eq) => {
                       const active = draft.equipment.includes(eq);
@@ -336,8 +346,8 @@ export function CoachOnboardingWizard() {
                           className={cn(
                             "flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold sm:text-sm",
                             active
-                              ? "border-[var(--fc-accent)]/40 bg-[var(--fc-accent)]/12 text-[var(--fc-accent-strong)]"
-                              : "border-[var(--fc-border)] bg-black/20 text-[var(--fc-muted)]",
+                              ? "border-emerald-300/70 bg-emerald-300/18 text-emerald-100"
+                              : "border-white/35 bg-black/35 text-slate-100",
                           )}
                         >
                           {active ? <Check className="h-3.5 w-3.5" /> : <Dumbbell className="h-3.5 w-3.5 opacity-50" />}
@@ -351,9 +361,9 @@ export function CoachOnboardingWizard() {
 
               {step === 5 ? (
                 <div className="grid gap-3">
-                  <h1 className="text-2xl font-black tracking-tight">Injuries or limitations</h1>
+                  <h1 className={cn("text-2xl font-black tracking-tight", headingClass)}>Injuries or limitations</h1>
                   <textarea
-                    className="pulse-input min-h-[120px] resize-y rounded-2xl p-4 text-sm"
+                    className="pulse-input min-h-[120px] resize-y rounded-2xl border-white/25 bg-black/40 p-4 text-sm !text-white placeholder:!text-slate-300/70"
                     placeholder="e.g. mild knee irritation — avoid deep lunges"
                     value={draft.injuries}
                     onChange={(e) => setDraft((d) => ({ ...d, injuries: e.target.value }))}
@@ -364,7 +374,7 @@ export function CoachOnboardingWizard() {
               {step === 6 ? (
                 <div className="space-y-6">
                   <div>
-                    <h2 className="text-lg font-black">Preferred workout location</h2>
+                    <h2 className={cn("text-lg font-black", headingClass)}>Preferred workout location</h2>
                     <div className="mt-3 grid gap-2 sm:grid-cols-3">
                       {(
                         [
@@ -380,18 +390,18 @@ export function CoachOnboardingWizard() {
                           className={cn(
                             "flex flex-col items-start gap-2 rounded-2xl border p-4 text-left transition",
                             draft.workoutLocation === value
-                              ? "border-[var(--fc-accent)]/35 bg-[var(--fc-accent)]/10"
-                              : "border-[var(--fc-border)] bg-black/15 hover:border-white/15",
+                              ? "border-emerald-300/70 bg-emerald-300/16 text-white"
+                              : "border-white/25 bg-black/30 text-slate-100 hover:border-white/45",
                           )}
                         >
                           <Icon className="h-5 w-5 text-[var(--fc-accent)]" />
-                          <span className="text-sm font-bold">{label}</span>
+                          <span className="text-sm font-bold text-slate-50">{label}</span>
                         </button>
                       ))}
                     </div>
                   </div>
                   <div>
-                    <h2 className="text-lg font-black">Nutrition preference</h2>
+                    <h2 className={cn("text-lg font-black", headingClass)}>Nutrition preference</h2>
                     <div className="mt-3 flex flex-wrap gap-2">
                       {["Balanced", "Higher protein", "Low carb", "Plant-forward", "No preference"].map((n) => (
                         <Chip
@@ -409,8 +419,8 @@ export function CoachOnboardingWizard() {
 
               {step === 7 ? (
                 <div className="grid gap-3">
-                  <h1 className="text-2xl font-black tracking-tight">Target weight (optional)</h1>
-                  <p className="text-sm text-[var(--fc-muted)]">Leave blank if you are not targeting the scale.</p>
+                  <h1 className={cn("text-2xl font-black tracking-tight", headingClass)}>Target weight (optional)</h1>
+                  <p className={cn("text-sm", mutedTextClass)}>Leave blank if you are not targeting the scale.</p>
                   <Input
                     type="number"
                     placeholder="kg"
@@ -427,10 +437,10 @@ export function CoachOnboardingWizard() {
 
               {step === 8 ? (
                 <div className="grid gap-3">
-                  <h1 className="text-2xl font-black tracking-tight">Main motivation</h1>
-                  <p className="text-sm text-[var(--fc-muted)]">We surface this on hard training days.</p>
+                  <h1 className={cn("text-2xl font-black tracking-tight", headingClass)}>Main motivation</h1>
+                  <p className={cn("text-sm", mutedTextClass)}>We surface this on hard training days.</p>
                   <textarea
-                    className="pulse-input min-h-[120px] resize-y rounded-2xl p-4 text-sm"
+                    className="pulse-input min-h-[120px] resize-y rounded-2xl border-white/25 bg-black/40 p-4 text-sm !text-white placeholder:!text-slate-300/70"
                     placeholder="e.g. I want more energy for my kids and confidence in my body."
                     value={draft.mainMotivation}
                     onChange={(e) => setDraft((d) => ({ ...d, mainMotivation: e.target.value }))}
@@ -454,9 +464,9 @@ export function CoachOnboardingWizard() {
                       <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--fc-accent)]">
                         Coach preview
                       </p>
-                      <h2 className="mt-2 text-lg font-black">{aiSummary.headline}</h2>
-                      <p className="mt-2 text-sm leading-6 text-[var(--fc-muted)]">{aiSummary.summary}</p>
-                      <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-[var(--fc-muted)]">
+                      <h2 className="mt-2 text-lg font-black text-white">{aiSummary.headline}</h2>
+                      <p className="mt-2 text-sm leading-6 text-slate-100/85">{aiSummary.summary}</p>
+                      <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-100/85">
                         {aiSummary.starting_strategy.slice(0, 3).map((item) => (
                           <li key={item}>{item}</li>
                         ))}
@@ -471,13 +481,13 @@ export function CoachOnboardingWizard() {
             </motion.div>
           </AnimatePresence>
 
-          <div className="mt-10 flex flex-col gap-3 border-t border-[var(--fc-border)] pt-6 sm:flex-row sm:items-center sm:justify-between">
-            <Button type="button" variant="ghost" onClick={back} disabled={step === 0}>
+          <div className="mt-10 flex flex-col gap-3 border-t border-white/25 pt-6 sm:flex-row sm:items-center sm:justify-between">
+            <Button type="button" variant="ghost" onClick={back} disabled={step === 0} className="text-slate-100 disabled:text-slate-300 disabled:opacity-70">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back
             </Button>
             {step < STEPS.length - 1 ? (
-              <Button type="button" onClick={next} disabled={!canAdvance()}>
+              <Button type="button" onClick={next} disabled={!canAdvance()} className="disabled:opacity-75">
                 Continue
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
@@ -495,7 +505,7 @@ export function CoachOnboardingWizard() {
           </div>
         </div>
 
-        <p className="mt-6 text-center text-xs text-[var(--fc-muted)]">
+        <p className="mt-6 text-center text-xs font-medium text-slate-200/80">
           By continuing you agree that Pulse provides general fitness information, not medical advice.
         </p>
       </div>
