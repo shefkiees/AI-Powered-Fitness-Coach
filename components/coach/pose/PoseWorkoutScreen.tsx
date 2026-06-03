@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { Activity, BadgeCheck, Camera, CheckCircle2, Clock3, Flame, Gauge, Loader2, Play, ShieldAlert, Square, Target, TrendingUp } from "lucide-react";
+import { Activity, BadgeCheck, Camera, CheckCircle2, Clock3, Gauge, Loader2, Play, ShieldAlert, Square, Target, TrendingUp } from "lucide-react";
 import { PoseCameraPreview } from "@/components/pose/PoseCameraLazy";
 import { Button } from "@/components/ui/Button";
 import { fetchAiEndpoint } from "@/lib/aiFetch";
@@ -610,7 +610,6 @@ export function PoseWorkoutScreen() {
                 {reportMetric("Duration", formatDuration(report.duration), <Clock3 className="h-4 w-4" />, "Total tracked time")}
                 {reportMetric("Total reps", report.totalReps, <Activity className="h-4 w-4" />, topExercise ? `Top: ${topExercise.label}` : "No movement counted")}
                 {reportMetric("Valid / partial", `${report.validReps} / ${report.partialReps}`, <CheckCircle2 className="h-4 w-4" />, `${validShare}% valid reps`)}
-                {reportMetric("Calories", report.caloriesEstimate, <Flame className="h-4 w-4" />, "Estimated effort")}
               </div>
             </div>
 
