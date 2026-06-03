@@ -5,7 +5,6 @@ import Link from "next/link";
 import {
   ArrowRight,
   Bot,
-  CheckCircle2,
   Clock,
   Dumbbell,
   Flame,
@@ -66,8 +65,6 @@ const workoutTiles = [
     description: "A short reset for tight hips, shoulders, and post-workout recovery.",
   },
 ] as const;
-
-const heroHighlights = ["Personalized weekly plans", "Recovery-aware workouts", "Private progress tracking"] as const;
 
 const featureGrid = [
   {
@@ -158,12 +155,7 @@ export function LandingPage() {
 
         <div className="mx-auto grid min-h-[720px] max-w-6xl items-center gap-12 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-[0.92fr_1.08fr] lg:px-8">
           <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-300/18 bg-emerald-300/[0.07] px-3.5 py-2 text-[0.68rem] font-black uppercase text-emerald-100/82 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl">
-              <span className="h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_18px_rgba(52,211,153,0.85)]" />
-              Private AI fitness coach
-            </div>
-
-            <h1 className="mt-6 max-w-[36rem] text-4xl font-black leading-[1.04] tracking-normal text-white sm:text-5xl lg:text-[4.05rem]">
+            <h1 className="max-w-[36rem] text-4xl font-black leading-[1.04] tracking-normal text-white sm:text-5xl lg:text-[4.05rem]">
               Train smarter with a private AI coach.
             </h1>
             <p className="mt-6 max-w-xl text-base leading-8 text-emerald-50/68 sm:text-lg">
@@ -187,17 +179,6 @@ export function LandingPage() {
               </Link>
             </div>
 
-            <div className="mt-8 flex flex-wrap gap-3">
-              {heroHighlights.map((item) => (
-                <span
-                  key={item}
-                  className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-3.5 py-2 text-xs font-bold text-emerald-50/78 backdrop-blur-xl"
-                >
-                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300" />
-                  {item}
-                </span>
-              ))}
-            </div>
           </div>
 
           <aside className="relative mx-auto w-full max-w-[560px] lg:mr-0">
